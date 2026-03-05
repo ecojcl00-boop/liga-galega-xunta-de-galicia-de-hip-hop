@@ -1,0 +1,139 @@
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import {
+  LayoutDashboard,
+  School,
+  Users,
+  Trophy,
+  ClipboardList,
+  Gavel,
+  BarChart3,
+  Menu,
+  X,
+  ChevronRight,
+  Home
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const navItems = [
+  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
+  { name: "Competiciones", icon: Trophy, page: "Competitions" },
+  { name: "Inscripciones", icon: ClipboardList, page: "Registrations" },
+  { name: "Grupos", icon: Users, page: "Groups" },
+  { name: "Escuelas", icon: School, page: "Schools" },
+  { name: "Categorías", icon: BarChart3, page: "Categories" },
+  { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
+];
+
+export default function Layout({ children, currentPageName }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-foreground/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300 ease-in-out
+          bg-sidebar text-sidebar-foreground
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-5 border-b border-sidebar-border">
+          <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Trophy className="w-4.5 h-4.5 text-primary-foreground" />
+            </div>
+            <div>
+              <span className="text-sm font-bold tracking-wider text-sidebar-foreground">DANCE</span>
+              <span className="text-sm font-bold tracking-wider text-primary">LEAGUE</span>
+            </div>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <div className="space-y-1">
+            {navItems.map((item) => {
+              const isActive = currentPageName === item.page;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                    ${isActive
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    }`}
+                >
+                  <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
+                  <span>{item.name}</span>
+                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-bold text-primary">
+              DL
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">DanceLeague Pro</p>
+              <p className="text-[10px] text-sidebar-foreground/50">v1.0</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar */}
+        <header className="h-16 flex items-center gap-4 px-4 lg:px-6 border-b bg-card">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to={createPageUrl("Dashboard")} className="hover:text-foreground transition-colors">
+              <Home className="w-4 h-4" />
+            </Link>
+            <ChevronRight className="w-3 h-3" />
+            <span className="font-medium text-foreground">
+              {navItems.find(n => n.page === currentPageName)?.name || currentPageName}
+            </span>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
