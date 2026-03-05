@@ -24,6 +24,7 @@ const navItems = [
   { name: "Escuelas", icon: School, page: "Schools" },
   { name: "Categorías", icon: BarChart3, page: "Categories" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
+  { name: "Importar Excel", icon: ClipboardList, page: "ImportData" },
 ];
 
 export default function Layout({ children, currentPageName }) {
