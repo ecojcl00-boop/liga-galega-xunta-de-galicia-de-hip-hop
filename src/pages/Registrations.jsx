@@ -173,9 +173,24 @@ export default function Registrations() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
           <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
         </div>
-        <Button onClick={() => setShowGroupDialog(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Inscribir Grupo
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => downloadPDF()} className="gap-2">
+            <Download className="w-4 h-4" /> PDF Total
+          </Button>
+          <Select onValueChange={(v) => downloadPDF(v)}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="PDF por escuela" />
+            </SelectTrigger>
+            <SelectContent>
+              {schools.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setShowGroupDialog(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Inscribir Grupo
+          </Button>
+        </div>
       </div>
 
       {/* Mini dashboard for open competition */}
