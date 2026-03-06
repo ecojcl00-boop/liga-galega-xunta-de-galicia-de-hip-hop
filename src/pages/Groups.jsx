@@ -137,6 +137,26 @@ export default function Groups() {
 
         {MODALITY_TABS.map((m) => (
           <TabsContent key={m} value={m} className="mt-4">
+            {m === "Grupos" && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {GRUPOS_SUBCATEGORIES.map((sub) => {
+                  const count = groups.filter(g => g.category === sub).length;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setSubTab(sub)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        subTab === sub
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {sub} <span className="ml-1 opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {isLoading ? (
               <div className="text-center py-16 text-muted-foreground">Cargando...</div>
             ) : filteredForTab.length === 0 ? (
