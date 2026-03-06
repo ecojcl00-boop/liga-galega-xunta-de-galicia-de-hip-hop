@@ -3,22 +3,26 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, FileText, Trophy, Gavel } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, FileText, Trophy, Gavel, Database } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ImportData() {
   const [fileJueces, setFileJueces] = useState(null);
   const [fileResultados, setFileResultados] = useState(null);
+  const [fileGrupos, setFileGrupos] = useState(null);
   const [competitionNameJ, setCompetitionNameJ] = useState("");
   const [competitionDateJ, setCompetitionDateJ] = useState("");
   const [competitionName, setCompetitionName] = useState("");
   const [competitionDate, setCompetitionDate] = useState("");
   const [importingJ, setImportingJ] = useState(false);
   const [importingR, setImportingR] = useState(false);
+  const [importingG, setImportingG] = useState(false);
   const [resultJ, setResultJ] = useState(null);
   const [resultR, setResultR] = useState(null);
+  const [resultG, setResultG] = useState(null);
   const fileRefJ = useRef(null);
   const fileRefR = useRef(null);
+  const fileRefG = useRef(null);
 
   const handleImportJueces = async () => {
     if (!fileJueces || !competitionNameJ) return;
