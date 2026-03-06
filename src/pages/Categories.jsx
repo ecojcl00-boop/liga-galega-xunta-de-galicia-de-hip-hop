@@ -21,9 +21,32 @@ export default function Categories() {
     if (g.school_name) categoryMap[cat].schools.add(g.school_name);
   });
 
+  const categoryOrder = [
+    "Mini Parejas A",
+    "Mini Parejas B",
+    "Mini Individual A",
+    "Mini Individual B",
+    "Parejas",
+    "Individual",
+    "Infantil",
+    "Junior",
+    "Youth",
+    "Absoluta",
+    "Premium",
+    "Megacrew",
+    "Baby",
+  ];
+
   const categories = Object.entries(categoryMap)
     .map(([name, data]) => ({ name, ...data, schools: data.schools.size }))
-    .sort((a, b) => b.groups - a.groups);
+    .sort((a, b) => {
+      const ai = categoryOrder.indexOf(a.name);
+      const bi = categoryOrder.indexOf(b.name);
+      if (ai === -1 && bi === -1) return b.groups - a.groups;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
