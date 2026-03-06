@@ -1,41 +1,20 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, School, Trophy, ClipboardList } from "lucide-react";
-import StatCard from "../components/dashboard/StatCard";
+import { Trophy } from "lucide-react";
 import RankingSummary from "../components/dashboard/RankingSummary";
 
+const LOGO_URL = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a9455298e1637191017e64/1d94c95e1_ChatGPTImage6mar202611_37_50.png";
+
 export default function Dashboard() {
-  const { data: groups = [] } = useQuery({
-    queryKey: ["groups"],
-    queryFn: () => base44.entities.Group.list("-created_date"),
-  });
-  const { data: competitions = [] } = useQuery({
-    queryKey: ["competitions"],
-    queryFn: () => base44.entities.Competition.list(),
-  });
-
-  const uniqueSchools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))];
-  const totalParticipants = groups.reduce((sum, g) => sum + (g.participants?.length || 0), 0);
-
   return (
-    <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Hero / Logo */}
-      <div className="flex flex-col items-center justify-center py-8 lg:py-12 text-center">
-        <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-xl mb-4">
-          <span className="text-primary-foreground font-black text-6xl leading-none">G</span>
-        </div>
-        <h1 className="text-3xl lg:text-5xl font-black tracking-tight mt-2">HipHop Galician Dance Tour</h1>
-        <p className="text-muted-foreground mt-2 text-lg">Temporada 2025–2026</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Escuelas" value={uniqueSchools.length} icon={School} color="bg-primary" />
-        <StatCard title="Grupos" value={groups.length} icon={Users} color="bg-secondary" />
-        <StatCard title="Participantes" value={totalParticipants} icon={ClipboardList} color="bg-secondary" />
-        <StatCard title="Competiciones" value={competitions.length} icon={Trophy} color="bg-primary" />
+    <div className="p-4 lg:p-8 space-y-8 max-w-5xl mx-auto">
+      {/* Logo hero */}
+      <div className="rounded-2xl overflow-hidden shadow-xl">
+        <img
+          src={LOGO_URL}
+          alt="HipHop Galician Dance Tour"
+          className="w-full object-cover"
+        />
       </div>
 
       {/* Rankings compactos */}

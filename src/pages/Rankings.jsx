@@ -8,8 +8,9 @@ import { Trophy, Medal } from "lucide-react";
 import PodiumCategory from "../components/rankings/PodiumCategory";
 
 const CATEGORY_ORDER = [
-  "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
-  "Individual", "Parejas", "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+  "Mini Individual A", "Mini Individual B", "Individual",
+  "Mini Parejas A", "Mini Parejas B", "Parejas",
+  "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
 function positionColor(pos) {

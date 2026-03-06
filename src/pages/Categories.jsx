@@ -22,11 +22,11 @@ export default function Categories() {
   });
 
   const categoryOrder = [
-    "Mini Parejas A",
-    "Mini Parejas B",
     "Mini Individual A",
     "Mini Individual B",
     "Individual",
+    "Mini Parejas A",
+    "Mini Parejas B",
     "Parejas",
     "Baby",
     "Infantil",

@@ -16,6 +16,9 @@ const MODALITY_MAP = {
   Megacrew: ["Megacrew"],
 };
 
+const INDIVIDUAL_ORDER = ["Mini Individual A", "Mini Individual B", "Individual"];
+const PAREJAS_ORDER = ["Mini Parejas A", "Mini Parejas B", "Parejas"];
+
 const GRUPOS_SUBCATEGORIES = ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"];
 
 const MODALITY_TABS = ["Individual", "Parejas", "Grupos", "Megacrew"];

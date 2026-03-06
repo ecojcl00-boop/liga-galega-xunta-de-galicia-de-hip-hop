@@ -1,6 +1,6 @@
 import React from "react";
 
-const CATEGORY_ORDER = [
+const CATEGORY_ORDER_UNUSED = [
   "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
   "Individual", "Parejas", "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];

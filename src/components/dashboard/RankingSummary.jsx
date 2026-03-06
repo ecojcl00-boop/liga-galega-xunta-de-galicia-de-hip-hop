@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Trophy } from "lucide-react";
 
 const CATEGORY_ORDER = [
-  "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
-  "Individual", "Parejas", "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+  "Mini Individual A", "Mini Individual B", "Individual",
+  "Mini Parejas A", "Mini Parejas B", "Parejas",
+  "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
 const medalEmoji = { 1: "🥇", 2: "🥈", 3: "🥉" };
