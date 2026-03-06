@@ -114,7 +114,7 @@ export default function Rankings() {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Medal className="w-5 h-5 text-primary" />
                   {cat}
-                  <Badge variant="secondary" className="ml-auto">{byCategory[cat].length} grupos</Badge>
+                  <Badge variant="secondary" className="ml-auto">{byCategory[cat].length} {byCategory[cat].length === 1 ? "grupo" : "grupos"}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
