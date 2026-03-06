@@ -27,9 +27,23 @@ export default function ImportData() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: fileJueces });
 
-    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extrae todas las puntuaciones de jueces de este archivo. Cada fila tiene: nombre del grupo, escuela/club, categoría, nombre del juez, y puntuaciones de técnica, musicalidad, creatividad y ejecución (0-10 cada una).
+      
+      Devuelve un JSON con un array "scores" donde cada elemento tiene:
+      - group_name: string (nombre del grupo)
+      - school_name: string (club/escuela)
+      - category: string (categoría)
+      - judge_name: string (nombre del juez)
+      - technique: number (0-10)
+      - musicality: number (0-10)
+      - creativity: number (0-10)
+      - execution: number (0-10)
+      - total: number (media de los 4 criterios)
+      
+      Extrae TODOS los registros del archivo sin omitir ninguno.`,
+      file_urls: [file_url],
+      response_json_schema: {
         type: "object",
         properties: {
           scores: {
@@ -52,8 +66,6 @@ export default function ImportData() {
         }
       }
     });
-
-    const res = extracted?.output;
 
     if (res?.scores?.length > 0) {
       const records = res.scores.map(s => ({
