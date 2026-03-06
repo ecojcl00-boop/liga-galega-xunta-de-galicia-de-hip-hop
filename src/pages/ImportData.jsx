@@ -27,21 +27,9 @@ export default function ImportData() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: fileJueces });
 
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `Extract all judge scores from this file. Each row has: group name, school/club, category, judge name, and scores for technique, musicality, creativity, and execution (0-10 each).
-      
-      Return a JSON with a "scores" array where each element has:
-      - group_name: string
-      - school_name: string
-      - category: string
-      - judge_name: string
-      - technique: number (0-10)
-      - musicality: number (0-10)
-      - creativity: number (0-10)
-      - execution: number (0-10)
-      - total: number (average of the 4 scores)`,
-      file_urls: [file_url],
-      response_json_schema: {
+    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
         type: "object",
         properties: {
           scores: {
@@ -64,6 +52,8 @@ export default function ImportData() {
         }
       }
     });
+
+    const res = extracted?.output;
 
     if (res?.scores?.length > 0) {
       const records = res.scores.map(s => ({
@@ -96,17 +86,9 @@ export default function ImportData() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: fileResultados });
 
-    const res = await base44.integrations.Core.InvokeLLM({
-      prompt: `Extract all competition results from this file. Each result has: group name (NOMBRE), club/school (CLUB), category (CATEGORÍA), and position/score (PUESTO which contains both position number and points like "1º - 85 PTS" or "1° - 85 PTS").
-      
-      Return a JSON with a "resultados" array where each element has:
-      - group_name: string
-      - school_name: string  
-      - category: string
-      - position: number (just the number)
-      - score: number (just the decimal number from PTS)`,
-      file_urls: [file_url],
-      response_json_schema: {
+    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
         type: "object",
         properties: {
           resultados: {
@@ -125,6 +107,8 @@ export default function ImportData() {
         }
       }
     });
+
+    const res = extracted?.output;
 
     if (res?.resultados?.length > 0) {
       const records = res.resultados.map(r => ({
