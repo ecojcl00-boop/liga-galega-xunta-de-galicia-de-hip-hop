@@ -3,99 +3,90 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, Users, FileText, Trophy } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, FileText, Trophy, Gavel } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ImportData() {
-  const [fileParticipantes, setFileParticipantes] = useState(null);
+  const [fileJueces, setFileJueces] = useState(null);
   const [fileResultados, setFileResultados] = useState(null);
+  const [competitionNameJ, setCompetitionNameJ] = useState("");
+  const [competitionDateJ, setCompetitionDateJ] = useState("");
   const [competitionName, setCompetitionName] = useState("");
   const [competitionDate, setCompetitionDate] = useState("");
-  const [importingP, setImportingP] = useState(false);
+  const [importingJ, setImportingJ] = useState(false);
   const [importingR, setImportingR] = useState(false);
-  const [resultP, setResultP] = useState(null);
+  const [resultJ, setResultJ] = useState(null);
   const [resultR, setResultR] = useState(null);
-  const fileRefP = useRef(null);
+  const fileRefJ = useRef(null);
   const fileRefR = useRef(null);
 
-  const handleImportParticipantes = async () => {
-    if (!fileParticipantes) return;
-    setImportingP(true);
-    setResultP(null);
+  const handleImportJueces = async () => {
+    if (!fileJueces || !competitionNameJ) return;
+    setImportingJ(true);
+    setResultJ(null);
 
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileParticipantes });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: fileJueces });
 
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `This is an Excel file with dance group registrations. Each row has: nombre_grupo, escuela, categoria, nombre_entrenador, email_entrenador, telefono_entrenador, and then pairs of nombre_1/nacimiento_1 through nombre_46/nacimiento_46.
-        
-        Extract ALL 134 rows from this file. For each row, extract all participants (nombre_X / nacimiento_X pairs where nombre_X is not empty).
-        
-        Return a JSON with a "grupos" array where each element has:
-        - nombre_grupo: string (exact group name)
-        - escuela: string
-        - participantes: array of {name: string, birth_date: string} - only non-empty names`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            grupos: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  nombre_grupo: { type: "string" },
-                  escuela: { type: "string" },
-                  participantes: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        birth_date: { type: "string" }
-                      }
-                    }
-                  }
-                }
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extract all judge scores from this file. Each row has: group name, school/club, category, judge name, and scores for technique, musicality, creativity, and execution (0-10 each).
+      
+      Return a JSON with a "scores" array where each element has:
+      - group_name: string
+      - school_name: string
+      - category: string
+      - judge_name: string
+      - technique: number (0-10)
+      - musicality: number (0-10)
+      - creativity: number (0-10)
+      - execution: number (0-10)
+      - total: number (average of the 4 scores)`,
+      file_urls: [file_url],
+      response_json_schema: {
+        type: "object",
+        properties: {
+          scores: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                group_name: { type: "string" },
+                school_name: { type: "string" },
+                category: { type: "string" },
+                judge_name: { type: "string" },
+                technique: { type: "number" },
+                musicality: { type: "number" },
+                creativity: { type: "number" },
+                execution: { type: "number" },
+                total: { type: "number" }
               }
             }
           }
         }
-      });
-
-      if (res?.grupos?.length > 0) {
-        const groups = await base44.entities.Group.list("-created_date", 200);
-        let updated = 0, notFound = 0;
-
-        for (const row of res.grupos) {
-          if (!row.nombre_grupo) continue;
-          const groupName = row.nombre_grupo.trim();
-          const participants = (row.participantes || []).filter(p => p.name?.trim());
-          if (!participants.length) continue;
-
-          const match = groups.find(g =>
-            g.name.trim().toLowerCase() === groupName.toLowerCase()
-          );
-
-          if (match) {
-            await base44.entities.Group.update(match.id, { ...match, participants });
-            updated++;
-          } else {
-            notFound++;
-          }
-        }
-
-        setResultP({ success: true, updated, notFound, total: res.grupos.length });
-        toast.success(`${updated} grupos actualizados`);
-      } else {
-        setResultP({ success: false, error: "No se pudieron extraer datos" });
       }
-    } catch (err) {
-      setResultP({ success: false, error: err.message });
-      toast.error("Error en la importación");
-    } finally {
-      setImportingP(false);
+    });
+
+    if (res?.scores?.length > 0) {
+      const records = res.scores.map(s => ({
+        competition_id: competitionNameJ,
+        group_name: s.group_name,
+        school_name: s.school_name,
+        category: s.category,
+        judge_name: s.judge_name,
+        technique: s.technique,
+        musicality: s.musicality,
+        creativity: s.creativity,
+        execution: s.execution,
+        total: s.total ?? ((s.technique + s.musicality + s.creativity + s.execution) / 4)
+      }));
+
+      await base44.entities.JudgeScore.bulkCreate(records);
+      setResultJ({ success: true, total: records.length });
+      toast.success(`${records.length} puntuaciones importadas`);
+    } else {
+      setResultJ({ success: false, error: "No se pudieron extraer puntuaciones" });
     }
+
+    setImportingJ(false);
   };
 
   const handleImportResultados = async () => {
@@ -103,113 +94,119 @@ export default function ImportData() {
     setImportingR(true);
     setResultR(null);
 
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileResultados });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: fileResultados });
 
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extract all competition results from this file. Each result has: group name (NOMBRE), club/school (CLUB), category (CATEGORÍA), and position/score (PUESTO which contains both position number and points like "1º - 85 PTS" or "1° - 85 PTS").
-        
-        Return a JSON with a "resultados" array where each element has:
-        - group_name: string
-        - school_name: string  
-        - category: string
-        - position: number (just the number)
-        - score: number (just the decimal number from PTS)`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            resultados: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  group_name: { type: "string" },
-                  school_name: { type: "string" },
-                  category: { type: "string" },
-                  position: { type: "number" },
-                  score: { type: "number" }
-                }
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extract all competition results from this file. Each result has: group name (NOMBRE), club/school (CLUB), category (CATEGORÍA), and position/score (PUESTO which contains both position number and points like "1º - 85 PTS" or "1° - 85 PTS").
+      
+      Return a JSON with a "resultados" array where each element has:
+      - group_name: string
+      - school_name: string  
+      - category: string
+      - position: number (just the number)
+      - score: number (just the decimal number from PTS)`,
+      file_urls: [file_url],
+      response_json_schema: {
+        type: "object",
+        properties: {
+          resultados: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                group_name: { type: "string" },
+                school_name: { type: "string" },
+                category: { type: "string" },
+                position: { type: "number" },
+                score: { type: "number" }
               }
             }
           }
         }
-      });
-
-      if (res?.resultados?.length > 0) {
-        const records = res.resultados.map(r => ({
-          competition_name: competitionName,
-          competition_date: competitionDate || undefined,
-          group_name: r.group_name,
-          school_name: r.school_name,
-          category: r.category,
-          position: r.position,
-          score: r.score
-        }));
-
-        await base44.entities.CompetitionResult.bulkCreate(records);
-        setResultR({ success: true, total: records.length });
-        toast.success(`${records.length} resultados importados`);
-      } else {
-        setResultR({ success: false, error: "No se pudieron extraer resultados" });
       }
-    } catch (err) {
-      setResultR({ success: false, error: err.message });
-      toast.error("Error importando resultados");
-    } finally {
-      setImportingR(false);
+    });
+
+    if (res?.resultados?.length > 0) {
+      const records = res.resultados.map(r => ({
+        competition_name: competitionName,
+        competition_date: competitionDate || undefined,
+        group_name: r.group_name,
+        school_name: r.school_name,
+        category: r.category,
+        position: r.position,
+        score: r.score
+      }));
+
+      await base44.entities.CompetitionResult.bulkCreate(records);
+      setResultR({ success: true, total: records.length });
+      toast.success(`${records.length} resultados importados`);
+    } else {
+      setResultR({ success: false, error: "No se pudieron extraer resultados" });
     }
+
+    setImportingR(false);
   };
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Importar Datos</h1>
-        <p className="text-muted-foreground mt-1">Importa participantes o resultados de competiciones</p>
+        <p className="text-muted-foreground mt-1">Importa puntuaciones de jueces o resultados de competiciones</p>
       </div>
 
-      {/* Participantes */}
+      {/* Puntuaciones Jueces */}
       <Card>
         <CardContent className="p-6 space-y-4">
           <h2 className="font-bold text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" /> Importar Participantes
+            <Gavel className="w-5 h-5 text-primary" /> Importar Puntuaciones de Jueces
           </h2>
-          <p className="text-sm text-muted-foreground">Sube el Excel de inscripciones para extraer participantes de cada grupo</p>
+          <p className="text-sm text-muted-foreground">Sube un Excel, PDF o Word con las puntuaciones desglosadas por juez. Se mostrarán en el Panel de Jueces por competición.</p>
 
-          <div onClick={() => fileRefP.current?.click()}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nombre de la competición *</label>
+              <Input placeholder="Ej: Marín 2026" value={competitionNameJ} onChange={e => setCompetitionNameJ(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Fecha (opcional)</label>
+              <Input type="date" value={competitionDateJ} onChange={e => setCompetitionDateJ(e.target.value)} />
+            </div>
+          </div>
+
+          <div onClick={() => fileRefJ.current?.click()}
             className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all">
-            <input ref={fileRefP} type="file" accept=".xlsx,.xls,.csv" onChange={e => setFileParticipantes(e.target.files[0])} className="hidden" />
-            {fileParticipantes ? (
+            <input ref={fileRefJ} type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx" onChange={e => setFileJueces(e.target.files[0])} className="hidden" />
+            {fileJueces ? (
               <div className="flex flex-col items-center gap-1">
                 <FileSpreadsheet className="w-8 h-8 text-primary" />
-                <p className="font-medium text-sm">{fileParticipantes.name}</p>
+                <p className="font-medium text-sm">{fileJueces.name}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1">
                 <Upload className="w-8 h-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Seleccionar Excel de inscripciones</p>
+                <p className="text-sm text-muted-foreground">PDF, Excel o Word con puntuaciones de jueces</p>
               </div>
             )}
           </div>
 
-          <Button onClick={handleImportParticipantes} disabled={!fileParticipantes || importingP} className="w-full">
-            {importingP ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</> : <><Users className="w-4 h-4 mr-2" />Importar Participantes</>}
+          <Button onClick={handleImportJueces} disabled={!fileJueces || !competitionNameJ || importingJ} className="w-full">
+            {importingJ ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</> : <><Gavel className="w-4 h-4 mr-2" />Importar Puntuaciones</>}
           </Button>
 
-          {resultP && (
-            <div className={`p-3 rounded-lg text-sm ${resultP.success ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-              {resultP.success ? (
+          {resultJ && (
+            <div className={`p-3 rounded-lg text-sm ${resultJ.success ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+              {resultJ.success ? (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{resultP.updated} grupos actualizados {resultP.notFound > 0 && `(${resultP.notFound} no encontrados)`}</span>
+                  <span>{resultJ.total} puntuaciones importadas correctamente</span>
                 </div>
-              ) : <span>Error: {resultP.error}</span>}
+              ) : <span>Error: {resultJ.error}</span>}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Resultados */}
+      {/* Resultados Competición */}
       <Card>
         <CardContent className="p-6 space-y-4">
           <h2 className="font-bold text-lg flex items-center gap-2">

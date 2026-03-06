@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, School, Trophy, ClipboardList } from "lucide-react";
 import StatCard from "../components/dashboard/StatCard";
-import CategoryBreakdown from "../components/dashboard/CategoryBreakdown";
 import RankingSummary from "../components/dashboard/RankingSummary";
 
 export default function Dashboard() {
@@ -22,11 +21,16 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Home</h1>
-        <p className="text-muted-foreground mt-1">Resumen general de la liga</p>
+      {/* Hero / Logo */}
+      <div className="flex flex-col items-center justify-center py-8 lg:py-12 text-center">
+        <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-xl mb-4">
+          <span className="text-primary-foreground font-black text-6xl leading-none">G</span>
+        </div>
+        <h1 className="text-3xl lg:text-5xl font-black tracking-tight mt-2">HipHop Galician Dance Tour</h1>
+        <p className="text-muted-foreground mt-2 text-lg">Temporada 2025–2026</p>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Escuelas" value={uniqueSchools.length} icon={School} color="bg-primary" />
         <StatCard title="Grupos" value={groups.length} icon={Users} color="bg-secondary" />
@@ -34,25 +38,17 @@ export default function Dashboard() {
         <StatCard title="Competiciones" value={competitions.length} icon={Trophy} color="bg-primary" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Grupos por Categoría</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryBreakdown groups={groups} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Últimos Rankings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RankingSummary />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Rankings compactos */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-primary" /> Ranking Global de Liga
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RankingSummary />
+        </CardContent>
+      </Card>
     </div>
   );
 }

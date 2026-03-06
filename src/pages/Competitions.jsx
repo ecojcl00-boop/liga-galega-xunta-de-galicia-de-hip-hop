@@ -25,7 +25,7 @@ export default function Competitions() {
 
   const { data: competitions = [], isLoading } = useQuery({
     queryKey: ["competitions"],
-    queryFn: () => base44.entities.Competition.list("-date"),
+    queryFn: () => base44.entities.Competition.list("date"),
   });
 
   const { data: registrations = [] } = useQuery({

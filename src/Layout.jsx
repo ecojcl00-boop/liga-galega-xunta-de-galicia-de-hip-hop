@@ -51,7 +51,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center justify-between h-16 px-5 border-b border-sidebar-border">
           <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Trophy className="w-4.5 h-4.5 text-primary-foreground" />
+              <span className="text-primary-foreground font-black text-lg leading-none">G</span>
             </div>
             <div>
               <span className="text-sm font-bold tracking-wider text-sidebar-foreground">HIPHOP</span>
