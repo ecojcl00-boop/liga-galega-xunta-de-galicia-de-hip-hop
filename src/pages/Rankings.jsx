@@ -104,12 +104,15 @@ export default function Rankings() {
     let x = 14;
     colWidths.forEach((w, i) => { doc.rect(x, y, w, rowH, "F"); doc.text(headers[i], x + 1, y + 5); x += w; });
     y += rowH;
-    doc.setTextColor(0, 0, 0); doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); doc.setFont(undefined, "normal"); doc.setFontSize(8);
     rows.forEach((row, ri) => {
       if (y > 270) { doc.addPage(); y = 14; }
       doc.setFillColor(ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245);
       let rx = 14;
-      colWidths.forEach((w, i) => { doc.rect(rx, y, w, rowH, "F"); doc.text(String(row[i] ?? "").substring(0, Math.floor(w / 2)), rx + 1, y + 5); rx += w; });
+      colWidths.forEach((w, i) => { doc.rect(rx, y, w, rowH, "F"); });
+      doc.setTextColor(0, 0, 0);
+      let rx2 = 14;
+      colWidths.forEach((w, i) => { doc.text(String(row[i] ?? "").substring(0, Math.floor(w / 2)), rx2 + 1, y + 5); rx2 += w; });
       y += rowH;
     });
     return y;
