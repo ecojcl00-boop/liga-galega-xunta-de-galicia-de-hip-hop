@@ -117,26 +117,8 @@ export default function Rankings() {
                   <Badge variant="secondary" className="ml-auto">{byCategory[cat].length} grupos</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {byCategory[cat].map(r => (
-                    <div key={r.id} className={`flex items-center gap-4 px-5 py-3 border ${positionBg(r.position)}`}>
-                      <span className={`text-2xl font-bold w-10 text-center ${positionColor(r.position)}`}>
-                        {r.position}º
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{r.group_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{r.school_name}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-xl font-bold ${positionColor(r.position)}`}>
-                          {r.score}
-                        </span>
-                        <p className="text-[10px] text-muted-foreground">PTS</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <CardContent className="px-4 pb-4">
+                <PodiumCategory results={byCategory[cat]} category={cat} />
               </CardContent>
             </Card>
           ))}
