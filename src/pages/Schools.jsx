@@ -34,11 +34,13 @@ export default function Schools() {
 
   const schools = Object.values(schoolMap).sort((a, b) => a.name.localeCompare(b.name, "es"));
 
+  const totalParticipants = schools.reduce((sum, s) => sum + s.participants, 0);
+
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Escuelas</h1>
-        <p className="text-muted-foreground mt-1">{schools.length} escuelas participando</p>
+        <p className="text-muted-foreground mt-1">{schools.length} escuelas · {groups.length} grupos · {totalParticipants} participantes</p>
       </div>
 
       {isLoading ? (

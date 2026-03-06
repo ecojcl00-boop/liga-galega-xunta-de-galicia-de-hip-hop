@@ -23,7 +23,7 @@ const GRUPOS_SUBCATEGORIES = ["Baby", "Infantil", "Junior", "Youth", "Absoluta",
 
 const MODALITY_TABS = ["Individual", "Parejas", "Grupos", "Megacrew"];
 
-function GroupCard({ group }) {
+function GroupCard({ group, isAdmin }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -232,7 +232,7 @@ export default function Groups() {
             ) : (
               <div className="grid gap-3">
                 {filteredForTab.map((group) => (
-                  <GroupCard key={group.id} group={group} />
+                  <GroupCard key={group.id} group={group} isAdmin={isAdmin} />
                 ))}
               </div>
             )}
