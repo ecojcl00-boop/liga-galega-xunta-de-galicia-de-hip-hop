@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Pencil, Trash2, Users, School, Trophy, Lock } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Users, School, Trophy, Lock, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 export default function Registrations() {
   const [search, setSearch] = useState("");

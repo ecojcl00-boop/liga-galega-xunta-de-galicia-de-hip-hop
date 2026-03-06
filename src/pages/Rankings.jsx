@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy, Medal, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import PodiumCategory from "../components/rankings/PodiumCategory";
 
 const CATEGORY_ORDER = [
