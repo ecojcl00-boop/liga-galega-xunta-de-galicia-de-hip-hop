@@ -22,10 +22,14 @@ export default function Dashboard() {
   });
 
   const uniqueSchools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))];
-  const totalParticipants = groups.reduce(
-    (sum, g) => sum + (g.participants?.length || 0),
-    0
-  );
+  // Contar participantes únicos por nombre para evitar duplicados entre grupos
+  const allParticipantNames = new Set();
+  groups.forEach((g) => {
+    (g.participants || []).forEach((p) => {
+      if (p.name) allParticipantNames.add(p.name.trim().toLowerCase());
+    });
+  });
+  const totalParticipants = allParticipantNames.size;
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">

@@ -19,8 +19,20 @@ export default function Groups() {
     queryFn: () => base44.entities.Group.list("-created_date"),
   });
 
-  const categories = [...new Set(groups.map((g) => g.category).filter(Boolean))];
-  const schools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))];
+  const CATEGORY_ORDER = [
+    "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
+    "Individual", "Parejas", "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+  ];
+  const rawCategories = [...new Set(groups.map((g) => g.category).filter(Boolean))];
+  const categories = rawCategories.sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a);
+    const bi = CATEGORY_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  const schools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))].sort();
 
   const filtered = groups.filter((g) => {
     const matchSearch =

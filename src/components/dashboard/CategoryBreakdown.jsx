@@ -1,5 +1,10 @@
 import React from "react";
 
+const CATEGORY_ORDER = [
+  "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
+  "Individual", "Parejas", "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+];
+
 export default function CategoryBreakdown({ groups }) {
   const categoryCount = {};
   (groups || []).forEach((g) => {
@@ -7,8 +12,15 @@ export default function CategoryBreakdown({ groups }) {
     categoryCount[cat] = (categoryCount[cat] || 0) + 1;
   });
 
-  const sorted = Object.entries(categoryCount).sort(([, a], [, b]) => b - a);
-  const max = sorted.length > 0 ? sorted[0][1] : 1;
+  const sorted = Object.entries(categoryCount).sort(([a], [b]) => {
+    const ai = CATEGORY_ORDER.indexOf(a);
+    const bi = CATEGORY_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  const max = sorted.length > 0 ? Math.max(...sorted.map(([, v]) => v)) : 1;
 
   return (
     <div className="space-y-3">
