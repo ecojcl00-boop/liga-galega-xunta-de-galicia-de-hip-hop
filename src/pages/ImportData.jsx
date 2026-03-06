@@ -2,63 +2,39 @@ import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, Users, FileText, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
-// Parse a CSV/TSV row handling commas inside fields
-function parseCSVLine(line) {
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
 export default function ImportData() {
-  const [file, setFile] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState(null);
-  const fileRef = useRef(null);
+  const [fileParticipantes, setFileParticipantes] = useState(null);
+  const [fileResultados, setFileResultados] = useState(null);
+  const [competitionName, setCompetitionName] = useState("");
+  const [competitionDate, setCompetitionDate] = useState("");
+  const [importingP, setImportingP] = useState(false);
+  const [importingR, setImportingR] = useState(false);
+  const [resultP, setResultP] = useState(null);
+  const [resultR, setResultR] = useState(null);
+  const fileRefP = useRef(null);
+  const fileRefR = useRef(null);
 
-  const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (f) setFile(f);
-  };
-
-  const handleImport = async () => {
-    if (!file) return;
-    setImporting(true);
-    setResult(null);
+  const handleImportParticipantes = async () => {
+    if (!fileParticipantes) return;
+    setImportingP(true);
+    setResultP(null);
 
     try {
-      // Upload file first
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileParticipantes });
 
-      // Use LLM to extract all rows with participants
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extract ALL rows from this Excel/CSV file. Each row has: nombre_grupo, escuela, categoria, nombre_entrenador, email_entrenador, telefono_entrenador, and then pairs of nombre_1/nacimiento_1 through nombre_46/nacimiento_46.
+        prompt: `This is an Excel file with dance group registrations. Each row has: nombre_grupo, escuela, categoria, nombre_entrenador, email_entrenador, telefono_entrenador, and then pairs of nombre_1/nacimiento_1 through nombre_46/nacimiento_46.
         
-        Return a JSON array where each element has:
-        - nombre_grupo: string
-        - escuela: string  
-        - categoria: string
-        - nombre_entrenador: string
-        - email_entrenador: string
-        - telefono_entrenador: string
-        - participantes: array of {name: string, birth_date: string} - only include entries where name is not empty
+        Extract ALL 134 rows from this file. For each row, extract all participants (nombre_X / nacimiento_X pairs where nombre_X is not empty).
         
-        Extract ALL 134 rows. Do not skip any row. Include all participants for each group.`,
+        Return a JSON with a "grupos" array where each element has:
+        - nombre_grupo: string (exact group name)
+        - escuela: string
+        - participantes: array of {name: string, birth_date: string} - only non-empty names`,
         file_urls: [file_url],
         response_json_schema: {
           type: "object",
@@ -87,108 +63,199 @@ export default function ImportData() {
         }
       });
 
-      if (res && res.grupos && res.grupos.length > 0) {
-        // Get all groups from DB
+      if (res?.grupos?.length > 0) {
         const groups = await base44.entities.Group.list("-created_date", 200);
-
-        let updated = 0;
-        let notFound = 0;
+        let updated = 0, notFound = 0;
 
         for (const row of res.grupos) {
-          if (!row.nombre_grupo || !row.participantes || row.participantes.length === 0) continue;
-
-          // Find matching group by name
+          if (!row.nombre_grupo) continue;
           const groupName = row.nombre_grupo.trim();
+          const participants = (row.participantes || []).filter(p => p.name?.trim());
+          if (!participants.length) continue;
+
           const match = groups.find(g =>
             g.name.trim().toLowerCase() === groupName.toLowerCase()
           );
 
           if (match) {
-            const participants = row.participantes.filter(p => p.name && p.name.trim());
-            await base44.entities.Group.update(match.id, {
-              ...match,
-              participants
-            });
+            await base44.entities.Group.update(match.id, { ...match, participants });
             updated++;
           } else {
             notFound++;
           }
         }
 
-        setResult({ success: true, updated, notFound, total: res.grupos.length });
-        toast.success(`${updated} grupos actualizados con participantes`);
+        setResultP({ success: true, updated, notFound, total: res.grupos.length });
+        toast.success(`${updated} grupos actualizados`);
       } else {
-        setResult({ success: false, error: "No se pudieron extraer datos del archivo" });
-        toast.error("Error al procesar el archivo");
+        setResultP({ success: false, error: "No se pudieron extraer datos" });
       }
     } catch (err) {
-      setResult({ success: false, error: err.message });
+      setResultP({ success: false, error: err.message });
       toast.error("Error en la importación");
     } finally {
-      setImporting(false);
+      setImportingP(false);
+    }
+  };
+
+  const handleImportResultados = async () => {
+    if (!fileResultados || !competitionName) return;
+    setImportingR(true);
+    setResultR(null);
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileResultados });
+
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract all competition results from this file. Each result has: group name (NOMBRE), club/school (CLUB), category (CATEGORÍA), and position/score (PUESTO which contains both position number and points like "1º - 85 PTS" or "1° - 85 PTS").
+        
+        Return a JSON with a "resultados" array where each element has:
+        - group_name: string
+        - school_name: string  
+        - category: string
+        - position: number (just the number)
+        - score: number (just the decimal number from PTS)`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            resultados: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  group_name: { type: "string" },
+                  school_name: { type: "string" },
+                  category: { type: "string" },
+                  position: { type: "number" },
+                  score: { type: "number" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (res?.resultados?.length > 0) {
+        const records = res.resultados.map(r => ({
+          competition_name: competitionName,
+          competition_date: competitionDate || undefined,
+          group_name: r.group_name,
+          school_name: r.school_name,
+          category: r.category,
+          position: r.position,
+          score: r.score
+        }));
+
+        await base44.entities.CompetitionResult.bulkCreate(records);
+        setResultR({ success: true, total: records.length });
+        toast.success(`${records.length} resultados importados`);
+      } else {
+        setResultR({ success: false, error: "No se pudieron extraer resultados" });
+      }
+    } catch (err) {
+      setResultR({ success: false, error: err.message });
+      toast.error("Error importando resultados");
+    } finally {
+      setImportingR(false);
     }
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-2xl mx-auto">
+    <div className="p-4 lg:p-8 space-y-8 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Importar Participantes</h1>
-        <p className="text-muted-foreground mt-1">Sube el Excel para extraer y asignar participantes a los grupos</p>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Importar Datos</h1>
+        <p className="text-muted-foreground mt-1">Importa participantes o resultados de competiciones</p>
       </div>
 
+      {/* Participantes */}
       <Card>
-        <CardContent className="p-6 space-y-6">
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all"
-          >
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFile} className="hidden" />
-            {file ? (
-              <div className="flex flex-col items-center gap-2">
-                <FileSpreadsheet className="w-10 h-10 text-primary" />
-                <p className="font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+        <CardContent className="p-6 space-y-4">
+          <h2 className="font-bold text-lg flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" /> Importar Participantes
+          </h2>
+          <p className="text-sm text-muted-foreground">Sube el Excel de inscripciones para extraer participantes de cada grupo</p>
+
+          <div onClick={() => fileRefP.current?.click()}
+            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all">
+            <input ref={fileRefP} type="file" accept=".xlsx,.xls,.csv" onChange={e => setFileParticipantes(e.target.files[0])} className="hidden" />
+            {fileParticipantes ? (
+              <div className="flex flex-col items-center gap-1">
+                <FileSpreadsheet className="w-8 h-8 text-primary" />
+                <p className="font-medium text-sm">{fileParticipantes.name}</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2">
-                <Upload className="w-10 h-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Haz clic para seleccionar archivo</p>
-                <p className="text-xs text-muted-foreground">Excel o CSV con las inscripciones</p>
+              <div className="flex flex-col items-center gap-1">
+                <Upload className="w-8 h-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Seleccionar Excel de inscripciones</p>
               </div>
             )}
           </div>
 
-          <Button
-            onClick={handleImport}
-            disabled={!file || importing}
-            className="w-full h-12 bg-primary text-primary-foreground"
-          >
-            {importing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Extrayendo participantes...
-              </>
-            ) : (
-              <>
-                <Users className="w-4 h-4 mr-2" /> Importar Participantes
-              </>
-            )}
+          <Button onClick={handleImportParticipantes} disabled={!fileParticipantes || importingP} className="w-full">
+            {importingP ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</> : <><Users className="w-4 h-4 mr-2" />Importar Participantes</>}
           </Button>
 
-          {result && (
-            <div className={`p-4 rounded-xl text-sm ${result.success ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-              {result.success ? (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="font-medium">{result.updated} grupos actualizados</span>
-                  </div>
-                  {result.notFound > 0 && (
-                    <p className="text-xs opacity-80">({result.notFound} grupos no encontrados en la BD)</p>
-                  )}
+          {resultP && (
+            <div className={`p-3 rounded-lg text-sm ${resultP.success ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+              {resultP.success ? (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{resultP.updated} grupos actualizados {resultP.notFound > 0 && `(${resultP.notFound} no encontrados)`}</span>
                 </div>
-              ) : (
-                <span>Error: {result.error}</span>
-              )}
+              ) : <span>Error: {resultP.error}</span>}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resultados */}
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <h2 className="font-bold text-lg flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-primary" /> Importar Resultados de Competición
+          </h2>
+          <p className="text-sm text-muted-foreground">Sube un PDF, Excel o Word con los resultados para actualizar el ranking</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nombre de la competición *</label>
+              <Input placeholder="Ej: Marín 2026" value={competitionName} onChange={e => setCompetitionName(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Fecha (opcional)</label>
+              <Input type="date" value={competitionDate} onChange={e => setCompetitionDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div onClick={() => fileRefR.current?.click()}
+            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all">
+            <input ref={fileRefR} type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx" onChange={e => setFileResultados(e.target.files[0])} className="hidden" />
+            {fileResultados ? (
+              <div className="flex flex-col items-center gap-1">
+                <FileText className="w-8 h-8 text-primary" />
+                <p className="font-medium text-sm">{fileResultados.name}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <Upload className="w-8 h-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">PDF, Excel o Word con resultados</p>
+              </div>
+            )}
+          </div>
+
+          <Button onClick={handleImportResultados} disabled={!fileResultados || !competitionName || importingR} className="w-full">
+            {importingR ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Procesando...</> : <><Trophy className="w-4 h-4 mr-2" />Importar Resultados</>}
+          </Button>
+
+          {resultR && (
+            <div className={`p-3 rounded-lg text-sm ${resultR.success ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+              {resultR.success ? (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{resultR.total} resultados importados correctamente</span>
+                </div>
+              ) : <span>Error: {resultR.error}</span>}
             </div>
           )}
         </CardContent>

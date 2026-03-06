@@ -26,15 +26,15 @@ export default function Categories() {
     "Mini Parejas B",
     "Mini Individual A",
     "Mini Individual B",
-    "Parejas",
     "Individual",
+    "Parejas",
+    "Baby",
     "Infantil",
     "Junior",
     "Youth",
     "Absoluta",
     "Premium",
     "Megacrew",
-    "Baby",
   ];
 
   const categories = Object.entries(categoryMap)
