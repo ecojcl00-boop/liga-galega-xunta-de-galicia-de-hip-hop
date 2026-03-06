@@ -84,16 +84,24 @@ export default function Groups() {
 
   const schools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))].sort();
 
-  const filteredForTab = groups.filter((g) => {
-    const category = tab === "Grupos" ? g.category === subTab : MODALITY_MAP[tab]?.includes(g.category);
-    const matchSearch =
-      !search ||
-      g.name?.toLowerCase().includes(search.toLowerCase()) ||
-      g.coach_name?.toLowerCase().includes(search.toLowerCase()) ||
-      g.school_name?.toLowerCase().includes(search.toLowerCase());
-    const matchSchool = schoolFilter === "all" || g.school_name === schoolFilter;
-    return category && matchSearch && matchSchool;
-  });
+  const getOrder = (cat) => {
+    if (INDIVIDUAL_ORDER.includes(cat)) return INDIVIDUAL_ORDER.indexOf(cat);
+    if (PAREJAS_ORDER.includes(cat)) return PAREJAS_ORDER.indexOf(cat);
+    return 0;
+  };
+
+  const filteredForTab = groups
+    .filter((g) => {
+      const category = tab === "Grupos" ? g.category === subTab : MODALITY_MAP[tab]?.includes(g.category);
+      const matchSearch =
+        !search ||
+        g.name?.toLowerCase().includes(search.toLowerCase()) ||
+        g.coach_name?.toLowerCase().includes(search.toLowerCase()) ||
+        g.school_name?.toLowerCase().includes(search.toLowerCase());
+      const matchSchool = schoolFilter === "all" || g.school_name === schoolFilter;
+      return category && matchSearch && matchSchool;
+    })
+    .sort((a, b) => getOrder(a.category) - getOrder(b.category));
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
