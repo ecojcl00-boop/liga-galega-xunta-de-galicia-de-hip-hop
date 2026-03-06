@@ -322,18 +322,7 @@ export default function JudgePanel() {
         </div>
       </div>
 
-      <Tabs defaultValue="scores">
-        <TabsList>
-          <TabsTrigger value="scores">Puntuaciones Importadas</TabsTrigger>
-          <TabsTrigger value="entry">Entrada Manual</TabsTrigger>
-        </TabsList>
-        <TabsContent value="scores" className="mt-6">
-          <ScoresViewer />
-        </TabsContent>
-        <TabsContent value="entry" className="mt-6">
-          <EntryForm />
-        </TabsContent>
-      </Tabs>
+      <ScoresViewer />
     </div>
   );
 }
