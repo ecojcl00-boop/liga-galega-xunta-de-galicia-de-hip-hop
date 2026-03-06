@@ -16,6 +16,8 @@ const MODALITY_MAP = {
   Megacrew: ["Megacrew"],
 };
 
+const GRUPOS_SUBCATEGORIES = ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"];
+
 const MODALITY_TABS = ["Individual", "Parejas", "Grupos", "Megacrew"];
 
 function GroupCard({ group }) {

@@ -54,8 +54,8 @@ export default function Layout({ children, currentPageName }) {
               <Trophy className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
             <div>
-              <span className="text-sm font-bold tracking-wider text-sidebar-foreground">DANCE</span>
-              <span className="text-sm font-bold tracking-wider text-primary">LEAGUE</span>
+              <span className="text-sm font-bold tracking-wider text-sidebar-foreground">HIPHOP</span>
+              <span className="text-sm font-bold tracking-wider text-primary">GDT</span>
             </div>
           </Link>
           <Button
@@ -100,7 +100,7 @@ export default function Layout({ children, currentPageName }) {
               DL
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">DanceLeague Pro</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">HipHop Galician Dance Tour</p>
               <p className="text-[10px] text-sidebar-foreground/50">v1.0</p>
             </div>
           </div>
