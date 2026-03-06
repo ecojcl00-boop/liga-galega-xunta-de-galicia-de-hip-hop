@@ -97,69 +97,48 @@ export default function Rankings() {
     return ai - bi;
   });
 
-  const drawTable = (doc, headers, rows, startY) => {
-    const colWidths = [15, 75, 65, 25];
-    const rowH = 7;
-    const x0 = 14;
+  const drawTable = (doc, headers, colWidths, rows, startY) => {
     let y = startY;
-    // Header
-    doc.setFillColor(220, 50, 120);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-    let x = x0;
-    headers.forEach((h, i) => { doc.rect(x, y, colWidths[i], rowH, "F"); doc.text(h, x + 2, y + 5); x += colWidths[i]; });
+    const rowH = 7;
+    doc.setFillColor(220, 50, 120); doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont(undefined, "bold");
+    let x = 14;
+    colWidths.forEach((w, i) => { doc.rect(x, y, w, rowH, "F"); doc.text(headers[i], x + 1, y + 5); x += w; });
     y += rowH;
-    doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, "normal");
+    doc.setTextColor(0, 0, 0); doc.setFont(undefined, "normal");
     rows.forEach((row, ri) => {
       if (y > 270) { doc.addPage(); y = 14; }
-      doc.setFillColor(ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244);
-      let rx = x0;
-      row.forEach((cell, i) => {
-        doc.rect(rx, y, colWidths[i], rowH, "F");
-        doc.text(String(cell ?? ""), rx + 2, y + 5);
-        rx += colWidths[i];
-      });
+      doc.setFillColor(ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245);
+      let rx = 14;
+      colWidths.forEach((w, i) => { doc.rect(rx, y, w, rowH, "F"); doc.text(String(row[i] ?? "").substring(0, Math.floor(w / 2)), rx + 1, y + 5); rx += w; });
       y += rowH;
     });
-    return y + 4;
+    return y;
   };
 
   const downloadRankingPDF = () => {
     const doc = new jsPDF();
     if (view === "competition") {
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
+      doc.setFontSize(16); doc.setFont(undefined, "bold");
       doc.text(`Ranking — ${selectedCompetition}`, 14, 15);
-      let y = 24;
+      let y = 22;
       orderedCategories.forEach(cat => {
         if (y > 260) { doc.addPage(); y = 14; }
-        doc.setFontSize(10);
-        doc.setFont(undefined, "bold");
-        doc.text(cat, 14, y);
-        y += 4;
-        const rows = byCategory[cat].slice().sort((a,b) => a.position - b.position).map(r => [
-          `${r.position}º`, r.group_name, r.school_name || "", r.score || ""
-        ]);
-        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntuación"], rows, y);
+        doc.setFontSize(10); doc.setFont(undefined, "bold"); doc.setTextColor(0,0,0);
+        doc.text(cat, 14, y); y += 5;
+        const rows = byCategory[cat].slice().sort((a,b) => a.position - b.position).map(r => [`${r.position}º`, r.group_name, r.school_name || "", r.score || ""]);
+        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntuación"], [14, 90, 60, 22], rows, y) + 4;
       });
       doc.save(`ranking_${selectedCompetition.replace(/ /g,"_")}.pdf`);
     } else {
-      doc.setFontSize(16);
-      doc.setFont(undefined, "bold");
+      doc.setFontSize(16); doc.setFont(undefined, "bold");
       doc.text("Ranking Global — Todas las competiciones", 14, 15);
-      let y = 24;
+      let y = 22;
       globalCategories.forEach(cat => {
         if (y > 260) { doc.addPage(); y = 14; }
-        const rows = globalRanking.filter(r => r.category === cat).map((r, i) => [
-          `${i+1}º`, r.group_name, r.school_name || "", r.points
-        ]);
-        doc.setFontSize(10);
-        doc.setFont(undefined, "bold");
-        doc.text(cat, 14, y);
-        y += 4;
-        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntos"], rows, y);
+        const rows = globalRanking.filter(r => r.category === cat);
+        doc.setFontSize(10); doc.setFont(undefined, "bold"); doc.setTextColor(0,0,0);
+        doc.text(cat, 14, y); y += 5;
+        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntos"], [14, 90, 60, 22], rows.map((r,i) => [`${i+1}º`, r.group_name, r.school_name || "", r.points]), y) + 4;
       });
       doc.save("ranking_global.pdf");
     }
