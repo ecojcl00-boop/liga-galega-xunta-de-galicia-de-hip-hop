@@ -98,9 +98,19 @@ export default function ImportData() {
 
     const { file_url } = await base44.integrations.Core.UploadFile({ file: fileResultados });
 
-    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
+    const res = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extrae todos los resultados de esta competición de hip-hop. Cada fila tiene: nombre del grupo/participante, categoría, posición/puesto y puntuación total.
+      
+      Devuelve un JSON con un array "resultados" donde cada elemento tiene:
+      - group_name: string (nombre del grupo o participante)
+      - school_name: string (club/escuela si aparece, sino cadena vacía)
+      - category: string (categoría exactamente como aparece en mayúsculas)
+      - position: number (puesto: 1, 2, 3...)
+      - score: number (puntuación total)
+      
+      Extrae TODOS los registros sin omitir ninguno. Las categorías deben estar en mayúsculas tal como aparecen en el documento.`,
+      file_urls: [file_url],
+      response_json_schema: {
         type: "object",
         properties: {
           resultados: {
@@ -119,8 +129,6 @@ export default function ImportData() {
         }
       }
     });
-
-    const res = extracted?.output;
 
     if (res?.resultados?.length > 0) {
       const records = res.resultados.map(r => ({

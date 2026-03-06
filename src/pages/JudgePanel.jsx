@@ -129,15 +129,14 @@ function EntryForm() {
 const SCORE_FIELDS = [
   { key: "technique", label: "Técnica" },
   { key: "musicality", label: "Musicalidad" },
-  { key: "creativity", label: "Creatividad" },
-  { key: "execution", label: "Ejecución" },
+  { key: "creativity", label: "Composición" },
+  { key: "execution", label: "Impresión Global" },
 ];
 
 function ScoreRow({ score }) {
   return (
     <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
       <td className="py-2 px-3 font-medium text-sm">{score.group_name}</td>
-      <td className="py-2 px-3 text-xs text-muted-foreground">{score.school_name || "—"}</td>
       {SCORE_FIELDS.map(f => (
         <td key={f.key} className="py-2 px-3 text-center text-sm tabular-nums">
           {score[f.key] != null ? Number(score[f.key]).toFixed(1) : "—"}
@@ -171,7 +170,6 @@ function JudgeBlock({ judgeName, scores }) {
             <thead>
               <tr className="border-b bg-muted/20 text-xs text-muted-foreground">
                 <th className="py-2 px-3 text-left font-medium">Grupo</th>
-                <th className="py-2 px-3 text-left font-medium">Escuela</th>
                 {SCORE_FIELDS.map(f => (
                   <th key={f.key} className="py-2 px-3 text-center font-medium">{f.label}</th>
                 ))}
@@ -259,10 +257,10 @@ function ScoresViewer() {
   const categories = activeComp ? byCompetition[activeComp] : {};
 
   const CATEGORY_ORDER = [
-    "Mini Individual A", "Mini Individual B", "Individual",
-    "Mini Parejas A", "Mini Parejas B", "Parejas",
-    "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium",
-    "Megacrew"
+    "MINI INDIVIDUAL A", "MINI INDIVIDUAL B", "INDIVIDUAL",
+    "MINI PAREJAS A", "MINI PAREJAS B", "PAREJAS",
+    "BABY", "INFANTIL", "JUNIOR", "YOUTH", "ABSOLUTA", "PREMIUM",
+    "MEGACREW"
   ];
 
   const sortedCats = Object.keys(categories).sort((a, b) => {
