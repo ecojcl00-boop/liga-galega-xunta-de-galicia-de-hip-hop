@@ -29,7 +29,23 @@ function positionBg(pos) {
   return "bg-muted/30 border-transparent";
 }
 
+const POINTS_MAP = { 1: 12, 2: 9, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1 };
+
+function buildGlobalRanking(results) {
+  // Sum points per group+category across all competitions
+  const map = {};
+  results.forEach(r => {
+    const pts = POINTS_MAP[r.position] || 0;
+    const key = `${r.group_name}||${r.category}`;
+    if (!map[key]) map[key] = { group_name: r.group_name, school_name: r.school_name, category: r.category, points: 0, comps: [] };
+    map[key].points += pts;
+    map[key].comps.push({ competition: r.competition_name, position: r.position, pts });
+  });
+  return Object.values(map).sort((a, b) => b.points - a.points);
+}
+
 export default function Rankings() {
+  const [view, setView] = useState("competition"); // "competition" | "global"
   const [selectedCompetition, setSelectedCompetition] = useState("Marín 2026");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
