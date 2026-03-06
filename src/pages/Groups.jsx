@@ -185,6 +185,46 @@ export default function Groups() {
                 })}
               </div>
             )}
+            {m === "Individual" && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {INDIVIDUAL_ORDER.map((sub) => {
+                  const count = groups.filter(g => g.category === sub).length;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setIndSubTab(sub)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        indSubTab === sub
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {sub} <span className="ml-1 opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {m === "Parejas" && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {PAREJAS_ORDER.map((sub) => {
+                  const count = groups.filter(g => g.category === sub).length;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => setParSubTab(sub)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        parSubTab === sub
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {sub} <span className="ml-1 opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {isLoading ? (
               <div className="text-center py-16 text-muted-foreground">Cargando...</div>
             ) : filteredForTab.length === 0 ? (
