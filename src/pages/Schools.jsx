@@ -5,6 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { School, Users, Mail, Phone } from "lucide-react";
 
 export default function Schools() {
+  const [user, setUser] = React.useState(null);
+  React.useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  const isAdmin = user?.role === "admin";
+
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["groups"],
     queryFn: () => base44.entities.Group.list(),
@@ -65,13 +69,13 @@ export default function Schools() {
                     <p className="text-[10px] text-muted-foreground">Participantes</p>
                   </div>
                 </div>
-                {school.email && (
+                {isAdmin && school.email && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <Mail className="w-3 h-3" />
                     <span className="truncate">{school.email}</span>
                   </div>
                 )}
-                {school.phone && (
+                {isAdmin && school.phone && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Phone className="w-3 h-3" />
                     <span>{school.phone}</span>

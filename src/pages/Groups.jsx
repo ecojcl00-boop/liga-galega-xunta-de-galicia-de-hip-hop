@@ -60,7 +60,7 @@ function GroupCard({ group }) {
               {group.participants.map((p, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/40 text-sm">
                   <span className="font-medium">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">{p.birth_date}</span>
+                  {isAdmin && p.birth_date && <span className="text-xs text-muted-foreground">{p.birth_date}</span>}
                 </div>
               ))}
             </div>
@@ -76,6 +76,10 @@ export default function Groups() {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [tab, setTab] = useState("Individual");
   const [subTab, setSubTab] = useState("Baby");
+  const [user, setUser] = useState(null);
+
+  React.useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  const isAdmin = user?.role === "admin";
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["groups"],
