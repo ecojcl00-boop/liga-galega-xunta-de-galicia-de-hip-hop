@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
+  { name: "Home", icon: LayoutDashboard, page: "Dashboard" },
   { name: "Competiciones", icon: Trophy, page: "Competitions" },
   { name: "Inscripciones", icon: ClipboardList, page: "Registrations" },
   { name: "Grupos", icon: Users, page: "Groups" },

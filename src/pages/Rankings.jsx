@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal } from "lucide-react";
+import PodiumCategory from "../components/rankings/PodiumCategory";
 
 const CATEGORY_ORDER = [
   "Mini Parejas A", "Mini Parejas B", "Mini Individual A", "Mini Individual B",
