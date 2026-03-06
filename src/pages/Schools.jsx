@@ -28,7 +28,7 @@ export default function Schools() {
     schoolMap[name].participants += g.participants?.length || 0;
   });
 
-  const schools = Object.values(schoolMap).sort((a, b) => b.groups.length - a.groups.length);
+  const schools = Object.values(schoolMap).sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
