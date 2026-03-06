@@ -100,6 +100,40 @@ export default function Registrations() {
   const uniqueSchools = new Set(activeRegs.map(r => r.school_name).filter(Boolean)).size;
   const totalParticipants = activeRegs.reduce((sum, r) => sum + (r.participants_count || 0), 0);
 
+  const downloadPDF = (schoolFilter = null) => {
+    const doc = new jsPDF();
+    const data = schoolFilter
+      ? registrations.filter(r => r.school_name === schoolFilter)
+      : registrations;
+
+    const title = schoolFilter ? `Inscripciones — ${schoolFilter}` : "Inscripciones — Todas las escuelas";
+    doc.setFontSize(16);
+    doc.text(title, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Total: ${data.length} grupos · ${data.reduce((s, r) => s + (r.participants_count || 0), 0)} participantes`, 14, 23);
+
+    doc.autoTable({
+      startY: 28,
+      head: [["Grupo", "Escuela", "Categoría", "Entrenador", "Part.", "Estado", "Pago"]],
+      body: data.map(r => [
+        r.group_name || "",
+        r.school_name || "",
+        r.category || "",
+        r.coach_name || "",
+        r.participants_count || 0,
+        r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente",
+        r.payment_status === "paid" ? "Pagado" : "Pendiente",
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [220, 50, 120] },
+    });
+
+    const fname = schoolFilter ? `inscripciones_${schoolFilter.replace(/ /g, "_")}.pdf` : "inscripciones_total.pdf";
+    doc.save(fname);
+  };
+
+  const schools = [...new Set(registrations.map(r => r.school_name).filter(Boolean))].sort();
+
   const filteredRegistrations = registrations.filter((r) => {
     const matchSearch = !search ||
       r.group_name?.toLowerCase().includes(search.toLowerCase()) ||
