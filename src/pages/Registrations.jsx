@@ -100,39 +100,51 @@ export default function Registrations() {
   const totalParticipants = activeRegs.reduce((sum, r) => sum + (r.participants_count || 0), 0);
 
   const downloadPDF = (schoolFilter = null) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF("landscape");
     const data = schoolFilter
       ? registrations.filter(r => r.school_name === schoolFilter)
       : registrations;
 
     const title = schoolFilter ? `Inscripciones — ${schoolFilter}` : "Inscripciones — Todas las escuelas";
-    doc.setFontSize(16);
-    doc.text(title, 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Total: ${data.length} grupos · ${data.reduce((s, r) => s + (r.participants_count || 0), 0)} participantes`, 14, 23);
+    doc.setFontSize(15);
+    doc.setFont(undefined, "bold");
+    doc.text(title, 14, 14);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.text(`Total: ${data.length} grupos · ${data.reduce((s, r) => s + (r.participants_count || 0), 0)} participantes`, 14, 21);
 
-    // Manual table
-    const cols = [50, 40, 30, 40, 12, 22, 18];
     const headers = ["Grupo", "Escuela", "Categoría", "Entrenador", "Part.", "Estado", "Pago"];
-    const rows = data.map(r => [
-      r.group_name || "", r.school_name || "", r.category || "", r.coach_name || "",
-      String(r.participants_count || 0),
-      r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente",
-      r.payment_status === "paid" ? "Pagado" : "Pendiente",
-    ]);
-    let y = 28;
+    const colWidths = [50, 45, 35, 45, 15, 25, 22];
     const rowH = 7;
-    // header row
-    doc.setFillColor(220, 50, 120); doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont(undefined, "bold");
-    let x = 14;
-    cols.forEach((w, i) => { doc.rect(x, y, w, rowH, "F"); doc.text(headers[i], x + 1, y + 5); x += w; });
+    let y = 26;
+    let x0 = 14;
+
+    // Header row
+    doc.setFillColor(220, 50, 120);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
+    let x = x0;
+    headers.forEach((h, i) => { doc.rect(x, y, colWidths[i], rowH, "F"); doc.text(h, x + 2, y + 5); x += colWidths[i]; });
     y += rowH;
-    doc.setTextColor(0, 0, 0); doc.setFont(undefined, "normal");
-    rows.forEach((row, ri) => {
-      if (y > 270) { doc.addPage(); y = 14; }
-      doc.setFillColor(ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245);
-      let rx = 14;
-      cols.forEach((w, i) => { doc.rect(rx, y, w, rowH, "F"); doc.text(String(row[i]).substring(0, Math.floor(w / 2)), rx + 1, y + 5); rx += w; });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, "normal");
+    data.forEach((r, ri) => {
+      if (y > 185) { doc.addPage("landscape"); y = 14; }
+      doc.setFillColor(ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244, ri % 2 === 0 ? 250 : 244);
+      const row = [
+        r.group_name || "", r.school_name || "", r.category || "", r.coach_name || "",
+        String(r.participants_count || 0),
+        r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente",
+        r.payment_status === "paid" ? "Pagado" : "Pendiente",
+      ];
+      let rx = x0;
+      row.forEach((cell, i) => {
+        doc.rect(rx, y, colWidths[i], rowH, "F");
+        doc.text(String(cell), rx + 2, y + 5);
+        rx += colWidths[i];
+      });
       y += rowH;
     });
 
