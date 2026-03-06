@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trophy, Medal, Download } from "lucide-react";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
 import PodiumCategory from "../components/rankings/PodiumCategory";
 
 const CATEGORY_ORDER = [

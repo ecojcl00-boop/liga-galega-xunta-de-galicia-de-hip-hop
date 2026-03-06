@@ -11,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Search, Plus, Pencil, Trash2, Users, School, Trophy, Lock, Download } from "lucide-react";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
 
 export default function Registrations() {
   const [search, setSearch] = useState("");
