@@ -150,7 +150,7 @@ function ScoreRow({ score }) {
 }
 
 function JudgeBlock({ judgeName, scores }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <div className="border rounded-xl overflow-hidden">
       <button

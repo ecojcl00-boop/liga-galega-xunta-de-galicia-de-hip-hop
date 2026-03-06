@@ -76,6 +76,8 @@ export default function Groups() {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [tab, setTab] = useState("Individual");
   const [subTab, setSubTab] = useState("Baby");
+  const [indSubTab, setIndSubTab] = useState("Mini Individual A");
+  const [parSubTab, setParSubTab] = useState("Mini Parejas A");
   const [user, setUser] = useState(null);
 
   useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
