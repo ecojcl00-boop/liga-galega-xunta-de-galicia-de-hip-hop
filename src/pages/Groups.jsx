@@ -82,14 +82,14 @@ export default function Groups() {
   const schools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))].sort();
 
   const filteredForTab = groups.filter((g) => {
-    const inModality = MODALITY_MAP[tab]?.includes(g.category);
+    const category = tab === "Grupos" ? g.category === subTab : MODALITY_MAP[tab]?.includes(g.category);
     const matchSearch =
       !search ||
       g.name?.toLowerCase().includes(search.toLowerCase()) ||
       g.coach_name?.toLowerCase().includes(search.toLowerCase()) ||
       g.school_name?.toLowerCase().includes(search.toLowerCase());
     const matchSchool = schoolFilter === "all" || g.school_name === schoolFilter;
-    return inModality && matchSearch && matchSchool;
+    return category && matchSearch && matchSchool;
   });
 
   return (
