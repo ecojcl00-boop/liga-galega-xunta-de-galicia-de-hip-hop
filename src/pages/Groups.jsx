@@ -96,9 +96,20 @@ export default function Groups() {
     return 0;
   };
 
+  const getActiveSubCat = (m) => {
+    if (m === "Individual") return indSubTab;
+    if (m === "Parejas") return parSubTab;
+    if (m === "Grupos") return subTab;
+    return null;
+  };
+
   const filteredForTab = groups
     .filter((g) => {
-      const category = tab === "Grupos" ? g.category === subTab : MODALITY_MAP[tab]?.includes(g.category);
+      let category;
+      if (tab === "Grupos") category = g.category === subTab;
+      else if (tab === "Individual") category = g.category === indSubTab;
+      else if (tab === "Parejas") category = g.category === parSubTab;
+      else category = MODALITY_MAP[tab]?.includes(g.category);
       const matchSearch =
         !search ||
         g.name?.toLowerCase().includes(search.toLowerCase()) ||
