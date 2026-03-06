@@ -18,13 +18,7 @@ export default function Dashboard() {
   });
 
   const uniqueSchools = [...new Set(groups.map((g) => g.school_name).filter(Boolean))];
-  const allParticipantNames = new Set();
-  groups.forEach((g) => {
-    (g.participants || []).forEach((p) => {
-      if (p.name) allParticipantNames.add(p.name.trim().toLowerCase());
-    });
-  });
-  const totalParticipants = allParticipantNames.size;
+  const totalParticipants = groups.reduce((sum, g) => sum + (g.participants?.length || 0), 0);
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">

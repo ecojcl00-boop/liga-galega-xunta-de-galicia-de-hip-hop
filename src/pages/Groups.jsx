@@ -72,6 +72,7 @@ export default function Groups() {
   const [search, setSearch] = useState("");
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [tab, setTab] = useState("Individual");
+  const [subTab, setSubTab] = useState("Baby");
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ["groups"],
