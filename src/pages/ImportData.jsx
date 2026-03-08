@@ -164,6 +164,9 @@ export default function ImportData() {
         <p className="text-muted-foreground mt-1">Importa inscripciones, puntuaciones de jueces o resultados de competiciones</p>
       </div>
 
+      {/* Limpieza de datos */}
+      <CleanupData />
+
       {/* Importar Inscripciones */}
       <ImportInscripciones />
 
