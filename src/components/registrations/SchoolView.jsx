@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trophy, ChevronLeft, Users, CheckCircle2, Circle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard";
+import HistorialCompeticiones from "./HistorialCompeticiones";
 
 const statusColors = {
   confirmed: "bg-primary/10 text-primary",
