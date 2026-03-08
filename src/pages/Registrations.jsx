@@ -13,6 +13,8 @@ import HistorialCompeticiones from "../components/registrations/HistorialCompeti
 import AdminInscripcionesPanel from "../components/registrations/AdminInscripcionesPanel";
 import CreateGroupDialog from "../components/registrations/CreateGroupDialog.jsx";
 import CreateIndividualDialog from "../components/registrations/CreateIndividualDialog.jsx";
+import SchoolSimulator from "../components/registrations/SchoolSimulator.jsx";
+import { Eye } from "lucide-react";
 
 export default function Registrations() {
   const [user, setUser] = useState(null);
@@ -28,6 +30,7 @@ export default function Registrations() {
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
   const [showCreateIndividualDialog, setShowCreateIndividualDialog] = useState(false);
+  const [showSchoolSimulator, setShowSchoolSimulator] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -100,12 +103,17 @@ export default function Registrations() {
   }
 
   // Admin view
-  return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
-        <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
-      </div>
+   return (
+     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+       <div className="flex items-center justify-between">
+         <div>
+           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
+           <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
+         </div>
+         <Button onClick={() => setShowSchoolSimulator(true)} variant="outline" className="gap-2">
+           <Eye className="w-4 h-4" /> Simular vista de escuela
+         </Button>
+       </div>
 
       <Tabs defaultValue="gestion">
         <TabsList>
@@ -211,13 +219,22 @@ export default function Registrations() {
 
         {/* Create Individual Dialog */}
         <CreateIndividualDialog
-         open={showCreateIndividualDialog}
-         onOpenChange={setShowCreateIndividualDialog}
-         categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
-         schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
-         onSuccess={() => {
-           queryClient.invalidateQueries({ queryKey: ["groups"] });
-         }}
+          open={showCreateIndividualDialog}
+          onOpenChange={setShowCreateIndividualDialog}
+          categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
+          schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["groups"] });
+          }}
+        />
+
+        {/* School Simulator */}
+        <SchoolSimulator
+          open={showSchoolSimulator}
+          onOpenChange={setShowSchoolSimulator}
+          allGroups={groups}
+          competitions={competitions}
+          registrations={registrations}
         />
         </div>
         );
