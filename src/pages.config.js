@@ -47,24 +47,13 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AreaPrivada from './pages/AreaPrivada';
-import Dashboard from './pages/Dashboard';
-import Groups from './pages/Groups';
-import Rankings from './pages/Rankings';
-import Schools from './pages/Schools';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AreaPrivada": AreaPrivada,
-    "Dashboard": Dashboard,
-    "Groups": Groups,
-    "Rankings": Rankings,
-    "Schools": Schools,
 }
 
 export const pagesConfig = {
-    mainPage: "AreaPrivada",
     Pages: PAGES,
     Layout: __Layout,
 };
