@@ -168,7 +168,13 @@ export default function Rankings() {
       </div>
 
       {/* View toggle */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setView("liga")}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${view === "liga" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+        >
+          🏆 Ranking de Liga
+        </button>
         <button
           onClick={() => setView("competition")}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${view === "competition" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
