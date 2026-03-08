@@ -32,11 +32,13 @@ export default function SchoolView({ user, competitions, allGroups, registration
     return matched?.school_name || "";
   }, [allGroups, user]);
 
-  // ALL groups from this school
-  const myGroups = useMemo(() => {
-    if (mySchoolName) return allGroups.filter(g => g.school_name === mySchoolName);
-    return allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email);
-  }, [allGroups, mySchoolName, user]);
+  // ALL groups from this school (both legacy Marín 2026 and newly created)
+   const myGroups = useMemo(() => {
+     // Priority 1: school_name match (covers both legacy and new groups)
+     if (mySchoolName) return allGroups.filter(g => g.school_name === mySchoolName);
+     // Fallback: email match (for newly created groups by this user)
+     return allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email);
+   }, [allGroups, mySchoolName, user]);
 
   const openCompetitions = competitions.filter(c => c.registration_open);
 
