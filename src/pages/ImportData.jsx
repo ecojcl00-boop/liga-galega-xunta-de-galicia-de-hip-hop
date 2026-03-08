@@ -223,6 +223,9 @@ export default function ImportData() {
         </CardContent>
       </Card>
 
+      {/* Liga — Importar Jornada */}
+      <ImportLigaJornada />
+
       {/* Resultados Competición */}
       <Card>
         <CardContent className="p-6 space-y-4">

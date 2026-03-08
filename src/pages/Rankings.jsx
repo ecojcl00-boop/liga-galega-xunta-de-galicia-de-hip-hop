@@ -46,7 +46,7 @@ function buildGlobalRanking(results) {
 }
 
 export default function Rankings() {
-  const [view, setView] = useState("competition"); // "competition" | "global"
+  const [view, setView] = useState("liga"); // "liga" | "competition" | "global"
   const [selectedCompetition, setSelectedCompetition] = useState("Marín 2026");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
