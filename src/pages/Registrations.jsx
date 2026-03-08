@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Search, Plus, Pencil, Trash2, Users, School, Trophy, Lock, Download } from "lucide-react";
 import jsPDF from "jspdf";
+import SchoolView from "../components/registrations/SchoolView";
 
 export default function Registrations() {
   const [search, setSearch] = useState("");
