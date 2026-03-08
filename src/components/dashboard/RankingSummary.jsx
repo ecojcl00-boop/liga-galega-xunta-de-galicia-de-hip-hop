@@ -9,75 +9,85 @@ const CATEGORY_ORDER = [
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
+const CATEGORY_LABEL = { "Megacrew": "Mega Crew" };
+function catLabel(c) { return CATEGORY_LABEL[c] || c; }
+
+function nd(str = "") {
+  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function calcularRanking(resultados, categoria) {
+  const grupos = new Map();
+  resultados
+    .filter(r => r.categoria === categoria)
+    .forEach(r => {
+      const key = nd(r.grupo_nombre);
+      if (!grupos.has(key)) grupos.set(key, { nombre: r.grupo_nombre, school: r.school_name || "", puestos: {} });
+      grupos.get(key).puestos[r.numero_jornada] = r.puesto;
+    });
+
+  const items = [...grupos.values()];
+  const allVals = items.flatMap(g => Object.values(g.puestos));
+  const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
+
+  items.sort((a, b) => {
+    for (let pos = 1; pos <= maxPos; pos++) {
+      const ac = Object.values(a.puestos).filter(p => p === pos).length;
+      const bc = Object.values(b.puestos).filter(p => p === pos).length;
+      if (bc !== ac) return bc - ac;
+    }
+    return a.nombre.localeCompare(b.nombre);
+  });
+
+  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
+}
+
 const medalEmoji = { 1: "🥇", 2: "🥈", 3: "🥉" };
 const medalColor = {
-  1: "text-yellow-600 bg-yellow-50",
-  2: "text-gray-500 bg-gray-50",
-  3: "text-amber-600 bg-amber-50",
+  1: "text-yellow-500 bg-yellow-500/10 border border-yellow-500/20",
+  2: "text-gray-400 bg-gray-400/10 border border-gray-400/20",
+  3: "text-amber-600 bg-amber-600/10 border border-amber-600/20",
 };
 
 export default function RankingSummary() {
-  const { data: results = [] } = useQuery({
-    queryKey: ["competition_results"],
-    queryFn: () => base44.entities.CompetitionResult.list("-competition_date", 500),
+  const { data: resultados = [] } = useQuery({
+    queryKey: ["liga_resultados_home"],
+    queryFn: () => base44.entities.LigaResultado.list(),
   });
 
-  // Global ranking: best score per group+category across all competitions
-  const bestScores = {};
-  results.forEach(r => {
-    const key = `${r.group_name}__${r.category}`;
-    if (!bestScores[key] || r.score > bestScores[key].score) {
-      bestScores[key] = r;
-    }
-  });
-
-  const allResults = Object.values(bestScores);
-  const byCategory = {};
-  allResults.forEach(r => {
-    if (!byCategory[r.category]) byCategory[r.category] = [];
-    byCategory[r.category].push(r);
-  });
-
-  const orderedCategories = Object.keys(byCategory).sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a);
-    const bi = CATEGORY_ORDER.indexOf(b);
+  const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
+    const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
     if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
+    if (ai === -1) return 1; if (bi === -1) return -1;
     return ai - bi;
   });
 
-  if (orderedCategories.length === 0) {
-    return <p className="text-muted-foreground text-sm text-center py-4">Sin resultados disponibles</p>;
+  if (allCategories.length === 0) {
+    return <p className="text-muted-foreground text-sm text-center py-4">Sin resultados de liga disponibles</p>;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-        <Trophy className="w-4 h-4 text-primary" />
-        <span className="font-medium text-foreground">Ranking Global de Liga</span>
-        <span>— Top 3 por categoría</span>
-      </div>
-      <div className="space-y-3">
-        {orderedCategories.map(cat => {
-          const top3 = byCategory[cat].sort((a, b) => b.score - a.score).slice(0, 3);
-          return (
-            <div key={cat} className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
-              <div className="grid gap-1">
-                {top3.map((r, i) => (
-                  <div key={r.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${medalColor[i + 1] || "bg-muted/30 text-foreground"}`}>
-                    <span className="text-base">{medalEmoji[i + 1]}</span>
-                    <span className="font-medium text-sm flex-1 truncate">{r.group_name}</span>
-                    <span className="text-xs text-muted-foreground truncate hidden sm:block">{r.school_name}</span>
-                    <span className="font-bold text-sm">{r.score}</span>
-                  </div>
-                ))}
-              </div>
+    <div className="space-y-5">
+      {allCategories.map(cat => {
+        const top3 = calcularRanking(resultados, cat).slice(0, 3);
+        if (top3.length === 0) return null;
+        return (
+          <div key={cat}>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              {catLabel(cat)}
+            </p>
+            <div className="grid gap-1">
+              {top3.map((g, i) => (
+                <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${medalColor[i + 1] || "bg-muted/30"}`}>
+                  <span className="text-base">{medalEmoji[i + 1]}</span>
+                  <span className="font-medium text-sm flex-1 truncate">{g.nombre}</span>
+                  <span className="text-xs text-muted-foreground truncate hidden sm:block">{g.school}</span>
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
