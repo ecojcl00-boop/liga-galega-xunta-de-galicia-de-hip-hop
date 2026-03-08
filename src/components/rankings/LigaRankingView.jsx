@@ -92,7 +92,7 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Medal className="w-5 h-5 text-primary" />
-          {categoria}
+          {catLabel(categoria)}
           <Badge variant="secondary" className="ml-auto">{ranking.length} {ranking.length === 1 ? "grupo" : "grupos"}</Badge>
         </CardTitle>
       </CardHeader>
