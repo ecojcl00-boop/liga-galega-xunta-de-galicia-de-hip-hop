@@ -98,7 +98,7 @@ export default function SchoolView({ user, competitions, allGroups, registration
         </div>
         {openCompetitions.length > 0 && myGroups.length > 0 && (
           <Button onClick={() => setShowWizard(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Inscribir en nueva competición
+            <Plus className="w-4 h-4" /> Inscribirse a una competición
           </Button>
         )}
       </div>
@@ -161,7 +161,7 @@ export default function SchoolView({ user, competitions, allGroups, registration
               <p className="text-xs text-muted-foreground">Inscripciones abiertas</p>
             </div>
             <Button onClick={() => setShowWizard(true)} className="gap-2">
-              <Plus className="w-4 h-4" /> Inscribir grupos
+              <Plus className="w-4 h-4" /> Inscribirse a una competición
             </Button>
           </CardContent>
         </Card>

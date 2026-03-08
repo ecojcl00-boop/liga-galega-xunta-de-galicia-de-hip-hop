@@ -51,7 +51,14 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     if (filterSchool !== "all" && r.school_name !== filterSchool) return false;
     if (filterCat !== "all" && r.category !== filterCat) return false;
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
-    if (search && !r.group_name?.toLowerCase().includes(search.toLowerCase()) && !r.school_name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      const matchesGroupName = r.group_name?.toLowerCase().includes(searchLower) ?? false;
+      const matchesSchoolName = r.school_name?.toLowerCase().includes(searchLower) ?? false;
+      const matchesCoachName = r.coach_name?.toLowerCase().includes(searchLower) ?? false;
+      const matchesCompName = r.competition_name?.toLowerCase().includes(searchLower) ?? false;
+      if (!matchesGroupName && !matchesSchoolName && !matchesCoachName && !matchesCompName) return false;
+    }
     return true;
   });
 
