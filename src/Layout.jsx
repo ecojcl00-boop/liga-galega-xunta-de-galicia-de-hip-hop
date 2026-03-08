@@ -34,7 +34,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background" style={{"--background": "0 0% 4%"}}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
