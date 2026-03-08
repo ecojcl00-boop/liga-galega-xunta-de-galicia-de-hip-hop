@@ -11,6 +11,8 @@ import { Plus, Trophy, History } from "lucide-react";
 import SchoolView from "../components/registrations/SchoolView";
 import HistorialCompeticiones from "../components/registrations/HistorialCompeticiones";
 import AdminInscripcionesPanel from "../components/registrations/AdminInscripcionesPanel";
+import CreateGroupDialog from "../components/registrations/CreateGroupDialog.jsx";
+import CreateIndividualDialog from "../components/registrations/CreateIndividualDialog.jsx";
 
 export default function Registrations() {
   const [user, setUser] = useState(null);
@@ -24,6 +26,8 @@ export default function Registrations() {
 
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
+  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
+  const [showCreateIndividualDialog, setShowCreateIndividualDialog] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -114,12 +118,18 @@ export default function Registrations() {
         </TabsList>
 
         {/* ── Tab: Gestión ── */}
-        <TabsContent value="gestion" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setShowGroupDialog(true)} className="gap-2">
-              <Plus className="w-4 h-4" /> Inscribir Grupo
-            </Button>
-          </div>
+         <TabsContent value="gestion" className="space-y-4 mt-4">
+           <div className="flex justify-end gap-2">
+             <Button onClick={() => setShowCreateGroupDialog(true)} className="gap-2">
+               <Plus className="w-4 h-4" /> Nuevo grupo
+             </Button>
+             <Button onClick={() => setShowCreateIndividualDialog(true)} className="gap-2">
+               <Plus className="w-4 h-4" /> Nuevo participante
+             </Button>
+             <Button onClick={() => setShowGroupDialog(true)} variant="outline" className="gap-2">
+               <Plus className="w-4 h-4" /> Inscribir Grupo
+             </Button>
+           </div>
           <AdminInscripcionesPanel
             registrations={registrations}
             competitions={competitions}
@@ -186,7 +196,29 @@ export default function Registrations() {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+        </Dialog>
+
+        {/* Create Group Dialog */}
+        <CreateGroupDialog
+         open={showCreateGroupDialog}
+         onOpenChange={setShowCreateGroupDialog}
+         categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
+         schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
+         onSuccess={() => {
+           queryClient.invalidateQueries({ queryKey: ["groups"] });
+         }}
+        />
+
+        {/* Create Individual Dialog */}
+        <CreateIndividualDialog
+         open={showCreateIndividualDialog}
+         onOpenChange={setShowCreateIndividualDialog}
+         categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
+         schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
+         onSuccess={() => {
+           queryClient.invalidateQueries({ queryKey: ["groups"] });
+         }}
+        />
+        </div>
+        );
+        }
