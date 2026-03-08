@@ -1,0 +1,333 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ChevronDown, ChevronRight, Download, Trash2, Users, FileText, Music, Search, Trophy } from "lucide-react";
+
+const STATUS_CONFIG = {
+  pending:   { label: "Pendiente",   color: "bg-yellow-100 text-yellow-700",  icon: "🟡" },
+  confirmed: { label: "Confirmado",  color: "bg-primary/10 text-primary",     icon: "🔵" },
+  complete:  { label: "Completa",    color: "bg-green-100 text-green-700",    icon: "🟢" },
+  rejected:  { label: "Rechazada",   color: "bg-red-100 text-red-700",        icon: "🔴" },
+  cancelled: { label: "Cancelado",   color: "bg-muted text-muted-foreground", icon: "⚫" },
+};
+
+export default function AdminInscripcionesPanel({ registrations, competitions }) {
+  const queryClient = useQueryClient();
+
+  const [filterComp, setFilterComp]     = useState("all");
+  const [filterSchool, setFilterSchool] = useState("all");
+  const [filterCat, setFilterCat]       = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search, setSearch]             = useState("");
+
+  const [expandedComps, setExpandedComps] = useState(new Set());
+  const [expandedCats, setExpandedCats]   = useState(new Set());
+  const [expandedRegs, setExpandedRegs]   = useState(new Set());
+
+  const [editingRejection, setEditingRejection] = useState({});
+  const [deleteId, setDeleteId] = useState(null);
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Registration.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["registrations"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Registration.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["registrations"] }); setDeleteId(null); },
+  });
+
+  const allSchools     = [...new Set(registrations.map(r => r.school_name).filter(Boolean))].sort();
+  const allCategories  = [...new Set(registrations.map(r => r.category).filter(Boolean))].sort();
+  const allCompNames   = [...new Set(registrations.map(r => r.competition_name).filter(Boolean))].sort();
+
+  const filtered = registrations.filter(r => {
+    if (filterComp !== "all" && r.competition_name !== filterComp) return false;
+    if (filterSchool !== "all" && r.school_name !== filterSchool) return false;
+    if (filterCat !== "all" && r.category !== filterCat) return false;
+    if (filterStatus !== "all" && r.status !== filterStatus) return false;
+    if (search && !r.group_name?.toLowerCase().includes(search.toLowerCase()) && !r.school_name?.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  // Group: competition → category → registrations
+  const grouped = filtered.reduce((acc, r) => {
+    const comp = r.competition_name || "Sin competición";
+    if (!acc[comp]) acc[comp] = {};
+    const cat = r.category || "Sin categoría";
+    if (!acc[comp][cat]) acc[comp][cat] = [];
+    acc[comp][cat].push(r);
+    return acc;
+  }, {});
+
+  const exportCSV = () => {
+    const headers = ["Competición", "Categoría", "Grupo", "Escuela", "Entrenador", "Participantes", "Estado", "Pago"];
+    const rows = filtered.map(r => [
+      r.competition_name, r.category, r.group_name, r.school_name,
+      r.coach_name, r.participants_count || 0, r.status, r.payment_status,
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "inscripciones.csv";
+    a.click();
+  };
+
+  const toggle = (setter) => (key) =>
+    setter(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+
+  const handleStatusChange = (reg, newStatus) => {
+    updateMutation.mutate({ id: reg.id, data: { status: newStatus } });
+    if (newStatus !== "rejected") {
+      setEditingRejection(prev => { const n = { ...prev }; delete n[reg.id]; return n; });
+    }
+  };
+
+  const handleSaveRejection = (reg) => {
+    updateMutation.mutate({ id: reg.id, data: { rejection_reason: editingRejection[reg.id] ?? "" } });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar grupo o escuela..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <Select value={filterComp} onValueChange={setFilterComp}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Competición" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las competiciones</SelectItem>
+            {allCompNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterSchool} onValueChange={setFilterSchool}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Escuela" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las escuelas</SelectItem>
+            {allSchools.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterCat} onValueChange={setFilterCat}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Categoría" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
+              <SelectItem key={v} value={v}>{icon} {label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={exportCSV} className="gap-2 shrink-0">
+          <Download className="w-4 h-4" /> CSV ({filtered.length})
+        </Button>
+      </div>
+
+      {/* Hierarchical view */}
+      {Object.keys(grouped).length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          No hay inscripciones con los filtros seleccionados.
+        </div>
+      ) : (
+        Object.entries(grouped).map(([comp, catGroups]) => {
+          const totalRegs = Object.values(catGroups).flat().length;
+          const isCompOpen = expandedComps.has(comp);
+          return (
+            <div key={comp} className="rounded-xl border bg-card overflow-hidden">
+              {/* Competition header */}
+              <button
+                onClick={() => toggle(setExpandedComps)(comp)}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-4 h-4 text-primary shrink-0" />
+                  <span className="font-semibold">{comp}</span>
+                  <Badge variant="outline" className="text-xs">{totalRegs} grupos</Badge>
+                </div>
+                {isCompOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+              </button>
+
+              {isCompOpen && (
+                <div className="divide-y border-t">
+                  {Object.entries(catGroups).map(([cat, regs]) => {
+                    const catKey = `${comp}::${cat}`;
+                    const isCatOpen = expandedCats.has(catKey);
+                    return (
+                      <div key={cat}>
+                        {/* Category header */}
+                        <button
+                          onClick={() => toggle(setExpandedCats)(catKey)}
+                          className="w-full px-7 py-3 flex items-center justify-between bg-muted/20 hover:bg-muted/40 transition-colors"
+                        >
+                          <span className="font-medium text-sm">{cat} — {regs.length} grupo{regs.length !== 1 ? "s" : ""}</span>
+                          {isCatOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                        </button>
+
+                        {isCatOpen && (
+                          <div className="divide-y">
+                            {regs.map(reg => {
+                              const isRegOpen = expandedRegs.has(reg.id);
+                              const statusCfg = STATUS_CONFIG[reg.status] || STATUS_CONFIG.pending;
+                              return (
+                                <div key={reg.id}>
+                                  {/* Group row */}
+                                  <div className="px-9 py-3 flex items-center gap-3 flex-wrap">
+                                    <button
+                                      onClick={() => toggle(setExpandedRegs)(reg.id)}
+                                      className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                    >
+                                      {isRegOpen
+                                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                                      <span className="font-medium text-sm truncate">{reg.group_name}</span>
+                                      <span className="text-xs text-muted-foreground truncate hidden sm:block">{reg.school_name}</span>
+                                    </button>
+                                    <span className="text-xs text-muted-foreground shrink-0">
+                                      <Users className="w-3 h-3 inline mr-0.5" />{reg.participants_count || 0}
+                                    </span>
+                                    {(reg.documents || []).length > 0 && (
+                                      <span className="text-xs text-muted-foreground shrink-0">
+                                        <FileText className="w-3 h-3 inline mr-0.5" />{reg.documents.length}
+                                      </span>
+                                    )}
+                                    {/* Inline status */}
+                                    <Select value={reg.status || "pending"} onValueChange={(v) => handleStatusChange(reg, v)}>
+                                      <SelectTrigger className="w-32 h-7 text-xs shrink-0">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
+                                          <SelectItem key={v} value={v} className="text-xs">{icon} {label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      variant="ghost" size="icon"
+                                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                                      onClick={() => setDeleteId(reg.id)}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+
+                                  {/* Expanded details */}
+                                  {isRegOpen && (
+                                    <div className="px-12 pb-4 space-y-4 bg-muted/5">
+                                      {/* Info row */}
+                                      {(reg.coach_name || reg.payment_status) && (
+                                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                          {reg.coach_name && <span>Entrenador: <strong>{reg.coach_name}</strong></span>}
+                                          <span>Pago: <strong>{reg.payment_status === "paid" ? "Pagado" : "Pendiente"}</strong></span>
+                                        </div>
+                                      )}
+
+                                      {/* Participants */}
+                                      <div>
+                                        <p className="text-xs font-medium text-muted-foreground mb-2">Participantes ({(reg.participants || []).length})</p>
+                                        {(reg.participants || []).length === 0 ? (
+                                          <p className="text-xs text-muted-foreground italic">Sin lista de participantes registrada.</p>
+                                        ) : (
+                                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1">
+                                            {(reg.participants || []).map((p, i) => (
+                                              <span key={i} className="text-xs text-muted-foreground">
+                                                {i + 1}. {p.name || p}
+                                                {p.birth_date && <span className="opacity-60"> ({p.birth_date})</span>}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Documents */}
+                                      {(reg.documents || []).length > 0 && (
+                                        <div>
+                                          <p className="text-xs font-medium text-muted-foreground mb-2">Documentos</p>
+                                          <div className="flex flex-wrap gap-2">
+                                            {(reg.documents || []).map((doc, i) => (
+                                              <a
+                                                key={i} href={doc.url} target="_blank" rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:bg-muted/30 transition-colors"
+                                              >
+                                                {doc.doc_type === "musica"
+                                                  ? <Music className="w-3.5 h-3.5 text-primary" />
+                                                  : <FileText className="w-3.5 h-3.5 text-primary" />}
+                                                {doc.name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Rejection reason */}
+                                      {reg.status === "rejected" && (
+                                        <div>
+                                          <p className="text-xs font-medium text-muted-foreground mb-1.5">Motivo de rechazo</p>
+                                          <div className="flex gap-2 max-w-lg">
+                                            <Input
+                                              value={editingRejection[reg.id] ?? reg.rejection_reason ?? ""}
+                                              onChange={e => setEditingRejection(prev => ({ ...prev, [reg.id]: e.target.value }))}
+                                              placeholder="Indica el motivo al inscrito..."
+                                              className="h-8 text-xs flex-1"
+                                            />
+                                            <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => handleSaveRejection(reg)}>
+                                              Guardar
+                                            </Button>
+                                          </div>
+                                          {reg.rejection_reason && editingRejection[reg.id] === undefined && (
+                                            <p className="text-xs text-muted-foreground mt-1">Guardado: "{reg.rejection_reason}"</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+
+      {/* Delete confirm */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar inscripción?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
