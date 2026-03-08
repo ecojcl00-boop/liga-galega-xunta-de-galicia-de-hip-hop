@@ -189,7 +189,13 @@ export default function Rankings() {
         </button>
       </div>
 
-      {isLoading ? (
+      {view === "liga" ? (
+        ligaLoading ? (
+          <div className="text-center py-16 text-muted-foreground">Cargando...</div>
+        ) : (
+          <LigaRankingView resultados={ligaResultados} />
+        )
+      ) : isLoading ? (
         <div className="text-center py-16 text-muted-foreground">Cargando...</div>
       ) : view === "competition" ? (
         <>
