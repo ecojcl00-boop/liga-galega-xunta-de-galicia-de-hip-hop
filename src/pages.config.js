@@ -48,12 +48,8 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AreaPrivada from './pages/AreaPrivada';
-import Categories from './pages/Categories';
-import Competitions from './pages/Competitions';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
-import ImportData from './pages/ImportData';
-import JudgePanel from './pages/JudgePanel';
 import Rankings from './pages/Rankings';
 import Schools from './pages/Schools';
 import __Layout from './Layout.jsx';
@@ -61,12 +57,8 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "AreaPrivada": AreaPrivada,
-    "Categories": Categories,
-    "Competitions": Competitions,
     "Dashboard": Dashboard,
     "Groups": Groups,
-    "ImportData": ImportData,
-    "JudgePanel": JudgePanel,
     "Rankings": Rankings,
     "Schools": Schools,
 }
