@@ -11,6 +11,12 @@ const CATEGORY_ORDER = [
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
+// Display labels for categories
+const CATEGORY_LABEL = {
+  "Megacrew": "Mega Crew"
+};
+function catLabel(c) { return CATEGORY_LABEL[c] || c; }
+
 function nd(str = "") {
   return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
