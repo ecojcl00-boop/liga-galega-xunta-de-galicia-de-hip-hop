@@ -48,29 +48,29 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AreaPrivada from './pages/AreaPrivada';
-import Dashboard from './pages/Dashboard';
-import Groups from './pages/Groups';
-import Rankings from './pages/Rankings';
-import Schools from './pages/Schools';
 import Categories from './pages/Categories';
 import Competitions from './pages/Competitions';
+import Dashboard from './pages/Dashboard';
+import Groups from './pages/Groups';
 import ImportData from './pages/ImportData';
 import JudgePanel from './pages/JudgePanel';
+import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
+import Schools from './pages/Schools';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AreaPrivada": AreaPrivada,
-    "Dashboard": Dashboard,
-    "Groups": Groups,
-    "Rankings": Rankings,
-    "Schools": Schools,
     "Categories": Categories,
     "Competitions": Competitions,
+    "Dashboard": Dashboard,
+    "Groups": Groups,
     "ImportData": ImportData,
     "JudgePanel": JudgePanel,
+    "Rankings": Rankings,
     "Registrations": Registrations,
+    "Schools": Schools,
 }
 
 export const pagesConfig = {

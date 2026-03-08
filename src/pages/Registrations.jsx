@@ -5,17 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Pencil, Trash2, Users, School, Trophy, Lock, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Plus, Pencil, Trash2, Trophy, Lock, Download, History } from "lucide-react";
 import jsPDF from "jspdf";
 import SchoolView from "../components/registrations/SchoolView";
+import HistorialCompeticiones from "../components/registrations/HistorialCompeticiones";
 
 export default function Registrations() {
   const [user, setUser] = useState(null);
-  useEffect(() => { base44.auth.me().then(u => setUser(u)).catch(() => setUser(null)); }, []);
+  const [userLoading, setUserLoading] = useState(true);
+
+  useEffect(() => {
+    base44.auth.me()
+      .then(u => { setUser(u); setUserLoading(false); })
+      .catch(() => { setUser(null); setUserLoading(false); });
+  }, []);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -30,6 +38,7 @@ export default function Registrations() {
   const { data: competitions = [] } = useQuery({
     queryKey: ["competitions"],
     queryFn: () => base44.entities.Competition.list("-date"),
+    enabled: !!user,
   });
 
   const openCompetitions = competitions.filter(c => c.registration_open);
@@ -37,11 +46,13 @@ export default function Registrations() {
   const { data: registrations = [], isLoading } = useQuery({
     queryKey: ["registrations"],
     queryFn: () => base44.entities.Registration.list("-created_date"),
+    enabled: !!user,
   });
 
   const { data: groups = [] } = useQuery({
     queryKey: ["groups"],
     queryFn: () => base44.entities.Group.list("name"),
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
@@ -97,7 +108,6 @@ export default function Registrations() {
   const registeredGroupIds = new Set(compRegs.map(r => r.group_id));
   const availableGroups = groups.filter(g => !registeredGroupIds.has(g.id));
 
-  // Stats for the active open competition
   const activeComp = openCompetitions[0];
   const activeRegs = activeComp ? registrations.filter(r => r.competition_name === activeComp.name) : [];
   const uniqueSchools = new Set(activeRegs.map(r => r.school_name).filter(Boolean)).size;
@@ -123,7 +133,6 @@ export default function Registrations() {
     let y = 26;
     let x0 = 14;
 
-    // Header row
     doc.setFillColor(220, 50, 120);
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
@@ -177,9 +186,14 @@ export default function Registrations() {
     pending: "bg-yellow-100 text-yellow-700",
   };
 
-  if (!user) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+  if (userLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
 
-  // School users (non-admin) see the self-service view
+  if (!user) {
+    base44.auth.redirectToLogin(window.location.pathname);
+    return null;
+  }
+
+  // School users (non-admin) → SchoolView
   if (user.role !== "admin") {
     return (
       <SchoolView
@@ -191,153 +205,174 @@ export default function Registrations() {
     );
   }
 
-  if (openCompetitions.length === 0) {
-    return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <Lock className="w-16 h-16 text-muted-foreground/30 mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Sin competiciones abiertas</h2>
-        <p className="text-muted-foreground max-w-md">
-          No hay ninguna competición con inscripciones abiertas en este momento.
-          Ve a <strong>Competiciones</strong> para abrir el periodo de inscripción.
-        </p>
-      </div>
-    );
-  }
-
+  // Admin view with tabs
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
-          <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => downloadPDF()} className="gap-2">
-            <Download className="w-4 h-4" /> PDF Total
-          </Button>
-          <Select onValueChange={(v) => downloadPDF(v)}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="PDF por escuela" />
-            </SelectTrigger>
-            <SelectContent>
-              {schools.map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => setShowGroupDialog(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Inscribir Grupo
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
+        <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
       </div>
 
-      {/* Mini dashboard for open competition */}
-      {activeComp && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Trophy className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-sm">{activeComp.name} — Inscripciones abiertas</span>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{activeRegs.length}</div>
-                <div className="text-xs text-muted-foreground">Grupos</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{uniqueSchools}</div>
-                <div className="text-xs text-muted-foreground">Escuelas</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{totalParticipants}</div>
-                <div className="text-xs text-muted-foreground">Participantes</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs defaultValue="gestion">
+        <TabsList>
+          <TabsTrigger value="gestion" className="gap-2">
+            <Trophy className="w-4 h-4" /> Gestión activa
+          </TabsTrigger>
+          <TabsTrigger value="historial" className="gap-2">
+            <History className="w-4 h-4" /> Historial
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar grupo o escuela..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="confirmed">Confirmado</SelectItem>
-            <SelectItem value="pending">Pendiente</SelectItem>
-            <SelectItem value="cancelled">Cancelado</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* ── Tab: Gestión activa ── */}
+        <TabsContent value="gestion" className="space-y-6 mt-4">
+          {openCompetitions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+              <Lock className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">Sin competiciones abiertas</h2>
+              <p className="text-muted-foreground max-w-md">
+                No hay ninguna competición con inscripciones abiertas en este momento.
+                Ve a <strong>Competiciones</strong> para abrir el periodo de inscripción.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-end flex-wrap gap-2">
+                <Button variant="outline" onClick={() => downloadPDF()} className="gap-2">
+                  <Download className="w-4 h-4" /> PDF Total
+                </Button>
+                <Select onValueChange={(v) => downloadPDF(v)}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="PDF por escuela" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => setShowGroupDialog(true)} className="gap-2">
+                  <Plus className="w-4 h-4" /> Inscribir Grupo
+                </Button>
+              </div>
 
-      {/* Registrations table */}
-      {isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">Cargando...</div>
-      ) : (
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left p-3 font-medium">Grupo</th>
-                  <th className="text-left p-3 font-medium">Escuela</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Categoría</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Entrenador</th>
-                  <th className="text-left p-3 font-medium hidden sm:table-cell">Part.</th>
-                  <th className="text-left p-3 font-medium">Estado</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Pago</th>
-                  <th className="text-left p-3 font-medium">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRegistrations.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center text-muted-foreground py-8">Sin inscripciones</td>
-                  </tr>
-                ) : (
-                  filteredRegistrations.map((reg) => (
-                    <tr key={reg.id} className="border-t hover:bg-muted/20">
-                      <td className="p-3 font-medium">{reg.group_name}</td>
-                      <td className="p-3 text-muted-foreground">{reg.school_name}</td>
-                      <td className="p-3 hidden md:table-cell">
-                        <Badge variant="outline" className="text-[10px]">{reg.category}</Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground hidden lg:table-cell">{reg.coach_name}</td>
-                      <td className="p-3 hidden sm:table-cell">{reg.participants_count || "-"}</td>
-                      <td className="p-3">
-                        <Badge className={`${statusColors[reg.status] || statusColors.pending} border-0 text-[10px]`}>
-                          {reg.status === "confirmed" ? "Confirmado" : reg.status === "cancelled" ? "Cancelado" : "Pendiente"}
-                        </Badge>
-                      </td>
-                      <td className="p-3 hidden md:table-cell">
-                        <Badge className={`${paymentColors[reg.payment_status] || paymentColors.pending} border-0 text-[10px]`}>
-                          {reg.payment_status === "paid" ? "Pagado" : "Pendiente"}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(reg)}>
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(reg.id)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              {activeComp && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Trophy className="w-4 h-4 text-primary" />
+                      <span className="font-semibold text-sm">{activeComp.name} — Inscripciones abiertas</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{activeRegs.length}</div>
+                        <div className="text-xs text-muted-foreground">Grupos</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{uniqueSchools}</div>
+                        <div className="text-xs text-muted-foreground">Escuelas</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{totalParticipants}</div>
+                        <div className="text-xs text-muted-foreground">Participantes</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Buscar grupo o escuela..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isLoading ? (
+                <div className="text-center py-16 text-muted-foreground">Cargando...</div>
+              ) : (
+                <div className="rounded-xl border bg-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 font-medium">Grupo</th>
+                          <th className="text-left p-3 font-medium">Escuela</th>
+                          <th className="text-left p-3 font-medium hidden md:table-cell">Categoría</th>
+                          <th className="text-left p-3 font-medium hidden lg:table-cell">Entrenador</th>
+                          <th className="text-left p-3 font-medium hidden sm:table-cell">Part.</th>
+                          <th className="text-left p-3 font-medium">Estado</th>
+                          <th className="text-left p-3 font-medium hidden md:table-cell">Pago</th>
+                          <th className="text-left p-3 font-medium">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredRegistrations.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="text-center text-muted-foreground py-8">Sin inscripciones</td>
+                          </tr>
+                        ) : (
+                          filteredRegistrations.map((reg) => (
+                            <tr key={reg.id} className="border-t hover:bg-muted/20">
+                              <td className="p-3 font-medium">{reg.group_name}</td>
+                              <td className="p-3 text-muted-foreground">{reg.school_name}</td>
+                              <td className="p-3 hidden md:table-cell">
+                                <Badge variant="outline" className="text-[10px]">{reg.category}</Badge>
+                              </td>
+                              <td className="p-3 text-muted-foreground hidden lg:table-cell">{reg.coach_name}</td>
+                              <td className="p-3 hidden sm:table-cell">{reg.participants_count || "-"}</td>
+                              <td className="p-3">
+                                <Badge className={`${statusColors[reg.status] || statusColors.pending} border-0 text-[10px]`}>
+                                  {reg.status === "confirmed" ? "Confirmado" : reg.status === "cancelled" ? "Cancelado" : "Pendiente"}
+                                </Badge>
+                              </td>
+                              <td className="p-3 hidden md:table-cell">
+                                <Badge className={`${paymentColors[reg.payment_status] || paymentColors.pending} border-0 text-[10px]`}>
+                                  {reg.payment_status === "paid" ? "Pagado" : "Pendiente"}
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(reg)}>
+                                    <Pencil className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(reg.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        {/* ── Tab: Historial ── */}
+        <TabsContent value="historial" className="mt-4">
+          <HistorialCompeticiones
+            competitions={competitions}
+            registrations={registrations}
+            groups={groups}
+            isAdmin={true}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Register group dialog */}
       <Dialog open={showGroupDialog} onOpenChange={(open) => !open && closeGroupDialog()}>
@@ -402,9 +437,7 @@ export default function Registrations() {
               <div className="space-y-2">
                 <Label>Estado de inscripción</Label>
                 <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="confirmed">Confirmado</SelectItem>
                     <SelectItem value="pending">Pendiente</SelectItem>
@@ -415,9 +448,7 @@ export default function Registrations() {
               <div className="space-y-2">
                 <Label>Estado del pago</Label>
                 <Select value={editForm.payment_status} onValueChange={(v) => setEditForm({ ...editForm, payment_status: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pendiente</SelectItem>
                     <SelectItem value="paid">Pagado</SelectItem>
