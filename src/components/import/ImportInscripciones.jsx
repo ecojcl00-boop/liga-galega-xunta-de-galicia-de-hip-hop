@@ -257,11 +257,10 @@ export default function ImportInscripciones() {
   const [result, setResult] = useState(null);
   const fileRef = useRef(null);
 
-  const { data: competitions = [] } = React.useMemo(() => ({ data: [] }), []);
-  const [competitions2, setCompetitions2] = React.useState([]);
-  const [selectedCompId, setSelectedCompId] = React.useState("");
+  const [competitions2, setCompetitions2] = useState([]);
+  const [selectedCompId, setSelectedCompId] = useState("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.entities.Competition.list("-date", 50).then(setCompetitions2).catch(() => {});
   }, []);
 
