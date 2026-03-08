@@ -177,8 +177,10 @@ export default function Registrations() {
     pending: "bg-yellow-100 text-yellow-700",
   };
 
+  if (!user) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+
   // School users (non-admin) see the self-service view
-  if (user && user.role !== "admin") {
+  if (user.role !== "admin") {
     return (
       <SchoolView
         user={user}
@@ -188,8 +190,6 @@ export default function Registrations() {
       />
     );
   }
-
-  if (!user) return null; // loading
 
   if (openCompetitions.length === 0) {
     return (
