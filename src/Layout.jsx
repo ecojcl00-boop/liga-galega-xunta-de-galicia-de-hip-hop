@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Home
+  Home,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +27,7 @@ const navItems = [
   { name: "Rankings", icon: Trophy, page: "Rankings" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
   { name: "Importar Datos", icon: ClipboardList, page: "ImportData" },
+  { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
 ];
 
 export default function Layout({ children, currentPageName }) {
