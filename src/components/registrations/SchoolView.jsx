@@ -7,9 +7,19 @@ import ReenrollmentWizard from "./ReenrollmentWizard";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 
 const statusColors = {
+  pending:   "bg-yellow-100 text-yellow-700",
   confirmed: "bg-primary/10 text-primary",
-  pending: "bg-accent text-accent-foreground",
-  cancelled: "bg-destructive/10 text-destructive",
+  complete:  "bg-green-100 text-green-700",
+  rejected:  "bg-red-100 text-red-700",
+  cancelled: "bg-muted text-muted-foreground",
+};
+
+const statusLabels = {
+  pending:   "🟡 Pendiente",
+  confirmed: "🔵 Confirmado",
+  complete:  "🟢 Completa",
+  rejected:  "🔴 Rechazada",
+  cancelled: "⚫ Cancelado",
 };
 
 export default function SchoolView({ user, competitions, allGroups, registrations }) {
