@@ -274,7 +274,6 @@ export default function Rankings() {
           })}
         </div>
       )}
-      </>
     </div>
   );
 }
