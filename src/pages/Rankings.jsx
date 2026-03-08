@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Medal, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import PodiumCategory from "../components/rankings/PodiumCategory";
+import LigaRankingView from "../components/rankings/LigaRankingView";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",

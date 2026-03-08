@@ -7,6 +7,7 @@ import { Upload, FileSpreadsheet, CheckCircle2, Loader2, FileText, Trophy, Gavel
 import { toast } from "sonner";
 import ImportInscripciones from "@/components/import/ImportInscripciones";
 import CleanupData from "@/components/import/CleanupData";
+import ImportLigaJornada from "@/components/import/ImportLigaJornada";
 
 export default function ImportData() {
   const [fileJueces, setFileJueces] = useState(null);
