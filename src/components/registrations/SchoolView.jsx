@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Trophy } from "lucide-react";
-import ReenrollmentWizard from "./ReenrollmentWizard";
+import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 
 const statusColors = {
