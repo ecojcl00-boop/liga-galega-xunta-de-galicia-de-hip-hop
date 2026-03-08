@@ -156,33 +156,17 @@ export default function SchoolView({ user, competitions, allGroups, registration
       )}
 
       {/* Registration history */}
-      {Object.keys(byCompetition).length > 0 && (
+      {myRegistrations.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-base font-semibold">Historial de inscripciones</h2>
-          {Object.entries(byCompetition).map(([compName, regs]) => (
-            <Card key={compName}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Trophy className="w-4 h-4 text-primary shrink-0" />
-                  <CardTitle className="text-base">{compName}</CardTitle>
-                  <Badge variant="secondary" className="ml-auto">{regs.length} grupos</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {regs.map(r => (
-                  <div key={r.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 gap-2 flex-wrap">
-                    <div>
-                      <div className="font-medium text-sm">{r.group_name}</div>
-                      <div className="text-xs text-muted-foreground">{r.category} · {r.participants_count || 0} participantes</div>
-                    </div>
-                    <Badge className={`${statusColors[r.status] || statusColors.pending} border-0 text-[10px]`}>
-                      {r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente"}
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <History className="w-4 h-4" /> Historial de inscripciones
+          </h2>
+          <HistorialCompeticiones
+            competitions={competitions}
+            registrations={myRegistrations}
+            groups={allGroups}
+            isAdmin={false}
+          />
         </div>
       )}
     </div>
