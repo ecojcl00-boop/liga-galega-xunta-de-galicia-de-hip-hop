@@ -14,6 +14,9 @@ import jsPDF from "jspdf";
 import SchoolView from "../components/registrations/SchoolView";
 
 export default function Registrations() {
+  const [user, setUser] = useState(null);
+  useEffect(() => { base44.auth.me().then(u => setUser(u)).catch(() => setUser(null)); }, []);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedCompetition, setSelectedCompetition] = useState(null);
