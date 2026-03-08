@@ -160,8 +160,11 @@ export default function ImportData() {
     <div className="p-4 lg:p-8 space-y-8 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Importar Datos</h1>
-        <p className="text-muted-foreground mt-1">Importa puntuaciones de jueces o resultados de competiciones</p>
+        <p className="text-muted-foreground mt-1">Importa inscripciones, puntuaciones de jueces o resultados de competiciones</p>
       </div>
+
+      {/* Importar Inscripciones */}
+      <ImportInscripciones />
 
       {/* Puntuaciones Jueces */}
       <Card>
