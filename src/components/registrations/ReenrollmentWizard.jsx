@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronRight, ChevronLeft, X, Plus } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
@@ -13,16 +13,34 @@ function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
   const [adding, setAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [newBirth, setNewBirth] = useState("");
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editName, setEditName] = useState("");
 
-  const existingMatches = useMemo(() => {
-    if (!searchTerm.trim()) return [];
+  // Show all school participants when empty, filter when typing
+  const availableFromSchool = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
     return allSchoolParticipants.filter(p =>
-      p.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (!term || p.name?.toLowerCase().includes(term)) &&
       !participants.some(ex => (ex.name || "").toLowerCase() === (p.name || "").toLowerCase())
     );
   }, [searchTerm, allSchoolParticipants, participants]);
 
+  const noMatch = searchTerm.trim() && availableFromSchool.length === 0;
+
   const removeParticipant = (idx) => onChange(participants.filter((_, i) => i !== idx));
+
+  const startEdit = (idx) => {
+    setEditingIdx(idx);
+    setEditName(participants[idx]?.name || "");
+  };
+
+  const saveEdit = (idx) => {
+    const updated = [...participants];
+    updated[idx] = { ...updated[idx], name: editName };
+    onChange(updated);
+    setEditingIdx(null);
+    setEditName("");
+  };
 
   const addExisting = (p) => {
     onChange([...participants, { name: p.name, birth_date: p.birth_date || "" }]);
@@ -38,85 +56,122 @@ function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
   const resetAdd = () => { setAdding(false); setSearchTerm(""); setNewBirth(""); };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="text-base">{group.name}</CardTitle>
-          <Badge variant="outline" className="text-xs">{group.category} · {participants.length} part.</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {participants.length === 0 && (
-          <p className="text-xs text-muted-foreground px-1">Sin participantes. Añade al menos uno.</p>
-        )}
-        {participants.map((p, i) => (
-          <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
-            <span className="text-sm">{p.name || p}</span>
-            <button onClick={() => removeParticipant(i)} className="text-muted-foreground hover:text-destructive transition-colors ml-2 shrink-0">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
+    <div className="space-y-2">
+      {participants.length === 0 && (
+        <p className="text-xs text-muted-foreground px-1 py-2">Sin participantes. Añade al menos uno.</p>
+      )}
 
-        {adding ? (
-          <div className="border rounded-xl p-4 space-y-3 bg-muted/10 mt-2">
-            <Input
-              placeholder="Buscar nombre o escribir uno nuevo..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              autoFocus
-            />
-            {existingMatches.length > 0 ? (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground font-medium">Participantes existentes en la escuela:</p>
-                <div className="max-h-40 overflow-y-auto space-y-1 border rounded-lg p-1">
-                  {existingMatches.map((p, i) => (
-                    <button key={i} onClick={() => addExisting(p)}
-                      className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/60 transition-colors flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                      {p.name}
+      {participants.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
+          {editingIdx === i ? (
+            <>
+              <Input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") saveEdit(i); if (e.key === "Escape") setEditingIdx(null); }}
+                autoFocus
+                className="flex-1 h-7 text-sm"
+              />
+              <button onClick={() => saveEdit(i)} className="text-primary hover:text-primary/80 shrink-0" title="Guardar">
+                <Check className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-sm flex-1">{p.name || p}</span>
+              <button onClick={() => startEdit(i)} className="text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Editar nombre">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => removeParticipant(i)}
+            className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+            title="Quitar de esta inscripción"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+
+      {adding ? (
+        <div className="border rounded-xl p-4 space-y-3 bg-muted/10 mt-2">
+          <Input
+            placeholder="Buscar o escribir nombre nuevo..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            autoFocus
+          />
+
+          {!noMatch && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">
+                {searchTerm.trim() ? "Participantes coincidentes:" : "Participantes de esta escuela:"}
+              </p>
+              <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-1">
+                {availableFromSchool.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">Todos ya están en la lista</p>
+                ) : (
+                  availableFromSchool.map((p, i) => (
+                    <button
+                      key={i}
+                      onClick={() => addExisting(p)}
+                      className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/60 transition-colors flex items-center gap-2"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span>{p.name}</span>
+                      {p.birth_date && <span className="text-muted-foreground text-xs ml-auto">{p.birth_date}</span>}
                     </button>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
-            ) : searchTerm.trim() ? (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">No encontrado. Se añadirá como nuevo participante.</p>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Fecha de nacimiento (opcional)</Label>
-                  <Input type="date" value={newBirth} onChange={e => setNewBirth(e.target.value)} />
-                </div>
-                <Button size="sm" onClick={addNew} className="w-full">
-                  Añadir "{searchTerm.trim()}"
-                </Button>
+            </div>
+          )}
+
+          {noMatch && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                No encontrado en la escuela. Se añadirá como nuevo participante.
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fecha de nacimiento (opcional)</Label>
+                <Input type="date" value={newBirth} onChange={e => setNewBirth(e.target.value)} />
               </div>
-            ) : null}
-            <Button size="sm" variant="outline" onClick={resetAdd} className="w-full">Cancelar</Button>
-          </div>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="w-full gap-2 mt-1">
-            <Plus className="w-4 h-4" /> Añadir / sustituir participante
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+              <Button size="sm" onClick={addNew} className="w-full">
+                Añadir "{searchTerm.trim()}"
+              </Button>
+            </div>
+          )}
+
+          <Button size="sm" variant="outline" onClick={resetAdd} className="w-full">Cancelar</Button>
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="w-full gap-2 mt-1">
+          <Plus className="w-4 h-4" /> Añadir participante
+        </Button>
+      )}
+    </div>
   );
 }
 
 // ── Wizard ────────────────────────────────────────────────────────────────────
-const STEPS = ["Competición", "Grupos", "Revisar", "Confirmar"];
+const STEPS = ["Competición", "Grupos"];
 
 export default function ReenrollmentWizard({ user, mySchoolName, myGroups, competitions, allGroups, registrations, onSuccess }) {
   const queryClient = useQueryClient();
 
-  // If only 1 competition, skip step 1 automatically
   const singleComp = competitions.length === 1 ? competitions[0] : null;
   const [step, setStep] = useState(singleComp ? 2 : 1);
   const [selectedComp, setSelectedComp] = useState(singleComp);
-  const [selectedGroupIds, setSelectedGroupIds] = useState(new Set());
-  const [groupParticipants, setGroupParticipants] = useState({});
 
-  // All unique participants from this school (for quick-add)
+  // Group currently open in editor (null = list view)
+  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [tempParticipants, setTempParticipants] = useState([]);
+
+  // Groups confirmed in this session
+  const [confirmedGroupIds, setConfirmedGroupIds] = useState(new Set());
+
+  // All unique participants from this school
   const allSchoolParticipants = useMemo(() => {
     const seen = new Set();
     const result = [];
@@ -131,74 +186,58 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     return result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [allGroups, mySchoolName]);
 
-  // Groups already registered for the selected competition
-  const alreadyRegisteredIds = useMemo(() =>
+  // Groups already registered in DB for selected competition
+  const alreadyInDbIds = useMemo(() =>
     new Set(registrations.filter(r => r.competition_id === selectedComp?.id).map(r => r.group_id)),
     [registrations, selectedComp]
   );
 
-  const availableGroups = myGroups.filter(g => !alreadyRegisteredIds.has(g.id));
-  const selectedGroups = availableGroups.filter(g => selectedGroupIds.has(g.id));
+  const registeredIds = useMemo(() =>
+    new Set([...alreadyInDbIds, ...confirmedGroupIds]),
+    [alreadyInDbIds, confirmedGroupIds]
+  );
 
-  const toggleGroup = (id) => {
-    const next = new Set(selectedGroupIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-      // Pre-init participants from group data
-      if (!groupParticipants[id]) {
-        const g = allGroups.find(gg => gg.id === id);
-        setGroupParticipants(pp => ({ ...pp, [id]: [...(g?.participants || [])] }));
-      }
-    }
-    setSelectedGroupIds(next);
+  const availableGroups = myGroups.filter(g => !registeredIds.has(g.id));
+  const activeGroup = myGroups.find(g => g.id === activeGroupId);
+
+  const openEditor = (group) => {
+    setActiveGroupId(group.id);
+    setTempParticipants([...(group.participants || [])]);
   };
 
-  // When moving to step 3: ensure all selected groups have participants initialized
-  const goToReview = () => {
-    const init = { ...groupParticipants };
-    selectedGroupIds.forEach(id => {
-      if (!init[id]) {
-        const g = allGroups.find(gg => gg.id === id);
-        init[id] = [...(g?.participants || [])];
-      }
-    });
-    setGroupParticipants(init);
-    setStep(3);
+  const closeEditor = () => {
+    setActiveGroupId(null);
+    setTempParticipants([]);
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      for (const reg of data) await base44.entities.Registration.create(reg);
-    },
+    mutationFn: (data) => base44.entities.Registration.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
-      onSuccess && onSuccess();
+      const id = activeGroupId;
+      setConfirmedGroupIds(prev => new Set([...prev, id]));
+      closeEditor();
     }
   });
 
-  const handleConfirm = () => {
-    const data = selectedGroups.map(group => {
-      const ps = groupParticipants[group.id] || group.participants || [];
-      return {
-        competition_id: selectedComp.id,
-        competition_name: selectedComp.name,
-        group_id: group.id,
-        group_name: group.name,
-        school_name: group.school_name,
-        category: group.category,
-        coach_name: group.coach_name,
-        status: "confirmed",
-        payment_status: "pending",
-        participants_count: ps.length,
-        participants: ps,
-      };
+  const handleConfirmGroup = () => {
+    if (!activeGroup || !selectedComp) return;
+    createMutation.mutate({
+      competition_id: selectedComp.id,
+      competition_name: selectedComp.name,
+      group_id: activeGroup.id,
+      group_name: activeGroup.name,
+      school_name: activeGroup.school_name,
+      category: activeGroup.category,
+      coach_name: activeGroup.coach_name,
+      status: "confirmed",
+      payment_status: "pending",
+      participants_count: tempParticipants.length,
+      participants: tempParticipants,
     });
-    createMutation.mutate(data);
   };
 
-  // Progress indicator (skip step 1 display if auto-selected)
+  // Progress
   const visibleSteps = singleComp ? STEPS.slice(1) : STEPS;
   const visibleStep = singleComp ? step - 1 : step;
 
@@ -220,7 +259,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         })}
       </div>
 
-      {/* STEP 1: Select competition (only if >1 open) */}
+      {/* STEP 1: Select competition */}
       {step === 1 && (
         <Card>
           <CardHeader><CardTitle>Selecciona la competición</CardTitle></CardHeader>
@@ -242,132 +281,131 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         </Card>
       )}
 
-      {/* STEP 2: Select groups (ALL visible, already-registered greyed) */}
+      {/* STEP 2: Group list + inline editor */}
       {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Selecciona los grupos a inscribir</CardTitle>
-            <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Available groups */}
-            {availableGroups.length === 0 ? (
-              <p className="text-muted-foreground text-sm py-4 text-center">Todos tus grupos ya están inscritos en esta competición.</p>
-            ) : (
-              availableGroups.map(group => {
-                const selected = selectedGroupIds.has(group.id);
-                return (
-                  <div key={group.id} onClick={() => toggleGroup(group.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                        {selected && <Check className="w-3 h-3 text-primary-foreground" />}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm">{group.name}</div>
-                        <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-
-            {/* Already registered groups (greyed out) */}
-            {alreadyRegisteredIds.size > 0 && myGroups.filter(g => alreadyRegisteredIds.has(g.id)).length > 0 && (
-              <div className="pt-2 space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ya inscritos en esta competición</p>
-                {myGroups.filter(g => alreadyRegisteredIds.has(g.id)).map(group => (
-                  <div key={group.id} className="p-4 rounded-xl border border-dashed opacity-50 cursor-not-allowed">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2Icon className="w-5 h-5 text-green-600 shrink-0" />
-                      <div>
-                        <div className="font-semibold text-sm">{group.name}</div>
-                        <div className="text-xs text-muted-foreground">{group.category}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+        activeGroupId && activeGroup ? (
+          /* ── Editor abierto para un grupo ── */
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <div>
+                  <CardTitle className="text-base">{activeGroup.name}</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activeGroup.category} · {mySchoolName}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {tempParticipants.length} participante{tempParticipants.length !== 1 ? "s" : ""}
+                </Badge>
               </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              {!singleComp && (
-                <Button variant="outline" onClick={() => setStep(1)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
-              )}
-              <div className="ml-auto">
-                <Button disabled={selectedGroupIds.size === 0} onClick={goToReview} className="gap-2">
-                  Revisar selección ({selectedGroupIds.size}) <ChevronRight className="w-4 h-4" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <GroupEditor
+                group={activeGroup}
+                participants={tempParticipants}
+                allSchoolParticipants={allSchoolParticipants}
+                onChange={setTempParticipants}
+              />
+              <div className="flex justify-between pt-3 border-t gap-2">
+                <Button variant="outline" onClick={closeEditor} disabled={createMutation.isPending}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmGroup}
+                  disabled={createMutation.isPending || tempParticipants.length === 0}
+                  className="gap-2"
+                >
+                  {createMutation.isPending ? "Guardando..." : "Confirmar inscripción"}
+                  <Check className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* STEP 3: Edit participants per selected group */}
-      {step === 3 && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-bold">Revisa y modifica los participantes</h2>
-            <p className="text-sm text-muted-foreground">Puedes añadir o eliminar participantes para esta competición sin afectar los datos originales.</p>
-          </div>
-          {selectedGroups.map(group => (
-            <GroupEditor
-              key={group.id}
-              group={group}
-              participants={groupParticipants[group.id] || group.participants || []}
-              allSchoolParticipants={allSchoolParticipants}
-              onChange={(ps) => setGroupParticipants(prev => ({ ...prev, [group.id]: ps }))}
-            />
-          ))}
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
-            <Button onClick={() => setStep(4)} className="gap-2">Ver resumen <ChevronRight className="w-4 h-4" /></Button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 4: Summary + confirm */}
-      {step === 4 && (
-        <Card>
-          <CardHeader><CardTitle>Confirmar inscripción — {selectedComp?.name}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {selectedGroups.map(group => {
-              const ps = groupParticipants[group.id] || group.participants || [];
-              return (
-                <div key={group.id} className="p-4 rounded-xl border bg-muted/20 space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="font-semibold">{group.name}</span>
-                    <Badge variant="outline">{group.category} · {ps.length} participantes</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                    {ps.map((p, i) => (
-                      <span key={i} className="text-sm text-muted-foreground">{p.name || p}</span>
-                    ))}
-                  </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* ── Lista de grupos ── */
+          <Card>
+            <CardHeader>
+              <CardTitle>Selecciona un grupo para inscribir</CardTitle>
+              <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Groups available to register */}
+              {availableGroups.length === 0 && confirmedGroupIds.size === 0 && alreadyInDbIds.size === 0 ? (
+                <p className="text-muted-foreground text-sm py-4 text-center">No hay grupos disponibles para inscribir.</p>
+              ) : availableGroups.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-2 text-center">Todos tus grupos ya están inscritos en esta competición.</p>
+              ) : (
+                <div className="space-y-2">
+                  {availableGroups.map(group => (
+                    <button
+                      key={group.id}
+                      onClick={() => openEditor(group)}
+                      className="w-full text-left p-4 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-sm">{group.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {group.category} · {group.participants?.length || 0} participantes
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              );
-            })}
-            <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(3)} className="gap-2"><ChevronLeft className="w-4 h-4" />Modificar</Button>
-              <Button onClick={handleConfirm} disabled={createMutation.isPending} className="gap-2">
-                {createMutation.isPending ? "Guardando..." : "Confirmar inscripción"}
-                <Check className="w-4 h-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              )}
+
+              {/* Groups confirmed in this session */}
+              {confirmedGroupIds.size > 0 && (
+                <div className="pt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Inscritos en esta sesión</p>
+                  {myGroups.filter(g => confirmedGroupIds.has(g.id)).map(g => (
+                    <div key={g.id} className="p-3 rounded-xl border border-dashed bg-green-50/30 flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-600 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">{g.name}</div>
+                        <div className="text-xs text-muted-foreground">{g.category}</div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] text-green-700 border-green-300">Inscrito</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Already registered before this session */}
+              {myGroups.filter(g => alreadyInDbIds.has(g.id)).length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ya inscritos en esta competición</p>
+                  {myGroups.filter(g => alreadyInDbIds.has(g.id)).map(g => (
+                    <div key={g.id} className="p-3 rounded-xl border border-dashed opacity-50 flex items-center gap-2 cursor-not-allowed">
+                      <Check className="w-4 h-4 text-green-600 shrink-0" />
+                      <div>
+                        <div className="font-semibold text-sm">{g.name}</div>
+                        <div className="text-xs text-muted-foreground">{g.category}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-between pt-2">
+                {!singleComp && (
+                  <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+                    <ChevronLeft className="w-4 h-4" /> Atrás
+                  </Button>
+                )}
+                {confirmedGroupIds.size > 0 && (
+                  <Button className="ml-auto gap-2" onClick={onSuccess}>
+                    <Check className="w-4 h-4" />
+                    Finalizar ({confirmedGroupIds.size} inscrito{confirmedGroupIds.size > 1 ? "s" : ""})
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
       )}
     </div>
-  );
-}
-
-// Inline icon for already-registered groups
-function CheckCircle2Icon({ className }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
   );
 }
