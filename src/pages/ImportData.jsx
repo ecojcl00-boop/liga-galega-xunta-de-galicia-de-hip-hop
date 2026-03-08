@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, FileSpreadsheet, CheckCircle2, Loader2, FileText, Trophy, Gavel, Database } from "lucide-react";
 import { toast } from "sonner";
+import ImportInscripciones from "@/components/import/ImportInscripciones";
 
 export default function ImportData() {
   const [fileJueces, setFileJueces] = useState(null);
