@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Check, ChevronRight, ChevronLeft, X, Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
+// ── GroupEditor: edit participants for one group ──────────────────────────────
 function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
   const [adding, setAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +46,9 @@ function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {participants.length === 0 && (
+          <p className="text-xs text-muted-foreground px-1">Sin participantes. Añade al menos uno.</p>
+        )}
         {participants.map((p, i) => (
           <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
             <span className="text-sm">{p.name || p}</span>
@@ -91,7 +95,7 @@ function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
           </div>
         ) : (
           <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="w-full gap-2 mt-1">
-            <Plus className="w-4 h-4" /> Añadir participante
+            <Plus className="w-4 h-4" /> Añadir / sustituir participante
           </Button>
         )}
       </CardContent>
@@ -99,35 +103,35 @@ function GroupEditor({ group, participants, allSchoolParticipants, onChange }) {
   );
 }
 
+// ── Wizard ────────────────────────────────────────────────────────────────────
 const STEPS = ["Competición", "Grupos", "Revisar", "Confirmar"];
 
-export default function ReenrollmentWizard({ user, competitions, allGroups, registrations, onSuccess }) {
-  const [step, setStep] = useState(1);
-  const [selectedComp, setSelectedComp] = useState(null);
-  const [selectedGroupIds, setSelectedGroupIds] = useState(new Set());
-  const [groupParticipants, setGroupParticipants] = useState({});
+export default function ReenrollmentWizard({ user, mySchoolName, myGroups, competitions, allGroups, registrations, onSuccess }) {
   const queryClient = useQueryClient();
 
-  const myGroups = useMemo(() =>
-    allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email),
-    [allGroups, user.email]
-  );
+  // If only 1 competition, skip step 1 automatically
+  const singleComp = competitions.length === 1 ? competitions[0] : null;
+  const [step, setStep] = useState(singleComp ? 2 : 1);
+  const [selectedComp, setSelectedComp] = useState(singleComp);
+  const [selectedGroupIds, setSelectedGroupIds] = useState(new Set());
+  const [groupParticipants, setGroupParticipants] = useState({});
 
-  const mySchoolName = myGroups[0]?.school_name || "";
-
+  // All unique participants from this school (for quick-add)
   const allSchoolParticipants = useMemo(() => {
-    const schoolGroups = allGroups.filter(g => g.school_name === mySchoolName);
     const seen = new Set();
     const result = [];
-    schoolGroups.forEach(g => {
-      (g.participants || []).forEach(p => {
-        const key = (p.name || "").toLowerCase().trim();
-        if (key && !seen.has(key)) { seen.add(key); result.push(p); }
+    allGroups
+      .filter(g => g.school_name === mySchoolName)
+      .forEach(g => {
+        (g.participants || []).forEach(p => {
+          const key = (p.name || "").toLowerCase().trim();
+          if (key && !seen.has(key)) { seen.add(key); result.push(p); }
+        });
       });
-    });
     return result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [allGroups, mySchoolName]);
 
+  // Groups already registered for the selected competition
   const alreadyRegisteredIds = useMemo(() =>
     new Set(registrations.filter(r => r.competition_id === selectedComp?.id).map(r => r.group_id)),
     [registrations, selectedComp]
@@ -137,18 +141,31 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
   const selectedGroups = availableGroups.filter(g => selectedGroupIds.has(g.id));
 
   const toggleGroup = (id) => {
-    const isSelected = selectedGroupIds.has(id);
     const next = new Set(selectedGroupIds);
-    if (isSelected) {
+    if (next.has(id)) {
       next.delete(id);
     } else {
       next.add(id);
+      // Pre-init participants from group data
       if (!groupParticipants[id]) {
         const g = allGroups.find(gg => gg.id === id);
         setGroupParticipants(pp => ({ ...pp, [id]: [...(g?.participants || [])] }));
       }
     }
     setSelectedGroupIds(next);
+  };
+
+  // When moving to step 3: ensure all selected groups have participants initialized
+  const goToReview = () => {
+    const init = { ...groupParticipants };
+    selectedGroupIds.forEach(id => {
+      if (!init[id]) {
+        const g = allGroups.find(gg => gg.id === id);
+        init[id] = [...(g?.participants || [])];
+      }
+    });
+    setGroupParticipants(init);
+    setStep(3);
   };
 
   const createMutation = useMutation({
@@ -181,46 +198,29 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
     createMutation.mutate(data);
   };
 
-  if (myGroups.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-center text-muted-foreground">
-          <p>No se encontraron grupos asociados a tu cuenta.</p>
-          <p className="text-sm mt-1">Contacta con el administrador para vincular tu escuela.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (competitions.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-center text-muted-foreground">
-          <p>No hay competiciones abiertas para inscribirse en este momento.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Progress indicator (skip step 1 display if auto-selected)
+  const visibleSteps = singleComp ? STEPS.slice(1) : STEPS;
+  const visibleStep = singleComp ? step - 1 : step;
 
   return (
     <div className="space-y-6">
-      {/* Progress bar */}
+      {/* Progress */}
       <div className="flex items-center gap-1">
-        {STEPS.map((label, i) => {
+        {visibleSteps.map((label, i) => {
           const s = i + 1;
           return (
             <React.Fragment key={s}>
               <div className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{s}</div>
-                <span className={`text-xs hidden sm:block ${step >= s ? "text-primary font-medium" : "text-muted-foreground"}`}>{label}</span>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${visibleStep >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{s}</div>
+                <span className={`text-xs hidden sm:block ${visibleStep >= s ? "text-primary font-medium" : "text-muted-foreground"}`}>{label}</span>
               </div>
-              {s < 4 && <div className={`flex-1 h-1 rounded transition-colors mb-4 ${step > s ? "bg-primary" : "bg-muted"}`} />}
+              {s < visibleSteps.length && <div className={`flex-1 h-1 rounded transition-colors mb-4 ${visibleStep > s ? "bg-primary" : "bg-muted"}`} />}
             </React.Fragment>
           );
         })}
       </div>
 
-      {/* Step 1: Select competition */}
+      {/* STEP 1: Select competition (only if >1 open) */}
       {step === 1 && (
         <Card>
           <CardHeader><CardTitle>Selecciona la competición</CardTitle></CardHeader>
@@ -242,14 +242,15 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
         </Card>
       )}
 
-      {/* Step 2: Select groups */}
+      {/* STEP 2: Select groups (ALL visible, already-registered greyed) */}
       {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Selecciona tus grupos</CardTitle>
+            <CardTitle>Selecciona los grupos a inscribir</CardTitle>
             <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Available groups */}
             {availableGroups.length === 0 ? (
               <p className="text-muted-foreground text-sm py-4 text-center">Todos tus grupos ya están inscritos en esta competición.</p>
             ) : (
@@ -262,7 +263,7 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-muted-foreground"}`}>
                         {selected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <div className="font-semibold text-sm">{group.name}</div>
                         <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
                       </div>
@@ -271,21 +272,44 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
                 );
               })
             )}
+
+            {/* Already registered groups (greyed out) */}
+            {alreadyRegisteredIds.size > 0 && myGroups.filter(g => alreadyRegisteredIds.has(g.id)).length > 0 && (
+              <div className="pt-2 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Ya inscritos en esta competición</p>
+                {myGroups.filter(g => alreadyRegisteredIds.has(g.id)).map(group => (
+                  <div key={group.id} className="p-4 rounded-xl border border-dashed opacity-50 cursor-not-allowed">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2Icon className="w-5 h-5 text-green-600 shrink-0" />
+                      <div>
+                        <div className="font-semibold text-sm">{group.name}</div>
+                        <div className="text-xs text-muted-foreground">{group.category}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(1)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
-              <Button disabled={selectedGroupIds.size === 0} onClick={() => setStep(3)} className="gap-2">
-                Siguiente <ChevronRight className="w-4 h-4" />
-              </Button>
+              {!singleComp && (
+                <Button variant="outline" onClick={() => setStep(1)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
+              )}
+              <div className="ml-auto">
+                <Button disabled={selectedGroupIds.size === 0} onClick={goToReview} className="gap-2">
+                  Revisar selección ({selectedGroupIds.size}) <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 3: Edit participants */}
+      {/* STEP 3: Edit participants per selected group */}
       {step === 3 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold">Revisa y modifica los grupos</h2>
+            <h2 className="text-lg font-bold">Revisa y modifica los participantes</h2>
             <p className="text-sm text-muted-foreground">Puedes añadir o eliminar participantes para esta competición sin afectar los datos originales.</p>
           </div>
           {selectedGroups.map(group => (
@@ -299,12 +323,12 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
           ))}
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
-            <Button onClick={() => setStep(4)} className="gap-2">Revisar inscripción <ChevronRight className="w-4 h-4" /></Button>
+            <Button onClick={() => setStep(4)} className="gap-2">Ver resumen <ChevronRight className="w-4 h-4" /></Button>
           </div>
         </div>
       )}
 
-      {/* Step 4: Confirm */}
+      {/* STEP 4: Summary + confirm */}
       {step === 4 && (
         <Card>
           <CardHeader><CardTitle>Confirmar inscripción — {selectedComp?.name}</CardTitle></CardHeader>
@@ -326,7 +350,7 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
               );
             })}
             <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(3)} className="gap-2"><ChevronLeft className="w-4 h-4" />Atrás</Button>
+              <Button variant="outline" onClick={() => setStep(3)} className="gap-2"><ChevronLeft className="w-4 h-4" />Modificar</Button>
               <Button onClick={handleConfirm} disabled={createMutation.isPending} className="gap-2">
                 {createMutation.isPending ? "Guardando..." : "Confirmar inscripción"}
                 <Check className="w-4 h-4" />
@@ -336,5 +360,14 @@ export default function ReenrollmentWizard({ user, competitions, allGroups, regi
         </Card>
       )}
     </div>
+  );
+}
+
+// Inline icon for already-registered groups
+function CheckCircle2Icon({ className }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   );
 }

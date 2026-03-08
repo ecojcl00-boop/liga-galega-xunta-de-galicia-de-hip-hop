@@ -1,100 +1,188 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trophy, ChevronLeft } from "lucide-react";
+import { Plus, Trophy, ChevronLeft, Users, CheckCircle2, Circle } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard";
+
+const statusColors = {
+  confirmed: "bg-primary/10 text-primary",
+  pending: "bg-accent text-accent-foreground",
+  cancelled: "bg-destructive/10 text-destructive",
+};
 
 export default function SchoolView({ user, competitions, allGroups, registrations }) {
   const [showWizard, setShowWizard] = useState(false);
 
-  const myGroups = allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email);
-  const mySchoolName = myGroups[0]?.school_name || "";
+  // Derive school name: user.school_name (set by admin) > email match on groups > created_by match
+  const mySchoolName = useMemo(() => {
+    if (user.school_name) return user.school_name;
+    const matched = allGroups.find(g => g.coach_email === user.email || g.created_by === user.email);
+    return matched?.school_name || "";
+  }, [allGroups, user]);
+
+  // ALL groups from this school
+  const myGroups = useMemo(() => {
+    if (mySchoolName) return allGroups.filter(g => g.school_name === mySchoolName);
+    return allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email);
+  }, [allGroups, mySchoolName, user]);
+
   const openCompetitions = competitions.filter(c => c.registration_open);
 
-  // Registrations for my school, grouped by competition
-  const myRegistrations = registrations.filter(r => r.school_name === mySchoolName);
-  const byCompetition = myRegistrations.reduce((acc, r) => {
+  // My registrations only
+  const myRegistrations = useMemo(() =>
+    registrations.filter(r => r.school_name === mySchoolName),
+    [registrations, mySchoolName]
+  );
+
+  // Which group IDs are already registered per competition
+  const registeredGroupIds = useMemo(() => {
+    const map = {};
+    myRegistrations.forEach(r => {
+      if (!map[r.competition_id]) map[r.competition_id] = new Set();
+      map[r.competition_id].add(r.group_id);
+    });
+    return map;
+  }, [myRegistrations]);
+
+  // Past registrations grouped by competition (for history)
+  const byCompetition = useMemo(() => myRegistrations.reduce((acc, r) => {
     const key = r.competition_name || "Sin competición";
     if (!acc[key]) acc[key] = [];
     acc[key].push(r);
     return acc;
-  }, {});
+  }, {}), [myRegistrations]);
 
-  const statusColors = {
-    confirmed: "bg-primary/10 text-primary",
-    pending: "bg-accent text-accent-foreground",
-    cancelled: "bg-destructive/10 text-destructive",
-  };
+  if (showWizard) {
+    return (
+      <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => setShowWizard(false)} className="gap-2">
+            <ChevronLeft className="w-4 h-4" /> Volver
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">Nueva inscripción</h1>
+        </div>
+        <ReenrollmentWizard
+          user={user}
+          mySchoolName={mySchoolName}
+          myGroups={myGroups}
+          competitions={openCompetitions}
+          allGroups={allGroups}
+          registrations={registrations}
+          onSuccess={() => setShowWizard(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-            {showWizard ? "Nueva inscripción" : "Mis Inscripciones"}
-          </h1>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
           {mySchoolName && <p className="text-muted-foreground mt-1">{mySchoolName}</p>}
         </div>
-        {!showWizard && openCompetitions.length > 0 && (
+        {openCompetitions.length > 0 && myGroups.length > 0 && (
           <Button onClick={() => setShowWizard(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Nueva inscripción
+            <Plus className="w-4 h-4" /> Inscribir en nueva competición
           </Button>
         )}
       </div>
 
-      {showWizard ? (
-        <div className="space-y-4">
-          <Button variant="outline" size="sm" onClick={() => setShowWizard(false)} className="gap-2">
-            <ChevronLeft className="w-4 h-4" /> Volver
-          </Button>
-          <ReenrollmentWizard
-            user={user}
-            competitions={openCompetitions}
-            allGroups={allGroups}
-            registrations={registrations}
-            onSuccess={() => setShowWizard(false)}
-          />
-        </div>
-      ) : (
-        <>
-          {myRegistrations.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground space-y-3">
-              <Trophy className="w-12 h-12 mx-auto opacity-20" />
-              <p className="font-medium">Sin inscripciones todavía</p>
-              {openCompetitions.length > 0 && (
-                <p className="text-sm">Usa el botón "Nueva inscripción" para registrar tus grupos</p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(byCompetition).map(([compName, regs]) => (
-                <Card key={compName}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Trophy className="w-4 h-4 text-primary shrink-0" />
-                      <CardTitle className="text-base">{compName}</CardTitle>
-                      <Badge variant="secondary" className="ml-auto">{regs.length} grupos</Badge>
+      {/* No school linked */}
+      {!mySchoolName && myGroups.length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
+            <p className="font-medium">No hay grupos asociados a tu cuenta</p>
+            <p className="text-sm mt-1">Contacta con el administrador para vincular tu escuela.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* My Groups — always visible */}
+      {myGroups.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold">Mis grupos ({myGroups.length})</h2>
+          <div className="grid gap-2">
+            {myGroups.map(group => {
+              const registeredComps = openCompetitions.filter(c => registeredGroupIds[c.id]?.has(group.id));
+              const pendingComps = openCompetitions.filter(c => !registeredGroupIds[c.id]?.has(group.id));
+              return (
+                <div key={group.id} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-card gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4 text-primary" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {regs.map(r => (
-                      <div key={r.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 gap-2 flex-wrap">
-                        <div>
-                          <div className="font-medium text-sm">{r.group_name}</div>
-                          <div className="text-xs text-muted-foreground">{r.category} · {r.participants_count || 0} participantes</div>
-                        </div>
-                        <Badge className={`${statusColors[r.status] || statusColors.pending} border-0 text-[10px]`}>
-                          {r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente"}
-                        </Badge>
-                      </div>
+                    <div>
+                      <div className="font-semibold text-sm">{group.name}</div>
+                      <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {registeredComps.map(c => (
+                      <span key={c.id} className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3" /> {c.name}
+                      </span>
                     ))}
-                  </CardContent>
-                </Card>
-              ))}
+                    {pendingComps.map(c => (
+                      <span key={c.id} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        <Circle className="w-3 h-3" /> Sin inscribir en {c.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Open competition CTA */}
+      {openCompetitions.length > 0 && myGroups.length > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-semibold text-sm">{openCompetitions[0].name}</p>
+              <p className="text-xs text-muted-foreground">Inscripciones abiertas</p>
             </div>
-          )}
-        </>
+            <Button onClick={() => setShowWizard(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Inscribir grupos
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Registration history */}
+      {Object.keys(byCompetition).length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold">Historial de inscripciones</h2>
+          {Object.entries(byCompetition).map(([compName, regs]) => (
+            <Card key={compName}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Trophy className="w-4 h-4 text-primary shrink-0" />
+                  <CardTitle className="text-base">{compName}</CardTitle>
+                  <Badge variant="secondary" className="ml-auto">{regs.length} grupos</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {regs.map(r => (
+                  <div key={r.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 gap-2 flex-wrap">
+                    <div>
+                      <div className="font-medium text-sm">{r.group_name}</div>
+                      <div className="text-xs text-muted-foreground">{r.category} · {r.participants_count || 0} participantes</div>
+                    </div>
+                    <Badge className={`${statusColors[r.status] || statusColors.pending} border-0 text-[10px]`}>
+                      {r.status === "confirmed" ? "Confirmado" : r.status === "cancelled" ? "Cancelado" : "Pendiente"}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
