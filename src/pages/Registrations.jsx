@@ -177,6 +177,20 @@ export default function Registrations() {
     pending: "bg-yellow-100 text-yellow-700",
   };
 
+  // School users (non-admin) see the self-service view
+  if (user && user.role !== "admin") {
+    return (
+      <SchoolView
+        user={user}
+        competitions={competitions}
+        allGroups={groups}
+        registrations={registrations}
+      />
+    );
+  }
+
+  if (!user) return null; // loading
+
   if (openCompetitions.length === 0) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] text-center">
