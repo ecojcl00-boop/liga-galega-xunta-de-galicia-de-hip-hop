@@ -189,6 +189,24 @@ export default function Competitions() {
         </DialogContent>
       </Dialog>
 
+      {/* Registrations panel Dialog */}
+      <Dialog open={!!viewingRegs} onOpenChange={(open) => !open && setViewingRegs(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-primary" />
+              Inscritos: {viewingRegs?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingRegs && (
+            <CompetitionRegistrationsPanel
+              competition={viewingRegs}
+              registrations={registrations}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
