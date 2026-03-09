@@ -40,8 +40,8 @@ const navItems = [
 // No public pages — login required for everything
 const PUBLIC_PAGES = [];
 
-// Pages that non-admin users can also access (school portal handles the rest)
-const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings"];
+// Pages that non-admin users (and simulated schools) can also access
+const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings", "Groups", "Schools", "Categories", "JudgePanel"];
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
