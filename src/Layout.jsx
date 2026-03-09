@@ -31,8 +31,38 @@ const navItems = [
   { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
 ];
 
+// Pages accessible without login
+const PUBLIC_PAGES = ["Dashboard", "Rankings"];
+
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me()
+      .then(u => { setUser(u); setAuthChecked(true); })
+      .catch(() => { setUser(null); setAuthChecked(true); });
+  }, []);
+
+  const isPublicPage = PUBLIC_PAGES.includes(currentPageName);
+
+  if (!authChecked) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground text-sm">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  if (!user && !isPublicPage) {
+    base44.auth.redirectToLogin(window.location.pathname);
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground text-sm">Redirigiendo al login...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background" style={{"--background": "0 0% 4%"}}>
