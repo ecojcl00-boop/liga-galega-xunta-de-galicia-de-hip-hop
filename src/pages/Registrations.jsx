@@ -111,6 +111,19 @@ export default function Registrations() {
     );
   }
 
+  // Admin: simulating a school → show full school view inline with banner
+  if (simulatedSchool) {
+    return (
+      <SchoolSimulator
+        simulatedSchool={simulatedSchool}
+        onExit={() => setSimulatedSchool(null)}
+        allGroups={groups}
+        competitions={competitions}
+        registrations={registrations}
+      />
+    );
+  }
+
   // Admin view
    return (
      <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
