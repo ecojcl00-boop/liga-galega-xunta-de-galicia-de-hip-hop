@@ -53,7 +53,6 @@ import Competitions from './pages/Competitions';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import ImportData from './pages/ImportData';
-import JudgePanel from './pages/JudgePanel';
 import PortalEscuela from './pages/PortalEscuela';
 import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
@@ -69,7 +68,6 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Groups": Groups,
     "ImportData": ImportData,
-    "JudgePanel": JudgePanel,
     "PortalEscuela": PortalEscuela,
     "Rankings": Rankings,
     "Registrations": Registrations,
