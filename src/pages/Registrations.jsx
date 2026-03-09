@@ -143,10 +143,10 @@ export default function Registrations() {
 
       <Tabs defaultValue="gestion">
         <TabsList>
-          <TabsTrigger value="gestion" className="gap-2 text-slate-300 data-[state=active]:text-foreground">
+          <TabsTrigger value="gestion" className="gap-2">
             <Trophy className="w-4 h-4" /> Gestión
           </TabsTrigger>
-          <TabsTrigger value="historial" className="gap-2 text-slate-300 data-[state=active]:text-foreground">
+          <TabsTrigger value="historial" className="gap-2">
             <History className="w-4 h-4" /> Historial
           </TabsTrigger>
         </TabsList>

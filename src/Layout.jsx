@@ -114,7 +114,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <UserContext.Provider value={user}>
-    <div className="flex h-screen overflow-hidden bg-background" style={{"--background": "0 0% 4%"}}>
+    <div className="flex h-screen overflow-hidden bg-[hsl(0,0%,4%)]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
