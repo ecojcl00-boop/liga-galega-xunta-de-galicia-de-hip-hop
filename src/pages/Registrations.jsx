@@ -250,13 +250,12 @@ export default function Registrations() {
           }}
         />
 
-        {/* School Simulator */}
-        <SchoolSimulator
+        {/* School Selector Dialog */}
+        <SchoolSelectorDialog
           open={showSchoolSimulator}
           onOpenChange={setShowSchoolSimulator}
           allGroups={groups}
-          competitions={competitions}
-          registrations={registrations}
+          onSelect={(school) => { setSimulatedSchool(school); setShowSchoolSimulator(false); }}
         />
         </div>
         );
