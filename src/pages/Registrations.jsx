@@ -14,7 +14,7 @@ import AdminInscripcionesPanel from "../components/registrations/AdminInscripcio
 import CreateGroupDialog from "../components/registrations/CreateGroupDialog.jsx";
 import CreateIndividualDialog from "../components/registrations/CreateIndividualDialog.jsx";
 import SchoolSimulator from "../components/registrations/SchoolSimulator.jsx";
-import { Eye } from "lucide-react";
+import { Eye, School } from "lucide-react";
 
 export default function Registrations() {
   const [user, setUser] = useState(null);
