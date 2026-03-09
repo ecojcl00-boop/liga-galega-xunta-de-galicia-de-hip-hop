@@ -48,7 +48,7 @@ function buildGlobalRanking(results) {
 export default function Rankings() {
   const [view, setView] = useState("liga"); // "liga" | "competition" | "global"
 
-  const [selectedCompetition, setSelectedCompetition] = useState("Marín 2026");
+  const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const { data: results = [], isLoading } = useQuery({
@@ -62,6 +62,12 @@ export default function Rankings() {
   });
 
   const competitions = [...new Set(results.map(r => r.competition_name))];
+  // Set initial competition dynamically from first available result
+  React.useEffect(() => {
+    if (!selectedCompetition && competitions.length > 0) {
+      setSelectedCompetition(competitions[0]);
+    }
+  }, [competitions.length]);
 
   const filtered = results
     .filter(r => r.competition_name === selectedCompetition)
