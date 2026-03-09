@@ -127,8 +127,13 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // Build effective user context: if simulating, inject school identity
+  const effectiveUser = simulatedSchool
+    ? { ...user, role: "user", school_name: simulatedSchool, _simulating: true }
+    : user;
+
   return (
-    <UserContext.Provider value={user}>
+    <UserContext.Provider value={effectiveUser}>
     <div className="flex h-screen overflow-hidden bg-[hsl(0,0%,4%)]">
       {/* Mobile overlay */}
       {sidebarOpen && (
