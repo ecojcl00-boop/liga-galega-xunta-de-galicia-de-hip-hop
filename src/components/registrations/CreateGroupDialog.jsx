@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,14 @@ import { Plus, X, Check } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 
-function ParticipantRow({ participant, onEdit, onRemove }) {
+// Categories available in the app (hardcoded to stay in sync with MODALITY_MAP)
+const ALL_CATEGORIES = [
+  "Mini Individual A", "Mini Individual B", "Individual",
+  "Mini Parejas A", "Mini Parejas B", "Parejas",
+  "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+];
+
+function ParticipantRow({ participant, onRemove }) {
   return (
     <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
       <div className="flex-1">
@@ -23,12 +30,12 @@ function ParticipantRow({ participant, onEdit, onRemove }) {
   );
 }
 
-export default function CreateGroupDialog({ open, onOpenChange, categories, schools, onSuccess }) {
+export default function CreateGroupDialog({ open, onOpenChange, schools, onSuccess }) {
   const queryClient = useQueryClient();
 
   const [groupName, setGroupName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedSchoolName, setSelectedSchoolName] = useState("");
   const [coachName, setCoachName] = useState("");
   const [coachEmail, setCoachEmail] = useState("");
   const [coachPhone, setCoachPhone] = useState("");
@@ -38,13 +45,10 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
   const [participantBirth, setParticipantBirth] = useState("");
 
   const createMutation = useMutation({
-    mutationFn: async (groupData) => {
-      const created = await base44.entities.Group.create(groupData);
-      return created;
-    },
+    mutationFn: async (groupData) => base44.entities.Group.create(groupData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
-      onSuccess();
+      onSuccess?.();
       resetForm();
       onOpenChange(false);
     },
@@ -53,7 +57,7 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
   const resetForm = () => {
     setGroupName("");
     setSelectedCategory("");
-    setSelectedSchool("");
+    setSelectedSchoolName("");
     setCoachName("");
     setCoachEmail("");
     setCoachPhone("");
@@ -76,26 +80,20 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
   };
 
   const handleCreate = () => {
-    if (!groupName.trim() || !selectedCategory || !selectedSchool || participants.length === 0) {
-      return;
-    }
-
-    const schoolObj = schools.find(s => s.id === selectedSchool);
-    const categoryObj = categories.find(c => c.id === selectedCategory);
+    if (!groupName.trim() || !selectedCategory || !selectedSchoolName || participants.length === 0) return;
 
     createMutation.mutate({
       name: groupName.trim(),
-      school_id: selectedSchool,
-      school_name: schoolObj?.name || "",
+      school_name: selectedSchoolName,
       coach_name: coachName.trim() || "",
       coach_email: coachEmail.trim() || "",
       coach_phone: coachPhone.trim() || "",
-      category: categoryObj?.name || "",
+      category: selectedCategory,
       participants: participants,
     });
   };
 
-  const isFormValid = groupName.trim() && selectedCategory && selectedSchool && participants.length > 0;
+  const isFormValid = groupName.trim() && selectedCategory && selectedSchoolName && participants.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,8 +125,8 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger id="category"><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
                     <SelectContent>
-                      {categories.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      {ALL_CATEGORIES.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -136,11 +134,11 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
 
                 <div className="space-y-2">
                   <Label htmlFor="school">Escuela *</Label>
-                  <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                  <Select value={selectedSchoolName} onValueChange={setSelectedSchoolName}>
                     <SelectTrigger id="school"><SelectValue placeholder="Selecciona escuela" /></SelectTrigger>
                     <SelectContent>
                       {schools.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -164,7 +162,6 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
                   onChange={e => setCoachName(e.target.value)}
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="coachEmail">Email</Label>
@@ -176,7 +173,6 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
                     onChange={e => setCoachEmail(e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="coachPhone">Teléfono</Label>
                   <Input
@@ -199,11 +195,9 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
               {participants.length === 0 && (
                 <p className="text-xs text-muted-foreground px-1 py-2">Añade al menos un participante</p>
               )}
-
               {participants.map((p, i) => (
                 <ParticipantRow key={i} participant={p} onRemove={() => removeParticipant(i)} />
               ))}
-
               {addingParticipant ? (
                 <div className="border rounded-xl p-3 space-y-2 bg-muted/10">
                   <Input
@@ -238,7 +232,7 @@ export default function CreateGroupDialog({ open, onOpenChange, categories, scho
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>Cancelar</Button>
           <Button onClick={handleCreate} disabled={!isFormValid || createMutation.isPending}>
             {createMutation.isPending ? "Creando..." : "Crear grupo"}
           </Button>

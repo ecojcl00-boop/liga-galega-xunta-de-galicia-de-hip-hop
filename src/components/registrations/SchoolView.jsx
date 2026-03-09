@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Trophy } from "lucide-react";
+import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 
@@ -22,29 +22,48 @@ const statusLabels = {
   cancelled: "⚫ Cancelado",
 };
 
+// Normalize for comparison: lowercase, trim, no accents/tildes
+function norm(str = "") {
+  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+
 export default function SchoolView({ user, competitions, allGroups, registrations }) {
   const [showWizard, setShowWizard] = useState(false);
 
-  // Derive school name: user.school_name (set by admin) > email match on groups > created_by match
+  // Derive school name via normalized comparison
   const mySchoolName = useMemo(() => {
-    if (user.school_name) return user.school_name;
+    if (user.school_name?.trim()) return user.school_name.trim();
+    // Fallback: match by coach email or created_by
     const matched = allGroups.find(g => g.coach_email === user.email || g.created_by === user.email);
-    return matched?.school_name || "";
+    return matched?.school_name?.trim() || "";
   }, [allGroups, user]);
 
-  // ALL groups from this school (both legacy Marín 2026 and newly created)
-   const myGroups = useMemo(() => {
-     // Priority 1: school_name match (covers both legacy and new groups)
-     if (mySchoolName) return allGroups.filter(g => g.school_name === mySchoolName);
-     // Fallback: email match (for newly created groups by this user)
-     return allGroups.filter(g => g.coach_email === user.email || g.created_by === user.email);
-   }, [allGroups, mySchoolName, user]);
+  // If no school found at all → show lockout, never show data
+  if (!mySchoolName) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] p-4">
+        <Card className="max-w-sm w-full">
+          <CardContent className="pt-8 pb-8 text-center space-y-3">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground/30" />
+            <h2 className="text-xl font-bold">Cuenta sin escuela asignada</h2>
+            <p className="text-sm text-muted-foreground">Tu cuenta no está vinculada a ninguna escuela. Contacta con el administrador.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Use normalized comparison so typos/tildes don't break the match
+  const myGroups = useMemo(() =>
+    allGroups.filter(g => norm(g.school_name) === norm(mySchoolName)),
+    [allGroups, mySchoolName]
+  );
 
   const openCompetitions = competitions.filter(c => c.registration_open);
 
-  // My registrations only
+  // My registrations only — normalize school_name comparison
   const myRegistrations = useMemo(() =>
-    registrations.filter(r => r.school_name === mySchoolName),
+    registrations.filter(r => norm(r.school_name) === norm(mySchoolName)),
     [registrations, mySchoolName]
   );
 
@@ -102,17 +121,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
           </Button>
         )}
       </div>
-
-      {/* No school linked */}
-      {!mySchoolName && myGroups.length === 0 && (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
-            <p className="font-medium">No hay grupos asociados a tu cuenta</p>
-            <p className="text-sm mt-1">Contacta con el administrador para vincular tu escuela.</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* My Groups — always visible */}
       {myGroups.length > 0 && (
@@ -180,6 +188,17 @@ export default function SchoolView({ user, competitions, allGroups, registration
             isAdmin={false}
           />
         </div>
+      )}
+
+      {/* No groups at all */}
+      {myGroups.length === 0 && myRegistrations.length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
+            <p className="font-medium">No hay grupos asociados a {mySchoolName}</p>
+            <p className="text-sm mt-1">Contacta con el administrador para añadir grupos.</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
