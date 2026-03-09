@@ -507,7 +507,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         <div className="flex justify-between pt-2">
           <Button
             variant="outline"
-            onClick={() => setEditingGroupId(selectedGroups[selectedGroups.length - 1].id)}
+            onClick={() => {
+              setEditingGroupId(selectedGroups[selectedGroups.length - 1].id);
+              setCurrentStep("editing");
+            }}
             className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" /> Volver a editar
