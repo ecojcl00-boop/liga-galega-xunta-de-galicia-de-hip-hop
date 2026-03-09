@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trophy, History } from "lucide-react";
+import { Plus, Trophy, History, Eye } from "lucide-react";
 import SchoolView from "../components/registrations/SchoolView";
 import HistorialCompeticiones from "../components/registrations/HistorialCompeticiones";
 import AdminInscripcionesPanel from "../components/registrations/AdminInscripcionesPanel";
@@ -15,17 +15,22 @@ import CreateGroupDialog from "../components/registrations/CreateGroupDialog.jsx
 import CreateIndividualDialog from "../components/registrations/CreateIndividualDialog.jsx";
 import SchoolSimulator from "../components/registrations/SchoolSimulator.jsx";
 import SchoolSelectorDialog from "../components/registrations/SchoolSelectorDialog.jsx";
-import { Eye } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
+
+// Build a deduplicated school list from group data using school_name as key
+function buildSchoolOptions(groups) {
+  const map = new Map();
+  groups.forEach(g => {
+    const key = g.school_name?.trim().toLowerCase();
+    if (key && !map.has(key)) {
+      map.set(key, { id: g.school_name, name: g.school_name });
+    }
+  });
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
 
 export default function Registrations() {
-  const [user, setUser] = useState(null);
-  const [userLoading, setUserLoading] = useState(true);
-
-  useEffect(() => {
-    base44.auth.me()
-      .then(u => { setUser(u); setUserLoading(false); })
-      .catch(() => { setUser(null); setUserLoading(false); });
-  }, []);
+  const user = useUser();
 
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
@@ -93,12 +98,7 @@ export default function Registrations() {
     });
   };
 
-  if (userLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
-
-  if (!user) {
-    base44.auth.redirectToLogin(window.location.pathname);
-    return null;
-  }
+  if (!user) return null; // Layout handles redirect
 
   // School users → SchoolView
   if (user.role !== "admin") {
@@ -125,18 +125,21 @@ export default function Registrations() {
     );
   }
 
+  const schoolOptions = buildSchoolOptions(groups);
+  const categoryOptions = [...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()];
+
   // Admin view
-   return (
-     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-       <div className="flex items-center justify-between">
-         <div>
-           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
-           <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
-         </div>
-         <Button onClick={() => setShowSchoolSimulator(true)} variant="outline" className="gap-2">
-           <Eye className="w-4 h-4" /> Simular vista de escuela
-         </Button>
-       </div>
+  return (
+    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
+          <p className="text-muted-foreground mt-1">{registrations.length} inscripciones totales</p>
+        </div>
+        <Button onClick={() => setShowSchoolSimulator(true)} variant="outline" className="gap-2">
+          <Eye className="w-4 h-4" /> Simular vista de escuela
+        </Button>
+      </div>
 
       <Tabs defaultValue="gestion">
         <TabsList>
@@ -149,18 +152,18 @@ export default function Registrations() {
         </TabsList>
 
         {/* ── Tab: Gestión ── */}
-         <TabsContent value="gestion" className="space-y-4 mt-4">
-           <div className="flex justify-end gap-2">
-             <Button onClick={() => setShowCreateGroupDialog(true)} className="gap-2">
-               <Plus className="w-4 h-4" /> Nuevo grupo
-             </Button>
-             <Button onClick={() => setShowCreateIndividualDialog(true)} className="gap-2">
-               <Plus className="w-4 h-4" /> Nuevo participante
-             </Button>
-             <Button onClick={() => setShowGroupDialog(true)} variant="outline" className="gap-2">
-               <Plus className="w-4 h-4" /> Inscribir Grupo
-             </Button>
-           </div>
+        <TabsContent value="gestion" className="space-y-4 mt-4">
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setShowCreateGroupDialog(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Nuevo grupo
+            </Button>
+            <Button onClick={() => setShowCreateIndividualDialog(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Nuevo participante
+            </Button>
+            <Button onClick={() => setShowGroupDialog(true)} variant="outline" className="gap-2">
+              <Plus className="w-4 h-4" /> Inscribir Grupo
+            </Button>
+          </div>
           <AdminInscripcionesPanel
             registrations={registrations}
             competitions={competitions}
@@ -227,37 +230,33 @@ export default function Registrations() {
             </div>
           </div>
         </DialogContent>
-        </Dialog>
+      </Dialog>
 
-        {/* Create Group Dialog */}
-        <CreateGroupDialog
-         open={showCreateGroupDialog}
-         onOpenChange={setShowCreateGroupDialog}
-         categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
-         schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
-         onSuccess={() => {
-           queryClient.invalidateQueries({ queryKey: ["groups"] });
-         }}
-        />
+      {/* Create Group Dialog */}
+      <CreateGroupDialog
+        open={showCreateGroupDialog}
+        onOpenChange={setShowCreateGroupDialog}
+        categories={categoryOptions}
+        schools={schoolOptions}
+        onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["groups"] }); }}
+      />
 
-        {/* Create Individual Dialog */}
-        <CreateIndividualDialog
-          open={showCreateIndividualDialog}
-          onOpenChange={setShowCreateIndividualDialog}
-          categories={[...new Map(groups.map(g => [g.category, { id: g.category, name: g.category }])).values()]}
-          schools={[...new Map(groups.map(g => [g.school_id, { id: g.school_id, name: g.school_name }])).values()]}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["groups"] });
-          }}
-        />
+      {/* Create Individual Dialog */}
+      <CreateIndividualDialog
+        open={showCreateIndividualDialog}
+        onOpenChange={setShowCreateIndividualDialog}
+        categories={categoryOptions}
+        schools={schoolOptions}
+        onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["groups"] }); }}
+      />
 
-        {/* School Selector Dialog */}
-        <SchoolSelectorDialog
-          open={showSchoolSimulator}
-          onOpenChange={setShowSchoolSimulator}
-          allGroups={groups}
-          onSelect={(school) => { setSimulatedSchool(school); setShowSchoolSimulator(false); }}
-        />
-        </div>
-        );
-        }
+      {/* School Selector Dialog */}
+      <SchoolSelectorDialog
+        open={showSchoolSimulator}
+        onOpenChange={setShowSchoolSimulator}
+        allGroups={groups}
+        onSelect={(school) => { setSimulatedSchool(school); setShowSchoolSimulator(false); }}
+      />
+    </div>
+  );
+}

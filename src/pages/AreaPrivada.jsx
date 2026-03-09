@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Lock, ExternalLink, Calendar, School } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
 
 function ActaCard({ acta }) {
   const fecha = acta.fecha
@@ -40,19 +41,13 @@ function ActaCard({ acta }) {
 }
 
 export default function AreaPrivada() {
-  const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const user = useUser();
   const [form, setForm] = useState({ school_name: "", competicion_nombre: "", fecha: "", notas: "" });
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    base44.auth.me()
-      .then(u => { setUser(u); setAuthChecked(true); })
-      .catch(() => setAuthChecked(true));
-  }, []);
-
+  // DB-level filter: admin gets all, school user gets only theirs
   const { data: allActas = [] } = useQuery({
     queryKey: ["actas_jueces", user?.role, user?.school_name],
     queryFn: () => {
@@ -60,50 +55,17 @@ export default function AreaPrivada() {
       if (!user?.school_name) return [];
       return base44.entities.ActaJueces.filter({ school_name: user.school_name }, "-fecha");
     },
-    enabled: authChecked && !!user,
+    enabled: !!user,
   });
 
-  if (!authChecked) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-sm text-muted-foreground">Verificando acceso...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] p-4">
-        <Card className="max-w-sm w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-              <Lock className="w-8 h-8 text-muted-foreground/40" />
-            </div>
-            <h2 className="text-xl font-bold">Acceso restringido</h2>
-            <p className="text-sm text-muted-foreground">
-              Inicia sesión con la cuenta de tu escuela para acceder al área privada.
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => base44.auth.redirectToLogin(window.location.href)}
-            >
-              Iniciar sesión
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  if (!user) return null; // Layout handles redirect before this renders
 
   const isAdmin = user.role === "admin";
   const mySchool = user.school_name;
 
-  const visibleActas = isAdmin
-    ? allActas
-    : allActas.filter(a => a.school_name === mySchool);
-
+  // Group actas by school for admin view (allActas already scoped at DB level)
   const bySchool = {};
-  visibleActas.forEach(a => {
+  allActas.forEach(a => {
     if (!bySchool[a.school_name]) bySchool[a.school_name] = [];
     bySchool[a.school_name].push(a);
   });
@@ -213,7 +175,7 @@ export default function AreaPrivada() {
         </Card>
       )}
 
-      {/* Actas: admin sees all by school, school user sees own */}
+      {/* Actas display: DB already scoped data, no JS filter needed */}
       {isAdmin ? (
         Object.keys(bySchool).length === 0 ? (
           <Card>
@@ -251,19 +213,19 @@ export default function AreaPrivada() {
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="w-4 h-4 text-primary" />
               Actas de jueces
-              {visibleActas.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">{visibleActas.length}</Badge>
+              {allActas.length > 0 && (
+                <Badge variant="secondary" className="ml-auto">{allActas.length}</Badge>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {visibleActas.length === 0 ? (
+            {allActas.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
                 No hay actas disponibles para tu escuela todavía.
               </p>
             ) : (
               <div className="space-y-2">
-                {visibleActas
+                {allActas
                   .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""))
                   .map(a => <ActaCard key={a.id} acta={a} />)}
               </div>

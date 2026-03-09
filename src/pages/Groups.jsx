@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Users, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/lib/UserContext";
 
 const MODALITY_MAP = {
   Individual: ["Mini Individual A", "Mini Individual B", "Individual"],
@@ -71,13 +72,8 @@ export default function Groups() {
   const [subTab, setSubTab] = useState("Baby");
   const [indSubTab, setIndSubTab] = useState("Mini Individual A");
   const [parSubTab, setParSubTab] = useState("Mini Parejas A");
-  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
 
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
-
-  const userLoaded = user !== undefined;
+  const user = useUser();
   const isAdmin = user?.role === "admin";
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
@@ -87,19 +83,14 @@ export default function Groups() {
       if (!user?.school_name) return [];
       return base44.entities.Group.filter({ school_name: user.school_name }, "-created_date");
     },
-    enabled: userLoaded,
+    enabled: !!user,
   });
 
-  if (!userLoaded || groupsLoading) {
+  if (groupsLoading) {
     return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
   }
 
-  if (!user) {
-    base44.auth.redirectToLogin(window.location.pathname);
-    return null;
-  }
-
-  if (!isAdmin && !user.school_name) {
+  if (!isAdmin && !user?.school_name) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="max-w-sm w-full">
@@ -145,7 +136,7 @@ export default function Groups() {
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Grupos</h1>
         <p className="text-muted-foreground mt-1">
-          {groups.length} grupos {!isAdmin && user.school_name ? `· ${user.school_name}` : "inscritos"}
+          {groups.length} grupos {!isAdmin && user?.school_name ? `· ${user.school_name}` : "inscritos"}
         </p>
       </div>
 

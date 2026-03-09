@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { School, Users, Mail, Phone, Lock } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
 
 export default function Schools() {
-  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => setUser(null)); }, []);
-
-  const userLoaded = user !== undefined;
+  const user = useUser();
   const isAdmin = user?.role === "admin";
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
@@ -18,19 +16,14 @@ export default function Schools() {
       if (!user?.school_name) return [];
       return base44.entities.Group.filter({ school_name: user.school_name });
     },
-    enabled: userLoaded,
+    enabled: !!user,
   });
 
-  if (!userLoaded || groupsLoading) {
+  if (groupsLoading) {
     return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
   }
 
-  if (!user) {
-    base44.auth.redirectToLogin(window.location.pathname);
-    return null;
-  }
-
-  if (!isAdmin && !user.school_name) {
+  if (!isAdmin && !user?.school_name) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="max-w-sm w-full">
@@ -65,7 +58,7 @@ export default function Schools() {
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Escuelas</h1>
         {isAdmin
           ? <p className="text-muted-foreground mt-1">{schools.length} escuelas · {groups.length} grupos · {totalParticipants} participantes</p>
-          : <p className="text-muted-foreground mt-1">{user.school_name}</p>
+          : <p className="text-muted-foreground mt-1">{user?.school_name}</p>
         }
       </div>
 
