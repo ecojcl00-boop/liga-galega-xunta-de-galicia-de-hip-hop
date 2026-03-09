@@ -350,7 +350,15 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               </Button>
             )}
             <div className="ml-auto">
-              <Button disabled={selectedGroupIds.size === 0} onClick={() => setCurrentStep("editing")} className="gap-2">
+              <Button
+                disabled={selectedGroupIds.size === 0}
+                onClick={() => {
+                  const firstGroup = availableGroups.find(g => selectedGroupIds.has(g.id));
+                  setEditingGroupId(firstGroup?.id || null);
+                  setCurrentStep("editing");
+                }}
+                className="gap-2"
+              >
                 Siguiente ({selectedGroupIds.size}) <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -362,7 +370,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   // ── STEP 3: EDIT EACH GROUP ──
   if (currentStep === "editing") {
-    const currentGroup = selectedGroups.find(g => g.id === editingGroupId) || selectedGroups[0];
+    const currentGroup = selectedGroups.find(g => g.id === editingGroupId) ?? selectedGroups[0];
     if (!currentGroup) return null;
 
     const groupIdx = selectedGroups.findIndex(g => g.id === currentGroup.id);
