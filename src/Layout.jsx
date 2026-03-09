@@ -31,6 +31,7 @@ const navItems = [
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
   { name: "Importar Datos", icon: ClipboardList, page: "ImportData" },
   { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
+  { name: "Usuarios", icon: UserCog, page: "Usuarios" },
 ];
 
 // Pages accessible without login
