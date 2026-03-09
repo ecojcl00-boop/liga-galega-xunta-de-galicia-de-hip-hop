@@ -214,7 +214,15 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     const group = availableGroups.find(g => g.id === groupId);
     if (!group) return;
     if (!groupParticipants[groupId]) {
-      setGroupParticipants(pp => ({ ...pp, [groupId]: [...(group.participants || [])] }));
+      // Preload participants from the most recent past registration for this group
+      const prevRegs = registrations
+        .filter(r => r.group_id === groupId)
+        .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+      const lastReg = prevRegs[0];
+      const initialParticipants = lastReg?.participants?.length > 0
+        ? [...lastReg.participants]
+        : [...(group.participants || [])];
+      setGroupParticipants(pp => ({ ...pp, [groupId]: initialParticipants }));
     }
     if (!groupDocuments[groupId]) {
       setGroupDocuments(dd => ({ ...dd, [groupId]: [] }));
