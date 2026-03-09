@@ -31,6 +31,7 @@ export default function Registrations() {
   const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false);
   const [showCreateIndividualDialog, setShowCreateIndividualDialog] = useState(false);
   const [showSchoolSimulator, setShowSchoolSimulator] = useState(false);
+  const [simulatedSchool, setSimulatedSchool] = useState(null);
 
   const queryClient = useQueryClient();
 
