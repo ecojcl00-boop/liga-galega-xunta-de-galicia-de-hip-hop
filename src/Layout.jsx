@@ -53,7 +53,17 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     base44.auth.me()
-      .then(u => { setUser(u); setAuthChecked(true); })
+      .then(u => {
+        setUser(u);
+        setAuthChecked(true);
+        // Load school list for simulator
+        if (u?.role === "admin") {
+          base44.entities.Group.list().then(groups => {
+            const names = [...new Set(groups.map(g => g.school_name).filter(Boolean))].sort();
+            setSchoolList(names);
+          });
+        }
+      })
       .catch(() => { setUser(null); setAuthChecked(true); });
   }, []);
 
