@@ -172,5 +172,6 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
     </div>
+    </UserContext.Provider>
   );
 }

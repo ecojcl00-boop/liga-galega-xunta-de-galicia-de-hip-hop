@@ -101,8 +101,9 @@ Deno.serve(async (req) => {
         competicion_id: compId,
         competicion_nombre: nombre_competicion || `Jornada ${numero_jornada}`,
         numero_jornada: Number(numero_jornada),
-        grupo_id: group?.id || "",
+        grupo_id: group?.id || null,
         grupo_nombre: r.group_name,
+        grupo_nombre_original: group ? null : r.group_name, // only set when no match found
         school_name: r.school_name || group?.school_name || "",
         categoria: r.category,
         puesto: Number(r.position)
