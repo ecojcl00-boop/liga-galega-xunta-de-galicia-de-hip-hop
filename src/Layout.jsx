@@ -16,9 +16,12 @@ import {
   ChevronRight,
   Home,
   Lock,
-  UserCog
+  UserCog,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const navItems = [
   { name: "Home", icon: LayoutDashboard, page: "Dashboard" },
