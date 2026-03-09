@@ -108,6 +108,9 @@ export default function Competitions() {
                       </div>
                     </div>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
+                        <ClipboardList className="w-3.5 h-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(comp)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
