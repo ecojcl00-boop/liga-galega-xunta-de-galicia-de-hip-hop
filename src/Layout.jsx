@@ -35,10 +35,14 @@ const navItems = [
 // Pages accessible without login
 const PUBLIC_PAGES = ["Dashboard", "Rankings"];
 
+// Pages that non-admin users can also access (school portal handles the rest)
+const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings"];
+
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.me()
@@ -62,6 +66,47 @@ export default function Layout({ children, currentPageName }) {
       <div className="flex h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground text-sm">Redirigiendo al login...</p>
       </div>
+    );
+  }
+
+  // Non-admin users → redirect to PortalEscuela unless already there or on a public page
+  if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
+    navigate(createPageUrl("PortalEscuela"), { replace: true });
+    return null;
+  }
+
+  // Non-admin layout: minimal header with school name + logout
+  if (user && user.role !== "admin") {
+    return (
+      <UserContext.Provider value={user}>
+        <div className="min-h-screen bg-background">
+          <header className="h-14 flex items-center justify-between px-4 lg:px-6 border-b bg-card sticky top-0 z-40">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-black text-sm leading-none">G</span>
+              </div>
+              <span className="text-sm font-bold">
+                <span className="text-foreground">HIPHOP</span>
+                <span className="text-primary">GDT</span>
+              </span>
+              {user.school_name && (
+                <span className="text-xs text-muted-foreground border-l pl-2 ml-1 hidden sm:inline">
+                  {user.school_name}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground gap-2"
+              onClick={() => base44.auth.logout()}
+            >
+              Cerrar sesión
+            </Button>
+          </header>
+          <main>{children}</main>
+        </div>
+      </UserContext.Provider>
     );
   }
 
