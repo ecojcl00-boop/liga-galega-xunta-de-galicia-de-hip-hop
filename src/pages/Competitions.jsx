@@ -21,6 +21,7 @@ export default function Competitions() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState(null);
+  const [viewingRegs, setViewingRegs] = useState(null); // competition object
 
   const queryClient = useQueryClient();
 
