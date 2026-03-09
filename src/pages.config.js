@@ -54,10 +54,10 @@ import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import ImportData from './pages/ImportData';
 import JudgePanel from './pages/JudgePanel';
+import PortalEscuela from './pages/PortalEscuela';
 import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
-import PortalEscuela from './pages/PortalEscuela';
 import Usuarios from './pages/Usuarios';
 import __Layout from './Layout.jsx';
 
@@ -70,10 +70,10 @@ export const PAGES = {
     "Groups": Groups,
     "ImportData": ImportData,
     "JudgePanel": JudgePanel,
+    "PortalEscuela": PortalEscuela,
     "Rankings": Rankings,
     "Registrations": Registrations,
     "Schools": Schools,
-    "PortalEscuela": PortalEscuela,
     "Usuarios": Usuarios,
 }
 
