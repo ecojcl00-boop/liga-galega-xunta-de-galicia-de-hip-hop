@@ -47,6 +47,8 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
+  const [simulatedSchool, setSimulatedSchool] = useState(null);
+  const [schoolList, setSchoolList] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
