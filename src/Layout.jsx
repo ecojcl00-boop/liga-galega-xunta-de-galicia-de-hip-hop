@@ -40,7 +40,7 @@ const navItems = [
 // No public pages — login required for everything
 const PUBLIC_PAGES = [];
 
-// Pages that non-admin users (and simulated schools) can also access
+// Pages that non-admin users (and simulated schools) can also access — ImportData is NOT included (admin-only)
 const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings", "Groups", "Schools", "Categories", "JudgePanel"];
 
 export default function Layout({ children, currentPageName }) {

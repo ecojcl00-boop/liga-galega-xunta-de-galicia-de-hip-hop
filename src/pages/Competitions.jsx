@@ -202,6 +202,7 @@ export default function Competitions() {
             <CompetitionRegistrationsPanel
               competition={viewingRegs}
               registrations={registrations}
+              competitions={competitions}
             />
           )}
         </DialogContent>
