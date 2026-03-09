@@ -252,7 +252,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         coach_name: group.coach_name,
         status: "pending",
         payment_status: "pending",
-        participants_count: ps.length,
+        participants_count: ps.length, // always derived from actual list length
         participants: ps,
         documents: docs,
       };
