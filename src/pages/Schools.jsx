@@ -2,57 +2,81 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { School, Users, Mail, Phone } from "lucide-react";
+import { School, Users, Mail, Phone, Lock } from "lucide-react";
 
 export default function Schools() {
-  const [user, setUser] = useState(null);
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
+  useEffect(() => { base44.auth.me().then(setUser).catch(() => setUser(null)); }, []);
+
+  const userLoaded = user !== undefined;
   const isAdmin = user?.role === "admin";
 
-  const { data: groups = [], isLoading } = useQuery({
-    queryKey: ["groups"],
-    queryFn: () => base44.entities.Group.list(),
+  const { data: groups = [], isLoading: groupsLoading } = useQuery({
+    queryKey: ["groups", user?.role, user?.school_name],
+    queryFn: () => {
+      if (isAdmin) return base44.entities.Group.list();
+      if (!user?.school_name) return [];
+      return base44.entities.Group.filter({ school_name: user.school_name });
+    },
+    enabled: userLoaded,
   });
 
-  // Derive schools from groups
+  if (!userLoaded || groupsLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+  }
+
+  if (!user) {
+    base44.auth.redirectToLogin(window.location.pathname);
+    return null;
+  }
+
+  if (!isAdmin && !user.school_name) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] p-4">
+        <Card className="max-w-sm w-full">
+          <CardContent className="pt-8 pb-8 text-center space-y-3">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground/30" />
+            <h2 className="text-xl font-bold">Cuenta sin escuela asignada</h2>
+            <p className="text-sm text-muted-foreground">Tu cuenta no está vinculada a ninguna escuela. Contacta con el administrador.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Derive schools from groups (already filtered at query level for non-admin)
   const schoolMap = {};
-  groups.forEach((g) => {
+  groups.forEach(g => {
     const name = g.school_name;
     if (!name) return;
     if (!schoolMap[name]) {
-      schoolMap[name] = {
-        name,
-        email: g.coach_email,
-        phone: g.coach_phone,
-        groups: [],
-        participants: 0,
-      };
+      schoolMap[name] = { name, email: g.coach_email, phone: g.coach_phone, groups: [], participants: 0 };
     }
     schoolMap[name].groups.push(g);
     schoolMap[name].participants += g.participants?.length || 0;
   });
 
   const schools = Object.values(schoolMap).sort((a, b) => a.name.localeCompare(b.name, "es"));
-
   const totalParticipants = schools.reduce((sum, s) => sum + s.participants, 0);
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Escuelas</h1>
-        <p className="text-muted-foreground mt-1">{schools.length} escuelas · {groups.length} grupos · {totalParticipants} participantes</p>
+        {isAdmin
+          ? <p className="text-muted-foreground mt-1">{schools.length} escuelas · {groups.length} grupos · {totalParticipants} participantes</p>
+          : <p className="text-muted-foreground mt-1">{user.school_name}</p>
+        }
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">Cargando...</div>
-      ) : schools.length === 0 ? (
+      {schools.length === 0 ? (
         <div className="text-center py-16">
           <School className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
           <p className="text-muted-foreground">No hay escuelas registradas</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {schools.map((school) => (
+          {schools.map(school => (
             <Card key={school.name} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-4">
