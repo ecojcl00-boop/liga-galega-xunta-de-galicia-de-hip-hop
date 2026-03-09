@@ -121,21 +121,12 @@ Deno.serve(async (req) => {
 
     console.log(`[INFO] Guardados ${toCreate.length}, duplicados ${log.duplicates.length}, no encontrados ${log.notFound.length}`);
 
-    // Recalculate ranking and save snapshots
+    // Recalculate ranking for log summary (top3 only — no snapshots stored, ranking is always live)
     if (affectedCategories.size > 0) {
       const allResultados = await base44.asServiceRole.entities.LigaResultado.list("-numero_jornada", 2000);
-
       for (const cat of affectedCategories) {
         const ranking = calcularRanking(allResultados, cat);
         log.top3[cat] = ranking.slice(0, 3).map(g => ({ nombre: g.nombre, puestos: g.puestos }));
-
-        await base44.asServiceRole.entities.LigaRankingSnapshot.create({
-          snapshot_date: today,
-          numero_jornada: Number(numero_jornada),
-          categoria: cat,
-          ranking_json: JSON.stringify(ranking)
-        });
-        await sleep(120);
       }
     }
 
