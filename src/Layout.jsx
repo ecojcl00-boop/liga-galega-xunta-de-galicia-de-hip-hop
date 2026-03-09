@@ -233,6 +233,24 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </header>
 
+        {/* Simulation banner */}
+        {simulatedSchool && (
+          <div className="bg-amber-500 text-amber-950 px-4 py-2 flex items-center justify-between gap-4 shrink-0">
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              SIMULANDO vista de: <strong>{simulatedSchool}</strong>
+              <span className="font-normal opacity-75 hidden sm:inline">· Estás viendo la app como la ve esa escuela.</span>
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setSimulatedSchool(null)}
+              className="gap-1.5 bg-amber-700 hover:bg-amber-800 text-white border-0 shrink-0"
+            >
+              <EyeOff className="w-3.5 h-3.5" /> Salir
+            </Button>
+          </div>
+        )}
+
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto bg-background">
           {children}
