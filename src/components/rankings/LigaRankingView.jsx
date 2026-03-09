@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,17 +13,15 @@ const CATEGORY_ORDER = [
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
-// Display labels for categories
-const CATEGORY_LABEL = {
-  "Megacrew": "Mega Crew"
-};
+const CATEGORY_LABEL = { "Megacrew": "Mega Crew" };
 function catLabel(c) { return CATEGORY_LABEL[c] || c; }
 
 function nd(str = "") {
   return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-function calcularRanking(resultados, categoria) {
+// Ranking by position counts, with judge score as final tiebreaker
+function calcularRanking(resultados, categoria, judgeScores = []) {
   const grupos = new Map();
   resultados
     .filter(r => r.categoria === categoria)
@@ -31,20 +31,38 @@ function calcularRanking(resultados, categoria) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
+  // Accumulated judge scores per group in this category (for tiebreaking only)
+  const scoreMap = new Map();
+  judgeScores
+    .filter(s => nd(s.category || "") === nd(categoria))
+    .forEach(s => {
+      const key = nd(s.group_name || "");
+      scoreMap.set(key, (scoreMap.get(key) || 0) + (s.total || 0));
+    });
+
   const items = [...grupos.values()];
   const allVals = items.flatMap(g => Object.values(g.puestos));
   const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
 
   items.sort((a, b) => {
+    // Primary criteria: position count (1st first, then 2nd, etc.)
     for (let pos = 1; pos <= maxPos; pos++) {
       const ac = Object.values(a.puestos).filter(p => p === pos).length;
       const bc = Object.values(b.puestos).filter(p => p === pos).length;
       if (bc !== ac) return bc - ac;
     }
+    // Final tiebreaker: accumulated judge scores
+    const sa = scoreMap.get(nd(a.nombre)) || 0;
+    const sb = scoreMap.get(nd(b.nombre)) || 0;
+    if (sb !== sa) return sb - sa;
     return a.nombre.localeCompare(b.nombre);
   });
 
-  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
+  return items.map((g, i) => ({
+    ...g,
+    posicion: i + 1,
+    judgeScore: scoreMap.get(nd(g.nombre)) || 0,
+  }));
 }
 
 function PosCell({ pos }) {
@@ -57,9 +75,9 @@ function PosCell({ pos }) {
 
 function PodiumCard({ group, rank, jornadas }) {
   const cfg = {
-    1: { bg: "bg-yellow-500/10 border-yellow-500/40", icon: "🥇", label: "text-yellow-600", offset: "" },
-    2: { bg: "bg-gray-300/20 border-gray-400/30", icon: "🥈", label: "text-gray-500", offset: "mt-8" },
-    3: { bg: "bg-amber-600/10 border-amber-700/30", icon: "🥉", label: "text-amber-700", offset: "mt-12" }
+    1: { bg: "bg-yellow-500/10 border-yellow-500/40", icon: "🥇", offset: "" },
+    2: { bg: "bg-gray-300/20 border-gray-400/30", icon: "🥈", offset: "mt-8" },
+    3: { bg: "bg-amber-600/10 border-amber-700/30", icon: "🥉", offset: "mt-12" }
   }[rank];
 
   return (
@@ -71,7 +89,10 @@ function PodiumCard({ group, rank, jornadas }) {
         <div className="flex flex-wrap gap-1 justify-center mt-1">
           {jornadas.map(j => (
             <span key={j} className="text-xs bg-background/70 rounded px-1.5 py-0.5 border">
-              J{j}: {group.puestos[j] ? <span className={group.puestos[j] === 1 ? "text-yellow-500 font-bold" : ""}>{group.puestos[j]}º</span> : <span className="text-muted-foreground/40">—</span>}
+              J{j}:{" "}
+              {group.puestos[j]
+                ? <span className={group.puestos[j] === 1 ? "text-yellow-500 font-bold" : ""}>{group.puestos[j]}º</span>
+                : <span className="text-muted-foreground/40">—</span>}
             </span>
           ))}
         </div>
@@ -80,12 +101,13 @@ function PodiumCard({ group, rank, jornadas }) {
   );
 }
 
-function CategoryRanking({ categoria, resultados, jornadas }) {
+function CategoryRanking({ categoria, resultados, jornadas, judgeScores }) {
   const [expanded, setExpanded] = useState(false);
-  const ranking = calcularRanking(resultados, categoria);
+  const ranking = calcularRanking(resultados, categoria, judgeScores);
   if (ranking.length === 0) return null;
 
   const top3 = ranking.slice(0, 3);
+  const hasScores = ranking.some(g => g.judgeScore > 0);
 
   return (
     <Card>
@@ -93,7 +115,9 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
         <CardTitle className="text-lg flex items-center gap-2">
           <Medal className="w-5 h-5 text-primary" />
           {catLabel(categoria)}
-          <Badge variant="secondary" className="ml-auto">{ranking.length} {ranking.length === 1 ? "grupo" : "grupos"}</Badge>
+          <Badge variant="secondary" className="ml-auto">
+            {ranking.length} {ranking.length === 1 ? "grupo" : "grupos"}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-4">
@@ -126,11 +150,19 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
                   {jornadas.map(j => (
                     <th key={j} className="text-center py-2 px-3 text-muted-foreground font-medium">J{j}</th>
                   ))}
+                  {hasScores && (
+                    <th className="text-center py-2 px-3 text-muted-foreground font-medium" title="Puntuación acumulada de jueces (criterio de desempate)">
+                      Pts.
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {ranking.map((g, i) => (
-                  <tr key={i} className={`border-t ${i === 0 ? "bg-yellow-500/5" : i === 1 ? "bg-gray-400/5" : i === 2 ? "bg-amber-600/5" : ""}`}>
+                  <tr
+                    key={i}
+                    className={`border-t ${i === 0 ? "bg-yellow-500/5" : i === 1 ? "bg-gray-400/5" : i === 2 ? "bg-amber-600/5" : ""}`}
+                  >
                     <td className="py-2 px-3">
                       <span className={`font-bold tabular-nums ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"}`}>
                         {g.posicion}º
@@ -143,6 +175,11 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
                         <PosCell pos={g.puestos[j]} />
                       </td>
                     ))}
+                    {hasScores && (
+                      <td className="text-center py-2 px-3 text-xs tabular-nums text-muted-foreground">
+                        {g.judgeScore > 0 ? g.judgeScore.toFixed(1) : "—"}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -156,6 +193,11 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
 
 export default function LigaRankingView({ resultados }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const { data: judgeScores = [] } = useQuery({
+    queryKey: ["judge_scores_ranking"],
+    queryFn: () => base44.entities.JudgeScore.list(),
+  });
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
@@ -199,7 +241,13 @@ export default function LigaRankingView({ resultados }) {
 
       <div className="space-y-6">
         {displayCategories.map(cat => (
-          <CategoryRanking key={cat} categoria={cat} resultados={resultados} jornadas={jornadas} />
+          <CategoryRanking
+            key={cat}
+            categoria={cat}
+            resultados={resultados}
+            jornadas={jornadas}
+            judgeScores={judgeScores}
+          />
         ))}
       </div>
     </div>
