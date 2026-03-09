@@ -84,3 +84,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Texto visible en fondos oscuros ── */
+[class*="bg-gray-9"] *, [class*="bg-gray-8"] *,
+[class*="bg-black"] *, [class*="bg-zinc-9"] *,
+[class*="bg-neutral-9"] *, [class*="bg-slate-9"] * {
+  color: white;
+}
+
+/* Botones siempre visibles */
+button:not([disabled]) {
+  opacity: 1 !important;
+}
+
+/* Placeholders visibles */
+::placeholder {
+  opacity: 0.6 !important;
+  color: #888888 !important;
+}
