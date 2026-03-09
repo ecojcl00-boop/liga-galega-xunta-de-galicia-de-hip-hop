@@ -6,7 +6,7 @@ function nd(str = "") {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-function calcularRanking(resultados, categoria) {
+function calcularRanking(resultados, categoria, judgeScores = []) {
   const grupos = new Map();
   resultados
     .filter(r => r.categoria === categoria)
@@ -16,6 +16,15 @@ function calcularRanking(resultados, categoria) {
         grupos.set(key, { nombre: r.grupo_nombre, school: r.school_name || "", puestos: {} });
       }
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
+    });
+
+  // Accumulate judge scores per group for final tiebreaker
+  const scoreMap = new Map();
+  judgeScores
+    .filter(s => nd(s.category || "") === nd(categoria))
+    .forEach(s => {
+      const key = nd(s.group_name || "");
+      scoreMap.set(key, (scoreMap.get(key) || 0) + (s.total || 0));
     });
 
   const items = [...grupos.values()];
@@ -28,6 +37,10 @@ function calcularRanking(resultados, categoria) {
       const bc = Object.values(b.puestos).filter(p => p === pos).length;
       if (bc !== ac) return bc - ac;
     }
+    // Final tiebreaker: accumulated judge scores
+    const sa = scoreMap.get(nd(a.nombre)) || 0;
+    const sb = scoreMap.get(nd(b.nombre)) || 0;
+    if (sb !== sa) return sb - sa;
     return a.nombre.localeCompare(b.nombre);
   });
 
@@ -123,9 +136,12 @@ Deno.serve(async (req) => {
 
     // Recalculate ranking for log summary (top3 only — no snapshots stored, ranking is always live)
     if (affectedCategories.size > 0) {
-      const allResultados = await base44.asServiceRole.entities.LigaResultado.list("-numero_jornada", 2000);
+      const [allResultados, allJudgeScores] = await Promise.all([
+        base44.asServiceRole.entities.LigaResultado.list("-numero_jornada", 2000),
+        base44.asServiceRole.entities.JudgeScore.list("group_name", 5000),
+      ]);
       for (const cat of affectedCategories) {
-        const ranking = calcularRanking(allResultados, cat);
+        const ranking = calcularRanking(allResultados, cat, allJudgeScores);
         log.top3[cat] = ranking.slice(0, 3).map(g => ({ nombre: g.nombre, puestos: g.puestos }));
       }
     }
