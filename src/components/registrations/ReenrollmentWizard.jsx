@@ -362,8 +362,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
                 disabled={selectedGroupIds.size === 0}
                 onClick={() => {
                   const firstGroup = availableGroups.find(g => selectedGroupIds.has(g.id));
-                  setEditingGroupId(firstGroup?.id || null);
-                  setCurrentStep("editing");
+                  if (firstGroup) startEditGroup(firstGroup.id);
                 }}
                 className="gap-2"
               >
