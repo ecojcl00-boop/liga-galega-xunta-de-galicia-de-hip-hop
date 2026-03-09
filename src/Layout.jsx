@@ -15,7 +15,8 @@ import {
   X,
   ChevronRight,
   Home,
-  Lock
+  Lock,
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

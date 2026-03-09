@@ -58,6 +58,7 @@ import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
 import PortalEscuela from './pages/PortalEscuela';
+import Usuarios from './pages/Usuarios';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "Registrations": Registrations,
     "Schools": Schools,
     "PortalEscuela": PortalEscuela,
+    "Usuarios": Usuarios,
 }
 
 export const pagesConfig = {
