@@ -20,16 +20,21 @@ export default function SchoolSimulator({ open, onOpenChange, allGroups, competi
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
-          <div className="sticky top-0 bg-card border-b p-4 flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedSchool(null)}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" /> Volver
-            </Button>
-            <h2 className="font-semibold">Vista simulada: {selectedSchool}</h2>
+          <div className="sticky top-0 z-10 border-b">
+            <div className="bg-amber-500 text-amber-950 px-4 py-2 text-xs font-semibold flex items-center gap-2">
+              ⚠️ MODO SIMULACIÓN — Estás viendo la app como la escuela: <strong>{selectedSchool}</strong>. Esto no afecta datos ni permisos reales.
+            </div>
+            <div className="bg-card p-4 flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedSchool(null)}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" /> Volver
+              </Button>
+              <h2 className="font-semibold">Vista simulada: {selectedSchool}</h2>
+            </div>
           </div>
           
           <div className="p-4">

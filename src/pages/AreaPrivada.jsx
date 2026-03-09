@@ -54,8 +54,12 @@ export default function AreaPrivada() {
   }, []);
 
   const { data: allActas = [] } = useQuery({
-    queryKey: ["actas_jueces"],
-    queryFn: () => base44.entities.ActaJueces.list("-fecha", 500),
+    queryKey: ["actas_jueces", user?.role, user?.school_name],
+    queryFn: () => {
+      if (user?.role === "admin") return base44.entities.ActaJueces.list("-fecha", 500);
+      if (!user?.school_name) return [];
+      return base44.entities.ActaJueces.filter({ school_name: user.school_name }, "-fecha");
+    },
     enabled: authChecked && !!user,
   });
 

@@ -41,14 +41,22 @@ export default function Registrations() {
   });
 
   const { data: registrations = [] } = useQuery({
-    queryKey: ["registrations"],
-    queryFn: () => base44.entities.Registration.list("-created_date"),
+    queryKey: ["registrations", user?.role, user?.school_name],
+    queryFn: () => {
+      if (user?.role === "admin") return base44.entities.Registration.list("-created_date");
+      if (!user?.school_name) return [];
+      return base44.entities.Registration.filter({ school_name: user.school_name }, "-created_date");
+    },
     enabled: !!user,
   });
 
   const { data: groups = [] } = useQuery({
-    queryKey: ["groups"],
-    queryFn: () => base44.entities.Group.list("name"),
+    queryKey: ["groups", user?.role, user?.school_name],
+    queryFn: () => {
+      if (user?.role === "admin") return base44.entities.Group.list("name");
+      if (!user?.school_name) return [];
+      return base44.entities.Group.filter({ school_name: user.school_name }, "name");
+    },
     enabled: !!user,
   });
 
