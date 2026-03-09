@@ -57,6 +57,7 @@ import JudgePanel from './pages/JudgePanel';
 import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
+import PortalEscuela from './pages/PortalEscuela';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +72,7 @@ export const PAGES = {
     "Rankings": Rankings,
     "Registrations": Registrations,
     "Schools": Schools,
+    "PortalEscuela": PortalEscuela,
 }
 
 export const pagesConfig = {
