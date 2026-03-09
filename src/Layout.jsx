@@ -195,6 +195,27 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </nav>
 
+        {/* School simulator selector */}
+        {schoolList.length > 0 && (
+          <div className="px-3 py-3 border-t border-sidebar-border">
+            <p className="text-[10px] text-sidebar-foreground/50 mb-1.5 flex items-center gap-1">
+              <Eye className="w-3 h-3" /> Simular vista de escuela
+            </p>
+            <Select
+              value={simulatedSchool || "__none__"}
+              onValueChange={v => setSimulatedSchool(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger className="h-8 text-xs bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
+                <SelectValue placeholder="Ninguna (admin)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Ninguna (vista admin)</SelectItem>
+                {schoolList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 px-2">
