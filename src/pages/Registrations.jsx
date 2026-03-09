@@ -92,7 +92,7 @@ export default function Registrations() {
       coach_name: group.coach_name,
       status: "confirmed",
       payment_status: "pending",
-      participants_count: group.participants?.length || 0,
+      participants_count: group.participants?.length ?? 0, // always derived, never manual
       participants: group.participants || [],
       documents: [],
     });
