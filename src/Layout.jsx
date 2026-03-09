@@ -92,34 +92,59 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
-  // Non-admin layout: minimal header with school name + logout
+  // Non-admin layout: header with nav links for allowed pages
   if (user && user.role !== "admin") {
+    const schoolNavItems = [
+      { name: "Inicio", page: "PortalEscuela" },
+      { name: "Grupos", page: "Groups" },
+      { name: "Escuelas", page: "Schools" },
+      { name: "Categorías", page: "Categories" },
+      { name: "Rankings", page: "Rankings" },
+      { name: "Jueces", page: "JudgePanel" },
+    ];
     return (
       <UserContext.Provider value={user}>
         <div className="min-h-screen bg-background">
-          <header className="h-14 flex items-center justify-between px-4 lg:px-6 border-b bg-card sticky top-0 z-40">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-black text-sm leading-none">G</span>
-              </div>
-              <span className="text-sm font-bold">
-                <span className="text-foreground">HIPHOP</span>
-                <span className="text-primary">GDT</span>
-              </span>
-              {user.school_name && (
-                <span className="text-xs text-muted-foreground border-l pl-2 ml-1 hidden sm:inline">
-                  {user.school_name}
+          <header className="border-b bg-card sticky top-0 z-40">
+            <div className="h-14 flex items-center justify-between px-4 lg:px-6">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-black text-sm leading-none">G</span>
+                </div>
+                <span className="text-sm font-bold">
+                  <span className="text-foreground">HIPHOP</span>
+                  <span className="text-primary">GDT</span>
                 </span>
-              )}
+                {user.school_name && (
+                  <span className="text-xs text-muted-foreground border-l pl-2 ml-1 hidden sm:inline">
+                    {user.school_name}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground gap-2"
+                onClick={() => base44.auth.logout()}
+              >
+                Cerrar sesión
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground gap-2"
-              onClick={() => base44.auth.logout()}
-            >
-              Cerrar sesión
-            </Button>
+            <nav className="flex items-center gap-1 px-4 pb-2 overflow-x-auto">
+              {schoolNavItems.map(item => (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors
+                    ${currentPageName === item.page
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
           </header>
           <main>{children}</main>
         </div>
