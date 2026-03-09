@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Lock, ExternalLink, Calendar, School } from "lucide-react";
-import { useUser } from "@/lib/UserContext";
+import { useUser } from "@/components/UserContext";
 
 function ActaCard({ acta }) {
   const fecha = acta.fecha

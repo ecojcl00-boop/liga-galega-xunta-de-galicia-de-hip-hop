@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronRight, Users, Lock } from "lucide-react";
-import { useUser } from "@/lib/UserContext";
+import { useUser } from "@/components/UserContext";
 
 const MODALITIES = [
   { name: "Individual", categories: ["Mini Individual A", "Mini Individual B", "Individual"] },

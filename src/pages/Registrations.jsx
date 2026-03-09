@@ -15,7 +15,7 @@ import CreateGroupDialog from "../components/registrations/CreateGroupDialog.jsx
 import CreateIndividualDialog from "../components/registrations/CreateIndividualDialog.jsx";
 import SchoolSimulator from "../components/registrations/SchoolSimulator.jsx";
 import SchoolSelectorDialog from "../components/registrations/SchoolSelectorDialog.jsx";
-import { useUser } from "@/lib/UserContext";
+import { useUser } from "@/components/UserContext";
 
 // Build a deduplicated school list from group data using school_name as key
 function buildSchoolOptions(groups) {

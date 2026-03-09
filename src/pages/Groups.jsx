@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Users, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/lib/UserContext";
+import { useUser } from "@/components/UserContext";
 
 const MODALITY_MAP = {
   Individual: ["Mini Individual A", "Mini Individual B", "Individual"],

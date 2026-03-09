@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { School, Users, Mail, Phone, Lock } from "lucide-react";
-import { useUser } from "@/lib/UserContext";
+import { useUser } from "@/components/UserContext";
 
 export default function Schools() {
   const user = useUser();
