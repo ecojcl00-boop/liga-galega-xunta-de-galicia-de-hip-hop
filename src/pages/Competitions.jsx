@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Trophy, MapPin, Calendar, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Trophy, MapPin, Calendar, Users, ClipboardList } from "lucide-react";
+import CompetitionRegistrationsPanel from "../components/registrations/CompetitionRegistrationsPanel";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
