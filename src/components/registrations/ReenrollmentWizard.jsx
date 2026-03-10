@@ -224,7 +224,18 @@ function DocUploader({ documents, onChange, uploading, onUpload }) {
 function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail, coachPhone }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [participants, setParticipants] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [addingP, setAddingP] = useState(false);
+  const [pName, setPName] = useState("");
+  const [pBirth, setPBirth] = useState("");
+
+  const addParticipant = () => {
+    if (!pName.trim()) return;
+    setParticipants(prev => [...prev, { name: pName.trim(), birth_date: pBirth }]);
+    setPName(""); setPBirth(""); setAddingP(false);
+  };
+  const removeParticipant = (i) => setParticipants(prev => prev.filter((_, j) => j !== i));
 
   const handleCreate = async () => {
     if (!name.trim() || !category) return;
@@ -236,7 +247,7 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
       coach_name: coachName || "",
       coach_email: coachEmail || "",
       coach_phone: coachPhone || "",
-      participants: [],
+      participants,
     });
     setSaving(false);
     onCreated(newGroup);
@@ -244,7 +255,9 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
 
   return (
     <div className="mt-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
-      <p className="text-sm font-semibold">Nuevo grupo</p>
+      <p className="text-sm font-semibold text-primary">Nuevo grupo</p>
+
+      {/* Name + category */}
       <div className="space-y-2">
         <Input
           placeholder="Nombre del grupo *"
@@ -253,20 +266,59 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
           autoFocus
         />
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger>
-            <SelectValue placeholder="Categoría *" />
-          </SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Categoría *" /></SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map(cat => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-            ))}
+            {CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
           Entrenador: <strong>{coachName || "—"}</strong> · Escuela: <strong>{mySchoolName}</strong>
         </p>
       </div>
-      <div className="flex gap-2">
+
+      {/* Participants */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold text-muted-foreground uppercase">
+          Participantes ({participants.length})
+        </p>
+        {participants.map((p, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 text-sm">
+            <span className="flex-1 font-medium">{p.name}</span>
+            {p.birth_date && <span className="text-xs text-muted-foreground">{p.birth_date}</span>}
+            <button onClick={() => removeParticipant(i)} className="text-muted-foreground hover:text-destructive">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        {addingP ? (
+          <div className="space-y-1.5 bg-white/60 p-2 rounded-lg">
+            <Input
+              placeholder="Nombre completo *"
+              value={pName}
+              onChange={e => setPName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") addParticipant(); if (e.key === "Escape") { setAddingP(false); setPName(""); setPBirth(""); } }}
+              autoFocus
+              className="h-8 text-sm"
+            />
+            <Input type="date" value={pBirth} onChange={e => setPBirth(e.target.value)} className="h-8 text-sm" />
+            <div className="flex gap-1.5">
+              <Button size="sm" onClick={addParticipant} disabled={!pName.trim()} className="flex-1 gap-1.5 h-8">
+                <Check className="w-3.5 h-3.5" /> Añadir
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => { setAddingP(false); setPName(""); setPBirth(""); }} className="h-8 px-3">
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => setAddingP(true)} className="w-full gap-1.5 h-8">
+            <Plus className="w-3.5 h-3.5" /> Añadir participante
+          </Button>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-1">
         <Button variant="outline" size="sm" onClick={onCancel} className="flex-1">
           Cancelar
         </Button>
@@ -276,7 +328,9 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
           disabled={!name.trim() || !category || saving}
           className="flex-1 gap-2"
         >
-          {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creando...</> : <><Check className="w-3.5 h-3.5" /> Crear grupo</>}
+          {saving
+            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando...</>
+            : <><Check className="w-3.5 h-3.5" /> Guardar grupo y continuar</>}
         </Button>
       </div>
     </div>
