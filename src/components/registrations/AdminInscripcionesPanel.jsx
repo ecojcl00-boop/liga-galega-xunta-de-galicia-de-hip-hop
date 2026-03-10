@@ -32,6 +32,20 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
 
   const [editingRejection, setEditingRejection] = useState({});
   const [deleteId, setDeleteId] = useState(null);
+  const [downloadingKeys, setDownloadingKeys] = useState(new Set());
+  const [downloadErrors, setDownloadErrors] = useState({});
+
+  const handleDownload = async (docKey, url, name) => {
+    setDownloadingKeys(prev => new Set(prev).add(docKey));
+    setDownloadErrors(prev => { const n = { ...prev }; delete n[docKey]; return n; });
+    try {
+      await downloadFile(url, name || "archivo");
+    } catch (e) {
+      setDownloadErrors(prev => ({ ...prev, [docKey]: true }));
+    } finally {
+      setDownloadingKeys(prev => { const n = new Set(prev); n.delete(docKey); return n; });
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Registration.update(id, data),
