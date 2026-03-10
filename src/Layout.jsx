@@ -40,8 +40,8 @@ const navItems = [
   { name: "Usuarios", icon: UserCog, page: "Usuarios" },
 ];
 
-// No public pages — login required for everything
-const PUBLIC_PAGES = [];
+// Only Landing is public
+const PUBLIC_PAGES = ["Landing"];
 
 // Pages that non-admin users (and simulated schools) can also access — ImportData is NOT included (admin-only)
 const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings", "Groups", "Schools", "Categories", "JudgePanel"];
@@ -103,10 +103,11 @@ export default function Layout({ children, currentPageName }) {
   }
 
   if (!user && !isPublicPage) {
-    base44.auth.redirectToLogin(window.location.pathname);
+    const next = window.location.pathname + window.location.search;
+    window.location.replace(createPageUrl("Landing") + (next ? `?next=${encodeURIComponent(next)}` : ""));
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground text-sm">Redirigiendo al login...</p>
+        <p className="text-muted-foreground text-sm">Redirigiendo...</p>
       </div>
     );
   }

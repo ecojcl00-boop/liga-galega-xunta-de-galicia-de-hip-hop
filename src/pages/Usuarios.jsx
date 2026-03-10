@@ -66,7 +66,6 @@ export default function Usuarios() {
     setInviteStatus("loading");
     try {
       await base44.users.inviteUser(inviteEmail, "user");
-      // If school selected, we'll need to update once user appears — inform admin
       setInviteStatus("ok");
       setInviteEmail("");
       setInviteSchool("");
