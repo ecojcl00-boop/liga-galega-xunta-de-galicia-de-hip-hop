@@ -591,6 +591,15 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               participants={currentParticipants}
               allSchoolParticipants={allSchoolParticipants}
               onChange={(ps) => setGroupParticipants(prev => ({ ...prev, [currentGroup.id]: ps }))}
+              onNewParticipantPersisted={async (p) => {
+                // Persist new participant into the group's participants list in DB
+                const updatedParticipants = [
+                  ...(currentGroup.participants || []),
+                  p,
+                ];
+                await base44.entities.Group.update(currentGroup.id, { participants: updatedParticipants });
+                queryClient.invalidateQueries({ queryKey: ["groups"] });
+              }}
             />
           </CardContent>
         </Card>

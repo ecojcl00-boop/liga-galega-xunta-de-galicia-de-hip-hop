@@ -27,7 +27,7 @@ export default function GestionEscuelas() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingSchool, setEditingSchool] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [editForm, setEditForm] = useState(EMPTY_FORM);
+  const [editForm, setEditForm] = useState({ ...EMPTY_FORM });
   const [creating, setCreating] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
 
@@ -72,6 +72,7 @@ export default function GestionEscuelas() {
       coach_name: form.coach_name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
+      city: form.city.trim(),
       is_active: true,
     });
 
@@ -91,7 +92,7 @@ export default function GestionEscuelas() {
   };
 
   const handleSaveEdit = () => {
-    updateSchool.mutate({ id: editingSchool.id, data: editForm });
+    updateSchool.mutate({ id: editingSchool.id, data: { ...editForm } });
   };
 
   const handleToggleActive = (school) => {
@@ -168,7 +169,7 @@ export default function GestionEscuelas() {
                 <div className="flex items-center gap-2 shrink-0">
                   <Button
                     variant="outline" size="sm"
-                    onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", phone: school.phone || "" }); }}
+                    onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", phone: school.phone || "", city: school.city || "" }); }}
                     className="gap-1.5"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Editar
@@ -265,6 +266,17 @@ export default function GestionEscuelas() {
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Ciudad / Localidad{" "}
+                <span className="font-normal text-muted-foreground">(opcional)</span>
+              </label>
+              <Input
+                placeholder="Ej: Vigo"
+                value={form.city}
+                onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+              />
+            </div>
 
             {inviteResult && (
               <div className="p-3 rounded-lg bg-primary/10 text-primary text-sm space-y-1.5">
@@ -333,6 +345,10 @@ export default function GestionEscuelas() {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Teléfono</label>
                 <Input type="tel" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Ciudad / Localidad</label>
+                <Input placeholder="Ej: Vigo" value={editForm.city || ""} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
               </div>
               <div className="flex gap-2 justify-end pt-1">
                 <Button variant="outline" onClick={() => setEditingSchool(null)}>Cancelar</Button>
