@@ -469,11 +469,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     setExtraGroups(prev => [...prev, newGroup]);
     setSelectedGroupIds(prev => new Set([...prev, newGroup.id]));
     setGroupDocuments(dd => ({ ...dd, [newGroup.id]: [] }));
+    // Pre-load the participants the user just entered in NewGroupForm
+    setGroupParticipants(pp => ({ ...pp, [newGroup.id]: newGroup.participants || [] }));
     setShowNewGroupForm(false);
-    // Open edit step for this new group immediately (empty participants)
-    setGroupParticipants(pp => ({ ...pp, [newGroup.id]: [] }));
-    setEditingGroupId(newGroup.id);
-    setCurrentStep("editing");
+    // Stay on selectGroups so the user sees the new group in the list and can continue normally
   };
 
   // ── SUCCESS SCREEN ──
