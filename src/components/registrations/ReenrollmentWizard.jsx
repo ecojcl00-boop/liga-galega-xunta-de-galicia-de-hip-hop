@@ -4,11 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useSimulacro } from "@/components/SimulacroContext";
 import { downloadFile } from "@/components/utils/downloadFile";
+
+const CATEGORIES = [
+  "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew",
+  "Mini Individual A", "Mini Individual B", "Individual",
+  "Mini Parejas A", "Mini Parejas B", "Parejas",
+];
 
 // ── ParticipantEditor ──────────────────────────────────────────────────────
 function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
@@ -159,6 +168,69 @@ function DocUploader({ documents, onChange, uploading, onUpload }) {
   );
 }
 
+// ── NewGroupForm ──────────────────────────────────────────────────────────
+function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail, coachPhone }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim() || !category) return;
+    setSaving(true);
+    const newGroup = await base44.entities.Group.create({
+      name: name.trim(),
+      category,
+      school_name: mySchoolName,
+      coach_name: coachName || "",
+      coach_email: coachEmail || "",
+      coach_phone: coachPhone || "",
+      participants: [],
+    });
+    setSaving(false);
+    onCreated(newGroup);
+  };
+
+  return (
+    <div className="mt-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
+      <p className="text-sm font-semibold">Nuevo grupo</p>
+      <div className="space-y-2">
+        <Input
+          placeholder="Nombre del grupo *"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          autoFocus
+        />
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger>
+            <SelectValue placeholder="Categoría *" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Entrenador: <strong>{coachName || "—"}</strong> · Escuela: <strong>{mySchoolName}</strong>
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={onCancel} className="flex-1">
+          Cancelar
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleCreate}
+          disabled={!name.trim() || !category || saving}
+          className="flex-1 gap-2"
+        >
+          {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creando...</> : <><Check className="w-3.5 h-3.5" /> Crear grupo</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN WIZARD ────────────────────────────────────────────────────────────
 export default function ReenrollmentWizard({ user, mySchoolName, myGroups, competitions, allGroups, registrations, onSuccess }) {
   const queryClient = useQueryClient();
@@ -173,15 +245,25 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [groupDocuments, setGroupDocuments] = useState({});
   const [uploadingGroup, setUploadingGroup] = useState({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [extraGroups, setExtraGroups] = useState([]); // groups created during this wizard session
+  const [showNewGroupForm, setShowNewGroupForm] = useState(false);
 
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
+
   const alreadyRegisteredIds = useMemo(() =>
     new Set(registrations.filter(r => r.competition_id === selectedComp?.id).map(r => r.group_id)),
     [registrations, selectedComp]
   );
-  const availableGroups = myGroups.filter(g => !alreadyRegisteredIds.has(g.id));
+
+  // All my groups = fetched from server + newly created this session
+  const allMyGroups = useMemo(() => [...myGroups, ...extraGroups], [myGroups, extraGroups]);
+
+  const availableGroups = allMyGroups.filter(g => !alreadyRegisteredIds.has(g.id));
   const selectedGroups = availableGroups.filter(g => selectedGroupIds.has(g.id));
+
+  // Coach info from existing groups (for new group form)
+  const existingCoach = myGroups[0] || {};
 
   const allSchoolParticipants = useMemo(() => {
     const seen = new Set();
@@ -202,6 +284,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
       setIsSuccess(true);
     },
   });
@@ -216,17 +299,20 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const startEditGroup = (groupId) => {
     const group = availableGroups.find(g => g.id === groupId);
     if (!group) return;
-    if (!groupParticipants[groupId]) {
-      // Preload participants from the most recent past registration for this group
+
+    // Only pre-load from last registration (if it has participants)
+    // Otherwise leave undefined so the edit step falls back to group.participants (same as summary)
+    if (groupParticipants[groupId] === undefined) {
       const prevRegs = registrations
         .filter(r => r.group_id === groupId)
         .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
       const lastReg = prevRegs[0];
-      const initialParticipants = lastReg?.participants?.length > 0
-        ? [...lastReg.participants]
-        : [...(group.participants || [])];
-      setGroupParticipants(pp => ({ ...pp, [groupId]: initialParticipants }));
+      if (lastReg?.participants?.length > 0) {
+        setGroupParticipants(pp => ({ ...pp, [groupId]: [...lastReg.participants] }));
+      }
+      // If no lastReg, leave undefined → display will fall back to group.participants
     }
+
     if (!groupDocuments[groupId]) {
       setGroupDocuments(dd => ({ ...dd, [groupId]: [] }));
     }
@@ -251,7 +337,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   const handleConfirm = () => {
     const data = selectedGroups.map(group => {
-      const ps   = groupParticipants[group.id] || group.participants || [];
+      const ps   = groupParticipants[group.id] ?? group.participants ?? [];
       const docs = groupDocuments[group.id] || [];
       return {
         competition_id: selectedComp.id,
@@ -270,6 +356,18 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       };
     });
     createMutation.mutate(data);
+  };
+
+  // Called when a new group is successfully created from NewGroupForm
+  const handleNewGroupCreated = (newGroup) => {
+    setExtraGroups(prev => [...prev, newGroup]);
+    setSelectedGroupIds(prev => new Set([...prev, newGroup.id]));
+    setGroupDocuments(dd => ({ ...dd, [newGroup.id]: [] }));
+    setShowNewGroupForm(false);
+    // Open edit step for this new group immediately (empty participants)
+    setGroupParticipants(pp => ({ ...pp, [newGroup.id]: [] }));
+    setEditingGroupId(newGroup.id);
+    setCurrentStep("editing");
   };
 
   // ── SUCCESS SCREEN ──
@@ -316,11 +414,12 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {availableGroups.length === 0 ? (
+          {availableGroups.length === 0 && !showNewGroupForm ? (
             <p className="text-muted-foreground text-sm py-4 text-center">Todos los grupos ya están inscritos.</p>
           ) : (
             availableGroups.map(group => {
               const selected = selectedGroupIds.has(group.id);
+              const isNew = extraGroups.some(g => g.id === group.id);
               return (
                 <div key={group.id} onClick={() => toggleGroup(group.id)}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
@@ -329,7 +428,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
                       {selected && <Check className="w-3 h-3 text-primary-foreground" />}
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-sm">{group.name}</div>
+                      <div className="font-semibold text-sm flex items-center gap-2">
+                        {group.name}
+                        {isNew && <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">Nuevo</Badge>}
+                      </div>
                       <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
                     </div>
                   </div>
@@ -338,11 +440,30 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             })
           )}
 
+          {/* New group form */}
+          {showNewGroupForm ? (
+            <NewGroupForm
+              mySchoolName={mySchoolName}
+              coachName={existingCoach.coach_name || user?.full_name || ""}
+              coachEmail={existingCoach.coach_email || user?.email || ""}
+              coachPhone={existingCoach.coach_phone || ""}
+              onCreated={handleNewGroupCreated}
+              onCancel={() => setShowNewGroupForm(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowNewGroupForm(true)}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-primary/40 text-primary text-sm font-medium hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Añadir grupo nuevo
+            </button>
+          )}
+
           {/* Already registered */}
-          {myGroups.filter(g => alreadyRegisteredIds.has(g.id)).length > 0 && (
+          {allMyGroups.filter(g => alreadyRegisteredIds.has(g.id)).length > 0 && (
             <div className="pt-2 space-y-2">
               <p className="text-xs text-muted-foreground font-medium uppercase">Ya inscritos</p>
-              {myGroups.filter(g => alreadyRegisteredIds.has(g.id)).map(g => (
+              {allMyGroups.filter(g => alreadyRegisteredIds.has(g.id)).map(g => (
                 <div key={g.id} className="p-4 rounded-xl border border-dashed opacity-50 flex items-center gap-3">
                   <Check className="w-4 h-4 text-green-600 shrink-0" />
                   <div>
@@ -388,6 +509,9 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     const isFirst = groupIdx === 0;
     const isLast = groupIdx === selectedGroups.length - 1;
 
+    // MEJORA 2: same fallback as summary — use group.participants if not yet edited
+    const currentParticipants = groupParticipants[currentGroup.id] ?? currentGroup.participants ?? [];
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -412,7 +536,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </CardHeader>
           <CardContent>
             <ParticipantEditor
-              participants={groupParticipants[currentGroup.id] || []}
+              participants={currentParticipants}
               allSchoolParticipants={allSchoolParticipants}
               onChange={(ps) => setGroupParticipants(prev => ({ ...prev, [currentGroup.id]: ps }))}
             />
@@ -468,7 +592,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         </div>
 
         {selectedGroups.map(group => {
-          const ps   = groupParticipants[group.id] || group.participants || [];
+          const ps   = groupParticipants[group.id] ?? group.participants ?? [];
           const docs = groupDocuments[group.id] || [];
           return (
             <Card key={group.id}>
