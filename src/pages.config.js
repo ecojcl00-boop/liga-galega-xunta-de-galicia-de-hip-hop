@@ -58,6 +58,7 @@ import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
 import Usuarios from './pages/Usuarios';
+import Landing from './pages/Landing';
 import __Layout from './Layout.jsx';
 
 
@@ -73,6 +74,7 @@ export const PAGES = {
     "Registrations": Registrations,
     "Schools": Schools,
     "Usuarios": Usuarios,
+    "Landing": Landing,
 }
 
 export const pagesConfig = {
