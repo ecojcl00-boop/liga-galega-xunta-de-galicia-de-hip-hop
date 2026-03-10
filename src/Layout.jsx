@@ -160,7 +160,7 @@ export default function Layout({ children, currentPageName }) {
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground hover:text-foreground gap-2"
-                onClick={() => base44.auth.logout()}
+                onClick={() => base44.auth.logout(createPageUrl("Landing"))}
               >
                 Cerrar sesión
               </Button>
