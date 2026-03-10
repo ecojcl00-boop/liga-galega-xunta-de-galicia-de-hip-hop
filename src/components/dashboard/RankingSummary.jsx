@@ -26,6 +26,15 @@ function calcularRanking(resultados, categoria) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
+  // Accumulated puntuacion per group (tiebreaker)
+  const puntMap = new Map();
+  resultados
+    .filter(r => r.categoria === categoria && r.puntuacion > 0)
+    .forEach(r => {
+      const key = nd(r.grupo_nombre);
+      puntMap.set(key, (puntMap.get(key) || 0) + r.puntuacion);
+    });
+
   const items = [...grupos.values()];
   const allVals = items.flatMap(g => Object.values(g.puestos));
   const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
@@ -36,6 +45,9 @@ function calcularRanking(resultados, categoria) {
       const bc = Object.values(b.puestos).filter(p => p === pos).length;
       if (bc !== ac) return bc - ac;
     }
+    const pa = puntMap.get(nd(a.nombre)) || 0;
+    const pb = puntMap.get(nd(b.nombre)) || 0;
+    if (pb !== pa) return pb - pa;
     return a.nombre.localeCompare(b.nombre);
   });
 

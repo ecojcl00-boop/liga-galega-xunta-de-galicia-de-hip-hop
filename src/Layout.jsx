@@ -36,6 +36,7 @@ const navItems = [
   { name: "Categorías", icon: BarChart3, page: "Categories" },
   { name: "Rankings", icon: Trophy, page: "Rankings" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
+
   { name: "Importar Datos", icon: ClipboardList, page: "ImportData" },
   { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
   { name: "Usuarios", icon: UserCog, page: "Usuarios" },
