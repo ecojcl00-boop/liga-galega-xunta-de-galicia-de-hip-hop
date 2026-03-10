@@ -112,6 +112,13 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // Landing page: if already logged in, redirect to appropriate portal
+  if (user && currentPageName === "Landing") {
+    const dest = user.role === "admin" ? createPageUrl("Dashboard") : createPageUrl("PortalEscuela");
+    navigate(dest, { replace: true });
+    return null;
+  }
+
   // Non-admin users → redirect to PortalEscuela unless already there or on a public page
   if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
     navigate(createPageUrl("PortalEscuela"), { replace: true });
