@@ -33,9 +33,9 @@ function ActaCard({ acta }) {
         variant="outline"
         size="sm"
         className="gap-1.5 flex-shrink-0"
-        onClick={() => window.open(acta.document_url, "_blank")}
+        onClick={() => downloadFile(acta.document_url, acta.document_name || acta.competicion_nombre || "acta")}
       >
-        <ExternalLink className="w-3.5 h-3.5" /> Ver
+        <Download className="w-3.5 h-3.5" /> Descargar
       </Button>
     </div>
   );
