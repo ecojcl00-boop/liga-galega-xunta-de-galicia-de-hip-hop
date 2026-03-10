@@ -433,11 +433,14 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   const handleUploadDoc = async (groupId, file, docType) => {
     setUploadingGroup(prev => ({ ...prev, [groupId]: true }));
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setGroupDocuments(prev => ({
-      ...prev,
-      [groupId]: [...(prev[groupId] || []), { name: file.name, url: file_url, doc_type: docType }],
-    }));
+    const uploadResult = await base44.integrations.Core.UploadFile({ file });
+    const file_url = uploadResult?.file_url;
+    if (file_url) {
+      setGroupDocuments(prev => ({
+        ...prev,
+        [groupId]: [...(prev[groupId] || []), { name: file.name, url: file_url, doc_type: docType }],
+      }));
+    }
     setUploadingGroup(prev => ({ ...prev, [groupId]: false }));
   };
 
