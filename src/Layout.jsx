@@ -292,7 +292,7 @@ export default function Layout({ children, currentPageName }) {
         )}
 
         {/* Footer */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-2">
           <div className="flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-bold text-primary">
               DL
@@ -302,6 +302,13 @@ export default function Layout({ children, currentPageName }) {
               <p className="text-[10px] text-sidebar-foreground/50">v1.0</p>
             </div>
           </div>
+          <button
+            onClick={() => base44.auth.logout(createPageUrl("Landing"))}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/60 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5 shrink-0" />
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
