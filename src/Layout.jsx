@@ -334,6 +334,17 @@ export default function Layout({ children, currentPageName }) {
               {navItems.find(n => n.page === currentPageName)?.name || currentPageName}
             </span>
           </div>
+          <div className="ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => base44.auth.logout(createPageUrl("Landing"))}
+              className="gap-2 text-muted-foreground hover:text-red-500"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Cerrar sesión</span>
+            </Button>
+          </div>
         </header>
 
         {/* Simulacro banner */}
