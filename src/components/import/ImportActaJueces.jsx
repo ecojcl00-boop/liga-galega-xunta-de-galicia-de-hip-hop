@@ -43,7 +43,14 @@ export default function ImportActaJueces({ onSuccess }) {
     const savedSchoolName = schoolName === "__todas__" ? "TODAS" : schoolName;
 
     // 1. Upload file
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadResult = await base44.integrations.Core.UploadFile({ file });
+    const file_url = uploadResult?.file_url;
+
+    if (!file_url) {
+      toast.error("Error al subir el archivo: no se obtuvo URL. Inténtalo de nuevo.");
+      setLoading(false);
+      return;
+    }
 
     // 2. Save as ActaJueces — viewable by the school in their portal
     await base44.entities.ActaJueces.create({

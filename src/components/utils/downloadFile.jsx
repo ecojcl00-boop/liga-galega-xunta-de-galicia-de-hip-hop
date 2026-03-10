@@ -5,6 +5,10 @@ import { base44 } from "@/api/base44Client";
  * The backend fetches the file and returns it as base64; we decode to a local Blob URL.
  */
 export async function downloadFile(url, filename = "archivo") {
+  if (!url || typeof url !== "string" || url.trim() === "") {
+    alert("Este archivo no tiene URL disponible. Es posible que no se subió correctamente.");
+    return;
+  }
   const res = await base44.functions.invoke('proxyDownload', { url, filename });
   const { data: base64, contentType } = res.data;
 

@@ -133,7 +133,8 @@ export default function JudgePanel() {
                           <Button
                             variant="outline"
                             size="sm"
-                            title="Descargar"
+                            title={acta.document_url ? "Descargar" : "Archivo no disponible"}
+                            disabled={!acta.document_url}
                             onClick={() => downloadFile(acta.document_url, acta.document_name || "acta")}
                           >
                             <Download className="w-3.5 h-3.5" />

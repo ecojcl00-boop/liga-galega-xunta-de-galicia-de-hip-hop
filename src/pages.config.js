@@ -51,16 +51,16 @@ import AreaPrivada from './pages/AreaPrivada';
 import Categories from './pages/Categories';
 import Competitions from './pages/Competitions';
 import Dashboard from './pages/Dashboard';
+import GestionEscuelas from './pages/GestionEscuelas';
 import Groups from './pages/Groups';
 import ImportData from './pages/ImportData';
+import JudgePanel from './pages/JudgePanel';
 import Landing from './pages/Landing';
 import PortalEscuela from './pages/PortalEscuela';
 import Rankings from './pages/Rankings';
 import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
 import Usuarios from './pages/Usuarios';
-import JudgePanel from './pages/JudgePanel';
-import GestionEscuelas from './pages/GestionEscuelas';
 import __Layout from './Layout.jsx';
 
 
@@ -69,16 +69,16 @@ export const PAGES = {
     "Categories": Categories,
     "Competitions": Competitions,
     "Dashboard": Dashboard,
+    "GestionEscuelas": GestionEscuelas,
     "Groups": Groups,
     "ImportData": ImportData,
+    "JudgePanel": JudgePanel,
     "Landing": Landing,
     "PortalEscuela": PortalEscuela,
     "Rankings": Rankings,
     "Registrations": Registrations,
     "Schools": Schools,
     "Usuarios": Usuarios,
-    "JudgePanel": JudgePanel,
-    "GestionEscuelas": GestionEscuelas,
 }
 
 export const pagesConfig = {
