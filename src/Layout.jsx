@@ -40,6 +40,7 @@ const navItems = [
   { name: "Importar Datos", icon: ClipboardList, page: "ImportData" },
   { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
   { name: "Usuarios", icon: UserCog, page: "Usuarios" },
+  { name: "Gestión Escuelas", icon: School, page: "GestionEscuelas" },
 ];
 
 // Only Landing is public

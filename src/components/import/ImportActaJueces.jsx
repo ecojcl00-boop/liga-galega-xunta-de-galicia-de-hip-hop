@@ -22,11 +22,14 @@ export default function ImportActaJueces({ onSuccess }) {
 
   useEffect(() => {
     Promise.all([
-      base44.entities.Group.list("school_name", 500),
+      base44.entities.School.list("name", 500),
       base44.entities.Competition.list("-date", 50),
-    ]).then(([groups, comps]) => {
-      const names = [...new Set(groups.map(g => g.school_name).filter(Boolean))].sort();
-      setSchools(names);
+    ]).then(([allSchools, comps]) => {
+      const activeSchools = allSchools
+        .filter(s => s.is_active !== false)
+        .map(s => s.name)
+        .sort();
+      setSchools(activeSchools);
       setCompetitions(comps);
     });
   }, []);
