@@ -210,7 +210,7 @@ function DocUploader({ documents, onChange, uploading, onUpload }) {
       {documents.map((doc, i) => (
         <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
           {doc.doc_type === "musica" ? <Music className="w-4 h-4 text-primary shrink-0" /> : <FileText className="w-4 h-4 text-primary shrink-0" />}
-          <button onClick={() => downloadFile(doc.url, doc.name)} className="text-sm flex-1 truncate hover:underline text-primary text-left">{doc.name}</button>
+          <button onClick={() => doc.url && downloadFile(doc.url, doc.name)} disabled={!doc.url} className="text-sm flex-1 truncate hover:underline text-primary text-left disabled:opacity-50 disabled:cursor-not-allowed">{doc.name}</button>
           <button onClick={() => remove(i)} className="text-muted-foreground hover:text-destructive shrink-0">
             <X className="w-4 h-4" />
           </button>
