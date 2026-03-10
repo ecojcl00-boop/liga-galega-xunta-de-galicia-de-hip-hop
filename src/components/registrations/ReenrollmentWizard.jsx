@@ -8,6 +8,7 @@ import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music } fr
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useSimulacro } from "@/components/SimulacroContext";
+import { downloadFile } from "@/components/utils/downloadFile";
 
 // ── ParticipantEditor ──────────────────────────────────────────────────────
 function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
