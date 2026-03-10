@@ -280,19 +280,32 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
                                         <div>
                                           <p className="text-xs font-medium text-muted-foreground mb-2">Documentos</p>
                                           <div className="flex flex-wrap gap-2">
-                                            {(reg.documents || []).map((doc, i) => (
-                                             <button
-                                               key={i}
-                                               onClick={() => downloadFile(doc.url, doc.name || "archivo")}
-                                               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:bg-muted/30 transition-colors"
-                                             >
-                                               {doc.doc_type === "musica"
-                                                 ? <Music className="w-3.5 h-3.5 text-primary" />
-                                                 : <FileText className="w-3.5 h-3.5 text-primary" />}
-                                               {doc.name}
-                                               <Download className="w-3 h-3 text-muted-foreground ml-0.5" />
-                                             </button>
-                                            ))}
+                                            {(reg.documents || []).map((doc, i) => {
+                                              const docKey = `${reg.id}-${i}`;
+                                              const isLoading = downloadingKeys.has(docKey);
+                                              const hasError = downloadErrors[docKey];
+                                              return (
+                                                <button
+                                                  key={i}
+                                                  disabled={isLoading}
+                                                  onClick={() => handleDownload(docKey, doc.url, doc.name || "archivo")}
+                                                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-60
+                                                    ${hasError ? "border-destructive text-destructive" : "hover:bg-muted/30"}`}
+                                                >
+                                                  {isLoading
+                                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    : doc.doc_type === "musica"
+                                                      ? <Music className="w-3.5 h-3.5 text-primary" />
+                                                      : <FileText className="w-3.5 h-3.5 text-primary" />}
+                                                  {doc.name}
+                                                  {isLoading
+                                                    ? <span className="text-muted-foreground ml-0.5">Descargando…</span>
+                                                    : hasError
+                                                      ? <span className="ml-0.5">Error – reintentar</span>
+                                                      : <Download className="w-3 h-3 text-muted-foreground ml-0.5" />}
+                                                </button>
+                                              );
+                                            })}
                                           </div>
                                         </div>
                                       )}
