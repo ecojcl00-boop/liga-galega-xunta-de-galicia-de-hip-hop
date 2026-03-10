@@ -58,7 +58,6 @@ import Registrations from './pages/Registrations';
 import Schools from './pages/Schools';
 import Usuarios from './pages/Usuarios';
 import ImportData from './pages/ImportData';
-import JudgePanel from './pages/JudgePanel';
 import __Layout from './Layout.jsx';
 
 
@@ -74,7 +73,6 @@ export const PAGES = {
     "Schools": Schools,
     "Usuarios": Usuarios,
     "ImportData": ImportData,
-    "JudgePanel": JudgePanel,
 }
 
 export const pagesConfig = {
