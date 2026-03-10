@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, ClipboardList, FileText, Trophy, Lock,
-  Plus, ChevronLeft, Calendar, ExternalLink,
+  Plus, ChevronLeft, Calendar, Download,
   CheckCircle2, Circle
 } from "lucide-react";
+import { downloadFile } from "@/components/utils/downloadFile";
 import LigaRankingView from "@/components/rankings/LigaRankingView";
 import ReenrollmentWizard from "@/components/registrations/ReenrollmentWizard";
 import HistorialCompeticiones from "@/components/registrations/HistorialCompeticiones";

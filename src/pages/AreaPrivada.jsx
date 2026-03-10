@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Lock, ExternalLink, Calendar, School } from "lucide-react";
+import { FileText, Upload, Lock, Download, Calendar, School } from "lucide-react";
+import { downloadFile } from "@/components/utils/downloadFile";
 import { useUser } from "@/components/UserContext";
 
 function ActaCard({ acta }) {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ChevronDown, ChevronRight, Download, Trash2, Users, FileText, Music, Search, Trophy } from "lucide-react";
+import { downloadFile } from "@/components/utils/downloadFile";
 
 const STATUS_CONFIG = {
   pending:   { label: "Pendiente",   color: "bg-yellow-100 text-yellow-700",  icon: "🟡" },
