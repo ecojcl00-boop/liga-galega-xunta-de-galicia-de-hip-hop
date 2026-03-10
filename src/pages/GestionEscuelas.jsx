@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const EMPTY_FORM = { name: "", coach_name: "", email: "", phone: "" };
+const EMPTY_FORM = { name: "", coach_name: "", email: "", phone: "", city: "" };
 
 export default function GestionEscuelas() {
   const user = useUser();

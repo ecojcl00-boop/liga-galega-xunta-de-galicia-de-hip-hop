@@ -20,10 +20,13 @@ const CATEGORIES = [
 ];
 
 // ── ParticipantEditor ──────────────────────────────────────────────────────
-function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
-  const [adding, setAdding] = useState(false);
+function ParticipantEditor({ participants, allSchoolParticipants, onChange, onNewParticipantPersisted }) {
+  const [mode, setMode] = useState(null); // null | "search" | "create"
   const [searchTerm, setSearchTerm] = useState("");
+  const [newNombre, setNewNombre] = useState("");
+  const [newApellidos, setNewApellidos] = useState("");
   const [newBirth, setNewBirth] = useState("");
+  const [saving, setSaving] = useState(false);
   const [editingIdx, setEditingIdx] = useState(null);
   const [editName, setEditName] = useState("");
 
@@ -35,8 +38,6 @@ function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
     );
   }, [searchTerm, allSchoolParticipants, participants]);
 
-  const noMatch = searchTerm.trim() && availableFromSchool.length === 0;
-
   const remove = (idx) => onChange(participants.filter((_, i) => i !== idx));
   const startEdit = (idx) => { setEditingIdx(idx); setEditName(participants[idx]?.name || ""); };
   const saveEdit = (idx) => {
@@ -45,9 +46,22 @@ function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
     onChange(updated);
     setEditingIdx(null);
   };
-  const addExisting = (p) => { onChange([...participants, { name: p.name, birth_date: p.birth_date || "" }]); resetAdd(); };
-  const addNew = () => { if (!searchTerm.trim()) return; onChange([...participants, { name: searchTerm.trim(), birth_date: newBirth }]); resetAdd(); };
-  const resetAdd = () => { setAdding(false); setSearchTerm(""); setNewBirth(""); };
+  const addExisting = (p) => { onChange([...participants, { name: p.name, birth_date: p.birth_date || "" }]); resetAll(); };
+
+  const handleCreateNew = async () => {
+    if (!newNombre.trim()) return;
+    const fullName = newApellidos.trim()
+      ? `${newNombre.trim()} ${newApellidos.trim()}`
+      : newNombre.trim();
+    const p = { name: fullName, birth_date: newBirth };
+    setSaving(true);
+    onChange([...participants, p]);
+    if (onNewParticipantPersisted) await onNewParticipantPersisted(p);
+    setSaving(false);
+    resetAll();
+  };
+
+  const resetAll = () => { setMode(null); setSearchTerm(""); setNewNombre(""); setNewApellidos(""); setNewBirth(""); };
 
   return (
     <div className="space-y-2">
@@ -83,47 +97,85 @@ function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
         </div>
       ))}
 
-      {adding ? (
+      {/* ── Search existing ── */}
+      {mode === "search" && (
         <div className="border rounded-xl p-4 space-y-3 bg-muted/10 mt-2">
+          <p className="text-sm font-medium">Seleccionar participante existente</p>
           <Input
-            placeholder="Buscar o escribir nombre nuevo..."
+            placeholder="Buscar por nombre..."
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)} autoFocus
           />
-          {!noMatch && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">
-                {searchTerm.trim() ? "Coincidencias:" : "Participantes de la escuela:"}
+          <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-1">
+            {availableFromSchool.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">
+                {searchTerm.trim() ? "Sin coincidencias" : "No hay más participantes en esta escuela"}
               </p>
-              <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-1">
-                {availableFromSchool.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-3">Ninguno</p>
-                ) : availableFromSchool.map((p, i) => (
-                  <button key={i} onClick={() => addExisting(p)}
-                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/60 transition-colors flex items-center gap-2">
-                    <Plus className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>{p.name}</span>
-                    {p.birth_date && <span className="text-muted-foreground text-xs ml-auto">{p.birth_date}</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {noMatch && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">No encontrado. Se añadirá como nuevo.</p>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fecha de nacimiento (opcional)</Label>
-                <Input type="date" value={newBirth} onChange={e => setNewBirth(e.target.value)} />
-              </div>
-              <Button size="sm" onClick={addNew} className="w-full">Añadir "{searchTerm.trim()}"</Button>
-            </div>
-          )}
-          <Button size="sm" variant="outline" onClick={resetAdd} className="w-full">Cancelar</Button>
+            ) : availableFromSchool.map((p, i) => (
+              <button key={i} onClick={() => addExisting(p)}
+                className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/60 transition-colors flex items-center gap-2">
+                <Plus className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="flex-1">{p.name}</span>
+                {p.birth_date && <span className="text-muted-foreground text-xs">{p.birth_date}</span>}
+              </button>
+            ))}
+          </div>
+          <Button size="sm" variant="outline" onClick={resetAll} className="w-full">Cancelar</Button>
         </div>
-      ) : (
-        <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="w-full gap-2 mt-1">
-          <Plus className="w-4 h-4" /> Añadir participante
-        </Button>
+      )}
+
+      {/* ── Create new participant ── */}
+      {mode === "create" && (
+        <div className="border-2 border-primary/30 rounded-xl p-4 space-y-3 bg-primary/5 mt-2">
+          <p className="text-sm font-semibold text-primary">Crear participante nuevo</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs mb-1 block">Nombre *</Label>
+              <Input
+                placeholder="Ej: María"
+                value={newNombre}
+                onChange={e => setNewNombre(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Apellidos</Label>
+              <Input
+                placeholder="Ej: García López"
+                value={newApellidos}
+                onChange={e => setNewApellidos(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Fecha de nacimiento</Label>
+            <Input type="date" value={newBirth} onChange={e => setNewBirth(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={resetAll} className="flex-1">Cancelar</Button>
+            <Button
+              size="sm"
+              onClick={handleCreateNew}
+              disabled={!newNombre.trim() || saving}
+              className="flex-1 gap-2"
+            >
+              {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Guardando...</> : <><Check className="w-3.5 h-3.5" />Añadir</>}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Buttons ── */}
+      {mode === null && (
+        <div className="flex gap-2 mt-1">
+          {allSchoolParticipants.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setMode("search")} className="flex-1 gap-2">
+              <Plus className="w-4 h-4" /> Añadir existente
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setMode("create")} className="flex-1 gap-2 border-primary/40 text-primary hover:bg-primary/5">
+            <Plus className="w-4 h-4" /> Crear participante nuevo
+          </Button>
+        </div>
       )}
     </div>
   );
