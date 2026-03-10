@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 // ── ParticipantEditor ──────────────────────────────────────────────────────
 function ParticipantEditor({ participants, allSchoolParticipants, onChange }) {
@@ -160,6 +161,7 @@ function DocUploader({ documents, onChange, uploading, onUpload }) {
 // ── MAIN WIZARD ────────────────────────────────────────────────────────────
 export default function ReenrollmentWizard({ user, mySchoolName, myGroups, competitions, allGroups, registrations, onSuccess }) {
   const queryClient = useQueryClient();
+  const { isSimulacro } = useSimulacro();
 
   // ── STATE ──
   const [currentStep, setCurrentStep] = useState("selectComp");
@@ -260,9 +262,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         coach_name: group.coach_name,
         status: "pending",
         payment_status: "pending",
-        participants_count: ps.length, // always derived from actual list length
+        participants_count: ps.length,
         participants: ps,
         documents: docs,
+        is_simulacro: isSimulacro,
       };
     });
     createMutation.mutate(data);

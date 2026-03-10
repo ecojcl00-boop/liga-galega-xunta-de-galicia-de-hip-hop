@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { file_url, competition_id, competition_name } = await req.json();
+    const { file_url, competition_id, competition_name, is_simulacro } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url required' }, { status: 400 });
 
     // ── Parse Excel ───────────────────────────────────────────────────────────
@@ -241,6 +241,7 @@ Deno.serve(async (req) => {
             school_name: row.schoolName, category: row.category, coach_name: row.coachName,
             status: "confirmed", payment_status: "pending",
             participants_count: row.participants.length,
+            is_simulacro: !!is_simulacro,
           });
           regSet.add(group.id);
         }

@@ -53,6 +53,7 @@ export default function RankingSummary() {
   const { data: resultados = [] } = useQuery({
     queryKey: ["liga_resultados_home"],
     queryFn: () => base44.entities.LigaResultado.list(),
+    select: (data) => data.filter(r => !r.is_simulacro),
   });
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {

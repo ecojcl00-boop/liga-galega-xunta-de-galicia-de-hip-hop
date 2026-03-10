@@ -19,9 +19,12 @@ import {
   UserCog,
   Eye,
   EyeOff,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SimulacroContext } from "./components/SimulacroContext";
 
 const navItems = [
   { name: "Home", icon: LayoutDashboard, page: "Dashboard" },
@@ -50,6 +53,28 @@ export default function Layout({ children, currentPageName }) {
   const [simulatedSchool, setSimulatedSchool] = useState(null);
   const [schoolList, setSchoolList] = useState([]);
   const navigate = useNavigate();
+
+  const [isSimulacro, setIsSimulacro] = useState(() => {
+    try { return localStorage.getItem("simulacro_mode") === "true"; } catch { return false; }
+  });
+  const [cleaningSimulacro, setCleaningSimulacro] = useState(false);
+
+  const activateSimulacro = () => {
+    try { localStorage.setItem("simulacro_mode", "true"); } catch {}
+    setIsSimulacro(true);
+  };
+
+  const handleExitSimulacro = async () => {
+    setCleaningSimulacro(true);
+    try {
+      await base44.functions.invoke("cleanupSimulacro", {});
+    } finally {
+      try { localStorage.removeItem("simulacro_mode"); } catch {}
+      setIsSimulacro(false);
+      setCleaningSimulacro(false);
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     base44.auth.me()
@@ -103,6 +128,7 @@ export default function Layout({ children, currentPageName }) {
       { name: "Jueces", page: "JudgePanel" },
     ];
     return (
+      <SimulacroContext.Provider value={{ isSimulacro: false, activate: () => {}, deactivate: () => {} }}>
       <UserContext.Provider value={user}>
         <div className="min-h-screen bg-background">
           <header className="border-b bg-card sticky top-0 z-40">
@@ -149,6 +175,7 @@ export default function Layout({ children, currentPageName }) {
           <main>{children}</main>
         </div>
       </UserContext.Provider>
+      </SimulacroContext.Provider>
     );
   }
 
@@ -158,6 +185,7 @@ export default function Layout({ children, currentPageName }) {
     : user;
 
   return (
+    <SimulacroContext.Provider value={{ isSimulacro, activate: activateSimulacro, deactivate: handleExitSimulacro }}>
     <UserContext.Provider value={effectiveUser}>
     <div className="flex h-screen overflow-hidden bg-[hsl(0,0%,4%)]">
       {/* Mobile overlay */}
@@ -220,6 +248,19 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </nav>
 
+        {/* Simulacro toggle */}
+        {!isSimulacro && (
+          <div className="px-3 py-2 border-t border-sidebar-border">
+            <button
+              onClick={activateSimulacro}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              Activar Modo Simulacro
+            </button>
+          </div>
+        )}
+
         {/* School simulator selector */}
         {schoolList.length > 0 && (
           <div className="px-3 py-3 border-t border-sidebar-border">
@@ -279,6 +320,26 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </header>
 
+        {/* Simulacro banner */}
+        {isSimulacro && (
+          <div className="bg-red-600 text-red-50 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0 z-10">
+            <span className="text-sm font-bold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              MODO SIMULACRO — estos datos son de prueba y se eliminarán al salir
+            </span>
+            <Button
+              size="sm"
+              onClick={handleExitSimulacro}
+              disabled={cleaningSimulacro}
+              className="bg-red-800 hover:bg-red-900 text-white border-0 shrink-0 gap-1.5"
+            >
+              {cleaningSimulacro
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Limpiando...</>
+                : "Limpiar y salir del simulacro"}
+            </Button>
+          </div>
+        )}
+
         {/* Simulation banner */}
         {simulatedSchool && (
           <div className="bg-amber-500 text-amber-950 px-4 py-2 flex items-center justify-between gap-4 shrink-0">
@@ -304,5 +365,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
     </div>
     </UserContext.Provider>
+    </SimulacroContext.Provider>
   );
 }

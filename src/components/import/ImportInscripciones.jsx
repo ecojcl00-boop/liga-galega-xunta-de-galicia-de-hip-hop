@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, XCircle, Database } from "lucide-react";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 export default function ImportInscripciones() {
   const [file, setFile] = useState(null);
@@ -13,6 +14,7 @@ export default function ImportInscripciones() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState("");
   const [result, setResult] = useState(null);
+  const { isSimulacro } = useSimulacro();
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function ImportInscripciones() {
       file_url,
       competition_id: selectedCompId || null,
       competition_name: selectedComp?.name || competitionName || null,
+      is_simulacro: isSimulacro,
     });
 
     const data = response.data;

@@ -16,6 +16,7 @@ import CreateIndividualDialog from "../components/registrations/CreateIndividual
 import SchoolSimulator from "../components/registrations/SchoolSimulator.jsx";
 import SchoolSelectorDialog from "../components/registrations/SchoolSelectorDialog.jsx";
 import { useUser } from "@/components/UserContext";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 // Build a deduplicated school list from group data using school_name as key
 function buildSchoolOptions(groups) {
@@ -31,6 +32,7 @@ function buildSchoolOptions(groups) {
 
 export default function Registrations() {
   const user = useUser();
+  const { isSimulacro } = useSimulacro();
 
   const [selectedCompetition, setSelectedCompetition] = useState(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
@@ -48,12 +50,13 @@ export default function Registrations() {
   });
 
   const { data: registrations = [] } = useQuery({
-    queryKey: ["registrations", user?.role, user?.school_name],
+    queryKey: ["registrations", user?.role, user?.school_name, isSimulacro],
     queryFn: () => {
       if (user?.role === "admin") return base44.entities.Registration.list("-created_date");
       if (!user?.school_name) return [];
       return base44.entities.Registration.filter({ school_name: user.school_name }, "-created_date");
     },
+    select: (data) => isSimulacro ? data : data.filter(r => !r.is_simulacro),
     enabled: !!user,
   });
 
@@ -92,9 +95,10 @@ export default function Registrations() {
       coach_name: group.coach_name,
       status: "confirmed",
       payment_status: "pending",
-      participants_count: group.participants?.length ?? 0, // always derived, never manual
+      participants_count: group.participants?.length ?? 0,
       participants: group.participants || [],
       documents: [],
+      is_simulacro: isSimulacro,
     });
   };
 

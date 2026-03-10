@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, FileText, Loader2, CheckCircle2, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 export default function ImportLigaJornada() {
   const [file, setFile] = useState(null);
@@ -15,6 +16,7 @@ export default function ImportLigaJornada() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const fileRef = useRef(null);
+  const { isSimulacro } = useSimulacro();
 
   const handleImport = async () => {
     if (!file || !jornada) return;
@@ -67,7 +69,8 @@ Extrae TODOS los grupos sin omitir ninguno.`,
       nombre_competicion: nombre || `Jornada ${jornada}`,
       fecha: fecha || undefined,
       ubicacion: ubicacion || undefined,
-      resultados: extracted.resultados
+      resultados: extracted.resultados,
+      is_simulacro: isSimulacro,
     });
 
     setResult(response.data);

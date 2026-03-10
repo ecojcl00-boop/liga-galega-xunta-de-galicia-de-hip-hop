@@ -59,6 +59,7 @@ export default function Rankings() {
   const { data: ligaResultados = [], isLoading: ligaLoading } = useQuery({
     queryKey: ["liga_resultados"],
     queryFn: () => base44.entities.LigaResultado.list("numero_jornada", 2000),
+    select: (data) => data.filter(r => !r.is_simulacro),
   });
 
   const competitions = [...new Set(results.map(r => r.competition_name))];

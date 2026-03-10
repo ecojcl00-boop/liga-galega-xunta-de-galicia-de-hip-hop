@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { numero_jornada, nombre_competicion, fecha, ubicacion, notas, resultados } = await req.json();
+    const { numero_jornada, nombre_competicion, fecha, ubicacion, notas, resultados, is_simulacro } = await req.json();
 
     if (!numero_jornada || !resultados?.length) {
       return Response.json({ error: 'numero_jornada y resultados son requeridos' }, { status: 400 });
@@ -63,25 +63,29 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
 
     // Load existing data in parallel
-    const [allGroups, existingResults] = await Promise.all([
+    const [allGroups, existingResultsAll] = await Promise.all([
       base44.asServiceRole.entities.Group.list("name", 500),
       base44.asServiceRole.entities.LigaResultado.filter({ numero_jornada: Number(numero_jornada) }, "-created_date", 1000)
     ]);
+    // Only check duplicates within the same simulacro context
+    const existingResults = existingResultsAll.filter(r => !!r.is_simulacro === !!is_simulacro);
 
     console.log(`[INFO] J${numero_jornada}: ${resultados.length} recibidos, ${existingResults.length} ya en BD`);
 
     // Create or reuse LigaCompeticion record
     const existingComps = await base44.asServiceRole.entities.LigaCompeticion.filter({ numero_jornada: Number(numero_jornada) });
+    const sameTypeComps = existingComps.filter(c => !!c.is_simulacro === !!is_simulacro);
     let compId;
-    if (existingComps.length > 0) {
-      compId = existingComps[0].id;
+    if (sameTypeComps.length > 0) {
+      compId = sameTypeComps[0].id;
     } else {
       const comp = await base44.asServiceRole.entities.LigaCompeticion.create({
         nombre: nombre_competicion || `Jornada ${numero_jornada}`,
         fecha: fecha || today,
         ubicacion: ubicacion || "",
         numero_jornada: Number(numero_jornada),
-        notas: notas || ""
+        notas: notas || "",
+        is_simulacro: !!is_simulacro,
       });
       compId = comp.id;
     }
@@ -116,10 +120,11 @@ Deno.serve(async (req) => {
         numero_jornada: Number(numero_jornada),
         grupo_id: group?.id || null,
         grupo_nombre: r.group_name,
-        grupo_nombre_original: group ? null : r.group_name, // only set when no match found
+        grupo_nombre_original: group ? null : r.group_name,
         school_name: r.school_name || group?.school_name || "",
         categoria: r.category,
-        puesto: Number(r.position)
+        puesto: Number(r.position),
+        is_simulacro: !!is_simulacro,
       });
 
       affectedCategories.add(r.category);
@@ -140,8 +145,9 @@ Deno.serve(async (req) => {
         base44.asServiceRole.entities.LigaResultado.list("-numero_jornada", 2000),
         base44.asServiceRole.entities.JudgeScore.list("group_name", 5000),
       ]);
+      const rankingResultados = allResultados.filter(r => !r.is_simulacro);
       for (const cat of affectedCategories) {
-        const ranking = calcularRanking(allResultados, cat, allJudgeScores);
+        const ranking = calcularRanking(rankingResultados, cat, allJudgeScores);
         log.top3[cat] = ranking.slice(0, 3).map(g => ({ nombre: g.nombre, puestos: g.puestos }));
       }
     }
