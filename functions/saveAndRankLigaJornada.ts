@@ -18,7 +18,16 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
-  // Accumulate judge scores per group for final tiebreaker
+  // Accumulate puntuacion from LigaResultado (primary numeric tiebreaker)
+  const puntMap = new Map();
+  resultados
+    .filter(r => r.categoria === categoria && r.puntuacion > 0)
+    .forEach(r => {
+      const key = nd(r.grupo_nombre);
+      puntMap.set(key, (puntMap.get(key) || 0) + r.puntuacion);
+    });
+
+  // Accumulate judge scores per group for secondary tiebreaker
   const scoreMap = new Map();
   judgeScores
     .filter(s => nd(s.category || "") === nd(categoria))
@@ -37,7 +46,10 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       const bc = Object.values(b.puestos).filter(p => p === pos).length;
       if (bc !== ac) return bc - ac;
     }
-    // Final tiebreaker: accumulated judge scores
+    // Final tiebreaker: accumulated puntuacion from LigaResultado, then judge scores
+    const pa = puntMap ? (puntMap.get(nd(a.nombre)) || 0) : 0;
+    const pb = puntMap ? (puntMap.get(nd(b.nombre)) || 0) : 0;
+    if (pb !== pa) return pb - pa;
     const sa = scoreMap.get(nd(a.nombre)) || 0;
     const sb = scoreMap.get(nd(b.nombre)) || 0;
     if (sb !== sa) return sb - sa;
@@ -124,6 +136,7 @@ Deno.serve(async (req) => {
         school_name: r.school_name || group?.school_name || "",
         categoria: r.category,
         puesto: Number(r.position),
+        puntuacion: r.score ? Number(r.score) : null,
         is_simulacro: !!is_simulacro,
       });
 

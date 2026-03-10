@@ -9,7 +9,7 @@ import {
 import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ImportActaJueces() {
+export default function ImportActaJueces({ onSuccess }) {
   const [file, setFile] = useState(null);
   const [schoolName, setSchoolName] = useState("");
   const [competitionId, setCompetitionId] = useState("");
@@ -114,6 +114,7 @@ Si solo hay un total, úsalo en "total". NO inventes datos.`,
     setFile(null);
     setNotas("");
     setLoading(false);
+    if (onSuccess) onSuccess();
   };
 
   return (
