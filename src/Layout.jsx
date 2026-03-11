@@ -47,7 +47,7 @@ const navItems = [
 const PUBLIC_PAGES = ["Landing"];
 
 // Pages that non-admin users (and simulated schools) can also access
-const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Registrations", "Groups", "Rankings", "JudgePanel"];
+const SCHOOL_ALLOWED_PAGES = ["Dashboard", "PortalEscuela", "Registrations", "Groups", "Rankings", "JudgePanel", "Competitions"];
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
