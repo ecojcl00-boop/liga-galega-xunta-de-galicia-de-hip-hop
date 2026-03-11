@@ -1,184 +1,252 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@/components/UserContext";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { useUser } from "../components/UserContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Gavel, FileText, Calendar, Download, Trash2, School } from "lucide-react";
-import { toast } from "sonner";
-import { downloadFile } from "@/components/utils/downloadFile";
-import ImportActaJueces from "@/components/import/ImportActaJueces";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileText, Upload, Download, Calendar, School, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { downloadFile } from "../components/utils/downloadFile";
 
 export default function JudgePanel() {
   const user = useUser();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [confirmDelete, setConfirmDelete] = useState(null);
-
   const isAdmin = user?.role === "admin";
+  const queryClient = useQueryClient();
 
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    school_name: "",
+    competicion_nombre: "",
+    fecha: "",
+    notas: "",
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Fetch actas - admin ve todas, escuela solo las suyas
   const { data: actas = [], isLoading } = useQuery({
-    queryKey: ["all_actas_admin"],
-    queryFn: () => base44.entities.ActaJueces.list("-created_date", 500),
+    queryKey: ["actas"],
+    queryFn: async () => {
+      const all = await base44.entities.ActaJueces.list("-created_date");
+      if (isAdmin) return all;
+      // Para escuelas, filtrar por su school_name
+      return all.filter(a => a.school_name === user?.school_name);
+    },
+  });
+
+  // Fetch schools for admin dropdown
+  const { data: schools = [] } = useQuery({
+    queryKey: ["schools"],
+    queryFn: () => base44.entities.School.filter({ is_active: true }, "name"),
     enabled: isAdmin,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.ActaJueces.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all_actas_admin"] });
-      setConfirmDelete(null);
-      toast.success("Documento eliminado");
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["actas"] }),
   });
 
-  const handleOnSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["all_actas_admin"] });
+  const handleFileChange = (e) => {
+    if (e.target.files?.[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
   };
 
-  const byCompetition = useMemo(() => {
-    const map = {};
-    actas.forEach(a => {
-      const key = a.competicion_nombre || "Sin competición";
-      if (!map[key]) map[key] = [];
-      map[key].push(a);
-    });
-    return map;
-  }, [actas]);
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) return;
 
-  if (!isAdmin) {
-    if (user) navigate(createPageUrl("PortalEscuela"), { replace: true });
-    return null;
+    setUploading(true);
+    try {
+      // Upload file
+      const uploadResult = await base44.integrations.Core.UploadFile({ file: selectedFile });
+      
+      // Create acta record with exact school_name match
+      await base44.entities.ActaJueces.create({
+        school_name: formData.school_name.trim(), // Trim to avoid extra spaces
+        competicion_nombre: formData.competicion_nombre,
+        fecha: formData.fecha,
+        document_url: uploadResult.file_url,
+        document_name: selectedFile.name,
+        notas: formData.notas,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["actas"] });
+      setShowUploadForm(false);
+      setFormData({ school_name: "", competicion_nombre: "", fecha: "", notas: "" });
+      setSelectedFile(null);
+    } catch (error) {
+      console.error("Error uploading:", error);
+      alert("Error al subir el documento");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
   }
 
   return (
-    <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Gavel className="w-7 h-7 text-primary" />
-          Panel de Jueces
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Sube actas de jueces y asígnalas a escuelas. Cada escuela solo ve sus propios documentos en su portal.
-        </p>
+    <div className="p-4 lg:p-8 space-y-6 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Panel de Jueces</h1>
+          <p className="text-muted-foreground mt-1">
+            {isAdmin 
+              ? `${actas.length} documentos subidos`
+              : actas.length > 0
+                ? `Tienes ${actas.length} documento${actas.length > 1 ? 's' : ''} disponible${actas.length > 1 ? 's' : ''}`
+                : "No hay documentos disponibles aún"
+            }
+          </p>
+        </div>
+        {isAdmin && (
+          <Button onClick={() => setShowUploadForm(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Subir Acta
+          </Button>
+        )}
       </div>
 
-      {/* Upload section */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold border-b pb-2">Subir nuevo documento</h2>
-        <ImportActaJueces onSuccess={handleOnSuccess} />
-      </section>
-
-      {/* Documents list */}
-      <section className="space-y-4">
-        <div className="border-b pb-2 flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Documentos subidos</h2>
-          <Badge variant="secondary">{actas.length}</Badge>
+      {actas.length === 0 ? (
+        <div className="text-center py-20 text-muted-foreground">
+          <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <p>{isAdmin ? "No hay actas subidas aún." : "Tu escuela no tiene actas de jueces disponibles."}</p>
         </div>
-
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>
-        ) : actas.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              <FileText className="w-10 h-10 mx-auto opacity-20 mb-3" />
-              <p>No hay documentos subidos todavía</p>
-              <p className="text-sm mt-1">Usa el formulario de arriba para subir el primer documento.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {Object.entries(byCompetition).map(([comp, items]) => (
-              <div key={comp}>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {comp} <span className="normal-case font-normal opacity-60">({items.length} doc{items.length !== 1 ? "s" : ""})</span>
-                </h3>
-                <div className="grid gap-2">
-                  {items.map(acta => {
-                    const fecha = acta.fecha
-                      ? new Date(acta.fecha + "T00:00:00").toLocaleDateString("es-ES", {
-                          day: "2-digit", month: "short", year: "numeric"
-                        })
-                      : null;
-
-                    return (
-                      <div
-                        key={acta.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors"
-                      >
-                        <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {acta.document_name || acta.competicion_nombre}
-                          </p>
-                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                            <span className="text-xs text-primary flex items-center gap-1">
-                              <School className="w-3 h-3" /> {acta.school_name}
-                            </span>
-                            {fecha && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" /> {fecha}
-                              </span>
-                            )}
-                            {acta.notas && (
-                              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{acta.notas}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            title={acta.document_url ? "Descargar" : "Archivo no disponible"}
-                            disabled={!acta.document_url}
-                            onClick={() => downloadFile(acta.document_url, acta.document_name || "acta")}
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </Button>
-
-                          {confirmDelete === acta.id ? (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => deleteMutation.mutate(acta.id)}
-                                disabled={deleteMutation.isPending}
-                              >
-                                Sí, eliminar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setConfirmDelete(null)}
-                              >
-                                No
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Eliminar"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setConfirmDelete(acta.id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {actas.map((acta) => (
+            <Card key={acta.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{acta.competicion_nombre}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{acta.document_name}</p>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => deleteMutation.mutate(acta.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <School className="w-3.5 h-3.5" />
+                    <span>{acta.school_name}</span>
+                  </div>
+                  {acta.fecha && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{format(new Date(acta.fecha), "dd MMM yyyy", { locale: es })}</span>
+                    </div>
+                  )}
+                  {acta.notas && (
+                    <p className="text-xs text-muted-foreground mt-2">{acta.notas}</p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={() => downloadFile(acta.document_url)}
+                >
+                  <Download className="w-3.5 h-3.5" /> Descargar
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Dialog - Admin only */}
+      {isAdmin && (
+        <Dialog open={showUploadForm} onOpenChange={setShowUploadForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Subir Acta de Jueces</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Escuela *</Label>
+                <select
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  value={formData.school_name}
+                  onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
+                  required
+                >
+                  <option value="">Selecciona una escuela</option>
+                  {schools.map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+
+              <div className="space-y-2">
+                <Label>Competición *</Label>
+                <Input
+                  value={formData.competicion_nombre}
+                  onChange={(e) => setFormData({ ...formData, competicion_nombre: e.target.value })}
+                  placeholder="Ej: MARÍN 2026"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha</Label>
+                <Input
+                  type="date"
+                  value={formData.fecha}
+                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Documento *</Label>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notas</Label>
+                <Input
+                  value={formData.notas}
+                  onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+                  placeholder="Notas adicionales (opcional)"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setShowUploadForm(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? "Subiendo..." : "Subir"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

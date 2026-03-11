@@ -1,298 +1,301 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Medal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Trophy, Medal, Download, AlertTriangle } from "lucide-react";
-import jsPDF from "jspdf";
-import PodiumCategory from "../components/rankings/PodiumCategory";
-import LigaRankingView from "../components/rankings/LigaRankingView";
-import { useSimulacro } from "@/components/SimulacroContext";
+import { useSimulacro } from "../components/SimulacroContext";
 
-const CATEGORY_ORDER = [
-  "Mini Individual A", "Mini Individual B", "Individual",
-  "Mini Parejas A", "Mini Parejas B", "Parejas",
-  "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
+const CATEGORIES = [
+  { key: "Predance 4-6 años", label: "Predance 4-6 años" },
+  { key: "Iniciación 7-8 años", label: "Iniciación 7-8 años" },
+  { key: "Infantil 9-11 años", label: "Infantil 9-11 años" },
+  { key: "Junior 12-15 años", label: "Junior 12-15 años" },
+  { key: "Youth 16-18 años", label: "Youth 16-18 años" },
+  { key: "Senior +18 años", label: "Senior +18 años" },
 ];
 
-function positionColor(pos) {
-  if (pos === 1) return "text-yellow-500";
-  if (pos === 2) return "text-gray-400";
-  if (pos === 3) return "text-amber-600";
-  return "text-muted-foreground";
-}
-
-function positionBg(pos) {
-  if (pos === 1) return "bg-yellow-500/10 border-yellow-500/30";
-  if (pos === 2) return "bg-gray-400/10 border-gray-400/30";
-  if (pos === 3) return "bg-amber-600/10 border-amber-600/30";
-  return "bg-muted/30 border-transparent";
-}
-
-const POINTS_MAP = { 1: 12, 2: 9, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1 };
-
-function buildGlobalRanking(results) {
-  // Sum points per group+category across all competitions
-  const map = {};
-  results.forEach(r => {
-    const pts = POINTS_MAP[r.position] || 0;
-    const key = `${r.group_name}||${r.category}`;
-    if (!map[key]) map[key] = { group_name: r.group_name, school_name: r.school_name, category: r.category, points: 0, comps: [] };
-    map[key].points += pts;
-    map[key].comps.push({ competition: r.competition_name, position: r.position, pts });
-  });
-  return Object.values(map).sort((a, b) => b.points - a.points);
-}
+const normalizeGroupName = (name) => {
+  if (!name) return "";
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+};
 
 export default function Rankings() {
   const { isSimulacro } = useSimulacro();
-  const [view, setView] = useState("liga"); // "liga" | "competition" | "global"
+  const [selectedCompetition, setSelectedCompetition] = useState("");
 
-  const [selectedCompetition, setSelectedCompetition] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-
-  const { data: results = [], isLoading } = useQuery({
-    queryKey: ["competition_results"],
-    queryFn: () => base44.entities.CompetitionResult.list("-competition_date", 500),
+  // Fetch all liga resultados with simulacro filter
+  const { data: allResultados = [], isLoading: loadingResultados } = useQuery({
+    queryKey: ["ligaResultados", isSimulacro],
+    queryFn: async () => {
+      const all = await base44.entities.LigaResultado.list("-numero_jornada");
+      return all.filter(r => isSimulacro ? r.is_simulacro === true : !r.is_simulacro);
+    },
   });
 
-  const { data: ligaResultados = [], isLoading: ligaLoading } = useQuery({
-    queryKey: ["liga_resultados"],
-    queryFn: () => base44.entities.LigaResultado.list("numero_jornada", 2000),
-    select: (data) => data.filter(r => isSimulacro ? r.is_simulacro : !r.is_simulacro),
+  // Fetch competitions for dropdown
+  const { data: competitions = [] } = useQuery({
+    queryKey: ["ligaCompeticiones", isSimulacro],
+    queryFn: async () => {
+      const all = await base44.entities.LigaCompeticion.list("-fecha");
+      const filtered = all.filter(c => isSimulacro ? c.is_simulacro === true : !c.is_simulacro);
+      return filtered;
+    },
   });
 
-  const competitions = [...new Set(results.map(r => r.competition_name))];
-  // Set initial competition dynamically from first available result
-  React.useEffect(() => {
-    if (!selectedCompetition && competitions.length > 0) {
-      setSelectedCompetition(competitions[0]);
-    }
-  }, [competitions.length]);
+  // Calculate Liga Ranking
+  const calculateLigaRanking = (categoria) => {
+    const results = allResultados.filter(r => r.categoria === categoria);
+    const groupMap = {};
 
-  const filtered = results
-    .filter(r => r.competition_name === selectedCompetition)
-    .filter(r => selectedCategory === "all" || r.category === selectedCategory)
-    .sort((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a.category);
-      const bi = CATEGORY_ORDER.indexOf(b.category);
-      if (a.category !== b.category) {
-        if (ai === -1 && bi === -1) return a.category.localeCompare(b.category);
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
+    results.forEach(r => {
+      const key = normalizeGroupName(r.grupo_nombre);
+      if (!key) return;
+
+      if (!groupMap[key]) {
+        groupMap[key] = {
+          grupo_nombre: r.grupo_nombre,
+          school_name: r.school_name,
+          categoria: r.categoria,
+          positions: { "1": 0, "2": 0, "3": 0 },
+          totalPoints: 0,
+          bestScore: 0,
+          jornadas: [],
+        };
       }
-      return a.position - b.position;
+
+      groupMap[key].jornadas.push({
+        jornada: r.numero_jornada,
+        puesto: r.puesto,
+        puntuacion: r.puntuacion,
+      });
+
+      if (r.puesto >= 1 && r.puesto <= 3) {
+        groupMap[key].positions[r.puesto.toString()]++;
+      }
+
+      const points = r.puesto === 1 ? 5 : r.puesto === 2 ? 3 : r.puesto === 3 ? 1 : 0;
+      groupMap[key].totalPoints += points;
+
+      if (r.puntuacion && r.puntuacion > groupMap[key].bestScore) {
+        groupMap[key].bestScore = r.puntuacion;
+      }
     });
 
-  const categories = [...new Set(results.filter(r => r.competition_name === selectedCompetition).map(r => r.category))];
-
-  // Group by category
-  const byCategory = {};
-  filtered.forEach(r => {
-    if (!byCategory[r.category]) byCategory[r.category] = [];
-    byCategory[r.category].push(r);
-  });
-
-  const orderedCategories = Object.keys(byCategory).sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a);
-    const bi = CATEGORY_ORDER.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
-
-  const globalRanking = buildGlobalRanking(results);
-  const globalCategories = [...new Set(globalRanking.map(r => r.category))].sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1; if (bi === -1) return -1;
-    return ai - bi;
-  });
-
-  const drawTable = (doc, headers, colWidths, rows, startY) => {
-    let y = startY;
-    const rowH = 7;
-    doc.setFillColor(220, 50, 120); doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont(undefined, "bold");
-    let x = 14;
-    colWidths.forEach((w, i) => { doc.rect(x, y, w, rowH, "F"); doc.text(headers[i], x + 1, y + 5); x += w; });
-    y += rowH;
-    doc.setTextColor(0, 0, 0); doc.setFont(undefined, "normal"); doc.setFontSize(8);
-    rows.forEach((row, ri) => {
-      if (y > 270) { doc.addPage(); y = 14; }
-      doc.setFillColor(ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245, ri % 2 === 0 ? 250 : 245);
-      let rx = 14;
-      colWidths.forEach((w, i) => { doc.rect(rx, y, w, rowH, "F"); });
-      doc.setTextColor(0, 0, 0);
-      let rx2 = 14;
-      colWidths.forEach((w, i) => { doc.text(String(row[i] ?? "").substring(0, Math.floor(w / 2)), rx2 + 1, y + 5); rx2 += w; });
-      y += rowH;
+    return Object.values(groupMap).sort((a, b) => {
+      if (a.positions["1"] !== b.positions["1"]) return b.positions["1"] - a.positions["1"];
+      if (a.positions["2"] !== b.positions["2"]) return b.positions["2"] - a.positions["2"];
+      if (a.positions["3"] !== b.positions["3"]) return b.positions["3"] - a.positions["3"];
+      if (a.totalPoints !== b.totalPoints) return b.totalPoints - a.totalPoints;
+      if (a.bestScore !== b.bestScore) return b.bestScore - a.bestScore;
+      return a.grupo_nombre.localeCompare(b.grupo_nombre);
     });
-    return y;
   };
 
-  const downloadRankingPDF = () => {
-    const doc = new jsPDF();
-    if (view === "competition") {
-      doc.setFontSize(16); doc.setFont(undefined, "bold");
-      doc.text(`Ranking — ${selectedCompetition}`, 14, 15);
-      let y = 22;
-      orderedCategories.forEach(cat => {
-        if (y > 260) { doc.addPage(); y = 14; }
-        doc.setFontSize(10); doc.setFont(undefined, "bold"); doc.setTextColor(0,0,0);
-        doc.text(cat, 14, y); y += 5;
-        const rows = byCategory[cat].slice().sort((a,b) => a.position - b.position).map(r => [`${r.position}º`, r.group_name, r.school_name || "", r.score || ""]);
-        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntuación"], [14, 90, 60, 22], rows, y) + 4;
-      });
-      doc.save(`ranking_${selectedCompetition.replace(/ /g,"_")}.pdf`);
-    } else {
-      doc.setFontSize(16); doc.setFont(undefined, "bold");
-      doc.text("Ranking Global — Todas las competiciones", 14, 15);
-      let y = 22;
-      globalCategories.forEach(cat => {
-        if (y > 260) { doc.addPage(); y = 14; }
-        const rows = globalRanking.filter(r => r.category === cat);
-        doc.setFontSize(10); doc.setFont(undefined, "bold"); doc.setTextColor(0,0,0);
-        doc.text(cat, 14, y); y += 5;
-        y = drawTable(doc, ["Pos.", "Grupo", "Escuela", "Puntos"], [14, 90, 60, 22], rows.map((r,i) => [`${i+1}º`, r.group_name, r.school_name || "", r.points]), y) + 4;
-      });
-      doc.save("ranking_global.pdf");
-    }
+  // Get results for selected competition
+  const getCompetitionResults = () => {
+    if (!selectedCompetition) return {};
+    
+    const comp = competitions.find(c => c.id === selectedCompetition);
+    if (!comp) return {};
+
+    const results = allResultados.filter(
+      r => r.competicion_nombre === comp.nombre && r.numero_jornada === comp.numero_jornada
+    );
+
+    const byCategory = {};
+    CATEGORIES.forEach(cat => {
+      byCategory[cat.key] = results
+        .filter(r => r.categoria === cat.key)
+        .sort((a, b) => {
+          if (a.puesto !== b.puesto) return a.puesto - b.puesto;
+          return (b.puntuacion || 0) - (a.puntuacion || 0);
+        });
+    });
+
+    return byCategory;
   };
+
+  const renderPodiumBadge = (position) => {
+    const config = {
+      1: { bg: "bg-yellow-500", text: "text-yellow-950", icon: "🥇" },
+      2: { bg: "bg-gray-400", text: "text-gray-950", icon: "🥈" },
+      3: { bg: "bg-amber-700", text: "text-amber-50", icon: "🥉" },
+    };
+    const c = config[position];
+    if (!c) return <Badge variant="outline">{position}°</Badge>;
+    return (
+      <Badge className={`${c.bg} ${c.text} font-bold`}>
+        {c.icon} {position}°
+      </Badge>
+    );
+  };
+
+  if (loadingResultados) {
+    return <div className="p-8 text-center text-muted-foreground">Cargando rankings...</div>;
+  }
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Trophy className="w-7 h-7 text-primary" /> Rankings
-          </h1>
-          <p className="text-muted-foreground mt-1">Resultados por competición y ranking global</p>
-        </div>
-        <Button variant="outline" onClick={downloadRankingPDF} className="gap-2">
-          <Download className="w-4 h-4" /> Descargar PDF
-        </Button>
-      </div>
-
+    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {isSimulacro && (
-        <div className="bg-amber-500 text-amber-950 px-4 py-3 rounded-lg flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-semibold">
-            Estás viendo el ranking en modo simulacro
-          </span>
+        <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded-lg text-sm">
+          ⚠️ <strong>Modo Simulacro:</strong> Mostrando solo datos de prueba
         </div>
       )}
 
-      {/* View toggle */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setView("liga")}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${view === "liga" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          🏆 Ranking de Liga
-        </button>
-        <button
-          onClick={() => setView("competition")}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${view === "competition" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          Por competición
-        </button>
-        <button
-          onClick={() => setView("global")}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${view === "global" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-        >
-          Ranking global
-        </button>
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Rankings</h1>
+        <p className="text-muted-foreground mt-1">Clasificaciones y resultados de la liga</p>
       </div>
 
-      {view === "liga" ? (
-        ligaLoading ? (
-          <div className="text-center py-16 text-muted-foreground">Cargando...</div>
-        ) : (
-          <LigaRankingView resultados={ligaResultados} />
-        )
-      ) : isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">Cargando...</div>
-      ) : view === "competition" ? (
-        <>
-          <div className="flex gap-2 flex-wrap">
-            <Select value={selectedCompetition} onValueChange={setSelectedCompetition}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Competición" />
-              </SelectTrigger>
-              <SelectContent>
-                {competitions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {CATEGORY_ORDER.filter(c => categories.includes(c)).map(c => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {orderedCategories.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">Sin resultados</div>
-          ) : (
-            <div className="space-y-6">
-              {orderedCategories.map(cat => (
-                <Card key={cat}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Medal className="w-5 h-5 text-primary" />
-                      {cat}
-                      <Badge variant="secondary" className="ml-auto">{byCategory[cat].length} {byCategory[cat].length === 1 ? "grupo" : "grupos"}</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <PodiumCategory results={byCategory[cat]} category={cat} />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        /* Global ranking */
-        <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">Puntos acumulados en todas las competiciones (1º=12, 2º=9, 3º=7, 4º=5, 5º=4, 6º=3, 7º=2, 8º=1)</p>
-          {globalCategories.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">Sin resultados</div>
-          ) : globalCategories.map(cat => {
-            const rows = globalRanking.filter(r => r.category === cat);
+      <Tabs defaultValue="liga" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="liga">Ranking de la Liga</TabsTrigger>
+          <TabsTrigger value="competicion">Por Competición</TabsTrigger>
+        </TabsList>
+
+        {/* Ranking de la Liga */}
+        <TabsContent value="liga" className="space-y-6">
+          {CATEGORIES.map((cat) => {
+            const ranking = calculateLigaRanking(cat.key);
+            if (ranking.length === 0) return null;
+
             return (
-              <Card key={cat}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Medal className="w-5 h-5 text-primary" />{cat}
-                    <Badge variant="secondary" className="ml-auto">{rows.length} grupos</Badge>
+              <Card key={cat.key}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    {cat.label}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-1">
-                  {rows.map((r, i) => (
-                    <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${i === 0 ? "bg-yellow-500/10" : i === 1 ? "bg-gray-400/10" : i === 2 ? "bg-amber-600/10" : "bg-muted/30"}`}>
-                      <span className={`font-bold w-6 text-center ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"}`}>{i+1}º</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{r.group_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{r.school_name}</p>
-                      </div>
-                      <span className="font-bold text-primary tabular-nums">{r.points} pts</span>
-                    </div>
-                  ))}
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2 font-semibold">Pos</th>
+                          <th className="text-left py-2 px-2 font-semibold">Grupo</th>
+                          <th className="text-left py-2 px-2 font-semibold">Escuela</th>
+                          <th className="text-center py-2 px-2 font-semibold">🥇</th>
+                          <th className="text-center py-2 px-2 font-semibold">🥈</th>
+                          <th className="text-center py-2 px-2 font-semibold">🥉</th>
+                          <th className="text-center py-2 px-2 font-semibold">Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ranking.map((g, idx) => (
+                          <tr key={idx} className="border-b hover:bg-muted/50">
+                            <td className="py-2 px-2 font-bold">
+                              {idx < 3 ? renderPodiumBadge(idx + 1) : `${idx + 1}°`}
+                            </td>
+                            <td className="py-2 px-2 font-medium">{g.grupo_nombre}</td>
+                            <td className="py-2 px-2 text-muted-foreground">{g.school_name}</td>
+                            <td className="py-2 px-2 text-center">{g.positions["1"] || "-"}</td>
+                            <td className="py-2 px-2 text-center">{g.positions["2"] || "-"}</td>
+                            <td className="py-2 px-2 text-center">{g.positions["3"] || "-"}</td>
+                            <td className="py-2 px-2 text-center font-semibold">{g.totalPoints}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
-        </div>
-      )}
+        </TabsContent>
+
+        {/* Por Competición */}
+        <TabsContent value="competicion" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Selecciona una competición</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={selectedCompetition} onValueChange={setSelectedCompetition}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Elige una competición" />
+                </SelectTrigger>
+                <SelectContent>
+                  {competitions.map((comp) => (
+                    <SelectItem key={comp.id} value={comp.id}>
+                      {comp.nombre} - Jornada {comp.numero_jornada}
+                      {comp.fecha && ` (${new Date(comp.fecha).toLocaleDateString()})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {selectedCompetition ? (
+            (() => {
+              const resultsByCategory = getCompetitionResults();
+              const hasResults = Object.values(resultsByCategory).some(arr => arr.length > 0);
+
+              if (!hasResults) {
+                return (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Medal className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                    <p>No hay resultados para esta competición</p>
+                  </div>
+                );
+              }
+
+              return CATEGORIES.map((cat) => {
+                const results = resultsByCategory[cat.key];
+                if (!results || results.length === 0) return null;
+
+                return (
+                  <Card key={cat.key}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Medal className="w-5 h-5 text-primary" />
+                        {cat.label}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 px-2 font-semibold">Puesto</th>
+                              <th className="text-left py-2 px-2 font-semibold">Grupo</th>
+                              <th className="text-left py-2 px-2 font-semibold">Escuela</th>
+                              <th className="text-center py-2 px-2 font-semibold">Puntuación</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {results.map((r, idx) => (
+                              <tr key={idx} className="border-b hover:bg-muted/50">
+                                <td className="py-2 px-2 font-bold">
+                                  {r.puesto <= 3 ? renderPodiumBadge(r.puesto) : `${r.puesto}°`}
+                                </td>
+                                <td className="py-2 px-2 font-medium">{r.grupo_nombre}</td>
+                                <td className="py-2 px-2 text-muted-foreground">{r.school_name}</td>
+                                <td className="py-2 px-2 text-center">
+                                  {r.puntuacion ? r.puntuacion.toFixed(2) : "-"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              });
+            })()
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <Medal className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>Selecciona una competición para ver sus resultados</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
