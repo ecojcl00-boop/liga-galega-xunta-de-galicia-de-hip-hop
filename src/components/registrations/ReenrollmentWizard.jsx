@@ -386,7 +386,54 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── MUTATIONS ──
   const createMutation = useMutation({
     mutationFn: async (regs) => {
+      // Create all registrations
       for (const reg of regs) await base44.entities.Registration.create(reg);
+      
+      // After all registrations are created, send the 2 permitted emails
+      if (regs.length > 0) {
+        const firstReg = regs[0];
+        const competitionName = firstReg.competition_name;
+        const schoolName = firstReg.school_name;
+        
+        // Get coach email from the first group
+        let coachEmail = null;
+        if (firstReg.group_id) {
+          const groups = await base44.entities.Group.filter({ id: firstReg.group_id });
+          coachEmail = groups[0]?.coach_email;
+        }
+        
+        // Get admin email
+        const admins = await base44.entities.User.filter({ role: "admin" });
+        const adminEmail = admins[0]?.email;
+        
+        // Email 1: To school (if coach email exists)
+        if (coachEmail && coachEmail.includes("@")) {
+          try {
+            await base44.integrations.Core.SendEmail({
+              from_name: "HipHop Galician Dance Tour",
+              to: coachEmail,
+              subject: `Inscripción confirmada — ${competitionName}`,
+              body: `La inscripción de ${schoolName} para ${competitionName} ha sido registrada correctamente.`,
+            });
+          } catch (e) {
+            console.warn("Failed to send school confirmation email:", e);
+          }
+        }
+        
+        // Email 2: To admin
+        if (adminEmail && adminEmail.includes("@")) {
+          try {
+            await base44.integrations.Core.SendEmail({
+              from_name: "HipHop Galician Dance Tour",
+              to: adminEmail,
+              subject: `Nueva inscripción — ${schoolName}`,
+              body: `La escuela ${schoolName} ha completado su inscripción para ${competitionName}.`,
+            });
+          } catch (e) {
+            console.warn("Failed to send admin notification email:", e);
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
