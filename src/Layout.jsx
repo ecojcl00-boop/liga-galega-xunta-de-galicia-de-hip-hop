@@ -36,11 +36,9 @@ const navItems = [
   { name: "Categorías", icon: BarChart3, page: "Categories" },
   { name: "Rankings", icon: Trophy, page: "Rankings" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
-
-  { name: "Importar Datos", icon: ClipboardList, page: "ImportData" },
-  { name: "Área Privada", icon: Lock, page: "AreaPrivada" },
-  { name: "Usuarios", icon: UserCog, page: "Usuarios" },
-  { name: "Gestión Escuelas", icon: School, page: "GestionEscuelas" },
+  { name: "Importar Datos", icon: ClipboardList, page: "ImportData", adminOnly: true },
+  { name: "Usuarios", icon: UserCog, page: "Usuarios", adminOnly: true },
+  { name: "Gestión Escuelas", icon: School, page: "GestionEscuelas", adminOnly: true },
 ];
 
 // Only Landing is public
@@ -237,25 +235,27 @@ export default function Layout({ children, currentPageName }) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = currentPageName === item.page;
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
-                    ${isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                    }`}
-                >
-                  <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
-                  <span>{item.name}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                </Link>
-              );
-            })}
+            {navItems
+              .filter(item => !item.adminOnly || user?.role === "admin")
+              .map((item) => {
+                const isActive = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                      ${isActive
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      }`}
+                  >
+                    <item.icon className="w-4.5 h-4.5 flex-shrink-0" />
+                    <span>{item.name}</span>
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </Link>
+                );
+              })}
           </div>
         </nav>
 
