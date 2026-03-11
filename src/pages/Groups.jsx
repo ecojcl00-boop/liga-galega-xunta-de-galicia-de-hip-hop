@@ -215,7 +215,7 @@ export default function Groups() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+        <TabsList className="flex overflow-x-auto w-full">
           {MODALITY_TABS.map(m => {
             const count = groups.filter(g => MODALITY_MAP[m]?.includes(g.category)).length;
             return (
