@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { UserContext } from "./components/UserContext";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   School,
@@ -22,6 +23,7 @@ import {
   AlertTriangle,
   Loader2,
   LogOut,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -139,20 +141,19 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
-  // Non-admin layout: header with nav links for allowed pages
+  // Non-admin layout: header with nav links + bottom mobile nav
   if (user && user.role !== "admin") {
-    const schoolNavItems = [
-      { name: "Inicio", page: "PortalEscuela" },
-      { name: "Inscripciones", page: "Registrations" },
-      { name: "Grupos", page: "Groups" },
-      { name: "Rankings", page: "Rankings" },
-      { name: "Panel de Jueces", page: "JudgePanel" },
+    const location = useLocation();
+    const mobileNavItems = [
+      { name: "Home", page: "PortalEscuela", icon: Home },
+      { name: "Competiciones", page: "Competitions", icon: Trophy },
+      { name: "Mi Portal", page: "PortalEscuela", icon: User },
     ];
     return (
       <SimulacroContext.Provider value={{ isSimulacro: false, activate: () => {}, deactivate: () => {} }}>
       <UserContext.Provider value={user}>
-        <div className="min-h-screen bg-background">
-          <header className="border-b bg-card sticky top-0 z-40">
+        <div className="min-h-screen bg-background pb-16 lg:pb-0" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
+          <header className="border-b bg-card sticky top-0 z-40 lg:block hidden">
             <div className="h-14 flex items-center justify-between px-4 lg:px-6">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
@@ -171,29 +172,57 @@ export default function Layout({ children, currentPageName }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-foreground gap-2"
+                className="text-muted-foreground hover:text-foreground gap-2 select-none"
                 onClick={() => base44.auth.logout(createPageUrl("Landing"))}
               >
                 Cerrar sesión
               </Button>
             </div>
-            <nav className="flex items-center gap-1 px-4 pb-2 overflow-x-auto">
-              {schoolNavItems.map(item => (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors
-                    ${currentPageName === item.page
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
           </header>
-          <main>{children}</main>
+          
+          <AnimatePresence mode="wait">
+            <motion.main
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-y-auto"
+              style={{ maxHeight: 'calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 64px)', overscrollBehaviorY: 'none' }}
+            >
+              {children}
+            </motion.main>
+          </AnimatePresence>
+
+          {/* Mobile Bottom Navigation */}
+          <nav 
+            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card border-t"
+            style={{ 
+              paddingBottom: 'var(--safe-area-inset-bottom)',
+              paddingLeft: 'var(--safe-area-inset-left)',
+              paddingRight: 'var(--safe-area-inset-right)'
+            }}
+          >
+            <div className="flex items-center justify-around h-16">
+              {mobileNavItems.map(item => {
+                const isActive = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors select-none min-h-[44px]
+                      ${isActive 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                      }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </div>
       </UserContext.Provider>
       </SimulacroContext.Provider>
@@ -208,10 +237,12 @@ export default function Layout({ children, currentPageName }) {
   // Determine if current effective user is admin (respects simulation)
   const isEffectiveAdmin = effectiveUser?.role === "admin";
 
+  const location = useLocation();
+
   return (
     <SimulacroContext.Provider value={{ isSimulacro, activate: activateSimulacro, deactivate: handleExitSimulacro }}>
     <UserContext.Provider value={effectiveUser}>
-    <div className="flex h-screen overflow-hidden bg-[hsl(0,0%,4%)]">
+    <div className="flex h-screen overflow-hidden bg-[hsl(0,0%,4%)]" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -259,7 +290,7 @@ export default function Layout({ children, currentPageName }) {
                     key={item.page}
                     to={createPageUrl(item.page)}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all select-none
                       ${isActive
                         ? "bg-primary text-primary-foreground shadow-md"
                         : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
@@ -337,7 +368,7 @@ export default function Layout({ children, currentPageName }) {
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden"
+            className="lg:hidden select-none"
           >
             <Menu className="w-5 h-5" />
           </Button>
@@ -356,7 +387,7 @@ export default function Layout({ children, currentPageName }) {
               variant="ghost"
               size="sm"
               onClick={() => base44.auth.logout(createPageUrl("Landing"))}
-              className="gap-2 text-muted-foreground hover:text-red-500"
+              className="gap-2 text-muted-foreground hover:text-red-500 select-none"
             >
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Cerrar sesión</span>
@@ -403,9 +434,19 @@ export default function Layout({ children, currentPageName }) {
         )}
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          {children}
-        </main>
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 overflow-y-auto bg-background"
+            style={{ overscrollBehaviorY: 'none' }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
       </div>
     </div>
     </UserContext.Provider>
