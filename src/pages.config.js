@@ -47,16 +47,38 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Competitions from './pages/Competitions';
+import Dashboard from './pages/Dashboard';
+import GestionEscuelas from './pages/GestionEscuelas';
+import Groups from './pages/Groups';
+import ImportData from './pages/ImportData';
 import JudgePanel from './pages/JudgePanel';
+import Landing from './pages/Landing';
+import PortalEscuela from './pages/PortalEscuela';
 import Rankings from './pages/Rankings';
+import Registrations from './pages/Registrations';
+import Schools from './pages/Schools';
+import Usuarios from './pages/Usuarios';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Competitions": Competitions,
+    "Dashboard": Dashboard,
+    "GestionEscuelas": GestionEscuelas,
+    "Groups": Groups,
+    "ImportData": ImportData,
     "JudgePanel": JudgePanel,
+    "Landing": Landing,
+    "PortalEscuela": PortalEscuela,
     "Rankings": Rankings,
+    "Registrations": Registrations,
+    "Schools": Schools,
+    "Usuarios": Usuarios,
 }
 
 export const pagesConfig = {
     mainPage: "JudgePanel",
     Pages: PAGES,
+    Layout: __Layout,
 };

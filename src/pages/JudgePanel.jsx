@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Upload, Download, Calendar, School, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { downloadFile } from "../components/utils/downloadFile";
 
 export default function JudgePanel() {
@@ -153,7 +152,7 @@ export default function JudgePanel() {
                   {acta.fecha && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>{format(new Date(acta.fecha), "dd MMM yyyy", { locale: es })}</span>
+                      <span>{format(new Date(acta.fecha), "dd MMM yyyy")}</span>
                     </div>
                   )}
                   {acta.notas && (
