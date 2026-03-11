@@ -225,7 +225,7 @@ export default function Layout({ children, currentPageName }) {
         </nav>
 
         {/* Simulacro toggle - only for real admin */}
-        {!isSimulacro && user?.role === "admin" && (
+        {!isSimulacro && isEffectiveAdmin && user?.role === "admin" && (
           <div className="px-3 py-2 border-t border-sidebar-border">
             <button
               onClick={activateSimulacro}
@@ -238,7 +238,7 @@ export default function Layout({ children, currentPageName }) {
         )}
 
         {/* School simulator selector - only for real admin */}
-        {schoolList.length > 0 && user?.role === "admin" && (
+        {schoolList.length > 0 && isEffectiveAdmin && user?.role === "admin" && (
           <div className="px-3 py-3 border-t border-sidebar-border">
             <p className="text-[10px] text-sidebar-foreground/50 mb-1.5 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Simular vista de escuela
