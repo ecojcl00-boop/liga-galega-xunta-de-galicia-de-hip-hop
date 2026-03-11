@@ -7,7 +7,11 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music, Loader2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music, Loader2, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useSimulacro } from "@/components/SimulacroContext";
@@ -353,6 +357,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [isSuccess, setIsSuccess] = useState(false);
   const [extraGroups, setExtraGroups] = useState([]); // groups created during this wizard session
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
@@ -525,6 +531,27 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     // Stay on selectGroups so the user sees the new group in the list and can continue normally
   };
 
+  // Delete group handler
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    setIsDeleting(true);
+    try {
+      await base44.entities.Group.delete(groupToDelete.id);
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      // Remove from selection if it was selected
+      if (selectedGroupIds.has(groupToDelete.id)) {
+        const next = new Set(selectedGroupIds);
+        next.delete(groupToDelete.id);
+        setSelectedGroupIds(next);
+      }
+      // Remove from extraGroups if it was created this session
+      setExtraGroups(prev => prev.filter(g => g.id !== groupToDelete.id));
+    } finally {
+      setIsDeleting(false);
+      setGroupToDelete(null);
+    }
+  };
+
   // ── SUCCESS SCREEN ──
   if (isSuccess) {
     return (
@@ -563,6 +590,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── STEP 2: SELECT GROUPS (CHECKBOXES) ──
   if (currentStep === "selectGroups") {
     return (
+      <>
       <Card>
         <CardHeader>
           <CardTitle>Selecciona los grupos a inscribir</CardTitle>
@@ -576,19 +604,34 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               const selected = selectedGroupIds.has(group.id);
               const isNew = extraGroups.some(g => g.id === group.id);
               return (
-                <div key={group.id} onClick={() => toggleGroup(group.id)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                <div key={group.id}
+                  className={`p-4 rounded-xl border-2 transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                      {selected && <Check className="w-3 h-3 text-primary-foreground" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm flex items-center gap-2">
-                        {group.name}
-                        {isNew && <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">Nuevo</Badge>}
+                    <div 
+                      onClick={() => toggleGroup(group.id)}
+                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-muted-foreground"}`}>
+                        {selected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm flex items-center gap-2">
+                          {group.name}
+                          {isNew && <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">Nuevo</Badge>}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
+                      </div>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGroupToDelete(group);
+                      }}
+                      className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                      title="Eliminar grupo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );
