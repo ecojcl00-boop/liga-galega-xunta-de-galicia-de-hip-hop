@@ -695,6 +695,31 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar grupo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Seguro que quieres eliminar el grupo <strong>{groupToDelete?.name}</strong>?
+              <br /><br />
+              Esta acción <strong>no se puede deshacer</strong> y eliminará permanentemente el grupo y todos sus participantes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteGroup}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Eliminando...</> : "Eliminar grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </>
     );
   }
 
