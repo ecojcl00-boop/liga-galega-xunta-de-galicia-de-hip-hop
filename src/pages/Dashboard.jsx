@@ -13,7 +13,7 @@ export default function Dashboard() {
         <img
           src={LOGO_URL}
           alt="HipHop Galician Dance Tour"
-          className="w-full object-cover"
+          className="w-full h-auto object-contain"
         />
       </div>
 

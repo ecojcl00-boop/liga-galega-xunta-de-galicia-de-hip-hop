@@ -42,13 +42,13 @@ export default function PodiumCategory({ results, category }) {
 
   return (
     <div className="space-y-4">
-      {/* Podium */}
-      <div className="flex items-end justify-center gap-3 pt-4">
+      {/* Podium - Horizontal en desktop, vertical en móvil */}
+      <div className="flex md:flex-row flex-col md:items-end items-center justify-center gap-3 pt-4">
         {podiumOrder.map(pos => {
           const r = byPos[pos];
-          if (!r) return <div key={pos} className="w-24" />;
+          if (!r) return <div key={pos} className="w-24 md:block hidden" />;
           return (
-            <div key={pos} className="flex flex-col items-center gap-1 w-28">
+            <div key={pos} className="flex flex-col items-center gap-1 w-full md:w-28 max-w-xs">
               {/* Stickman + medal */}
               <div className="flex flex-col items-center">
                 <span className="text-xl mb-0.5">{medals[pos]}</span>

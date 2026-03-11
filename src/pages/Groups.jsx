@@ -29,21 +29,21 @@ function GroupCard({ group, showBirthDate, onEdit, onDelete, canDelete }) {
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-base">{group.name}</h3>
               <Badge className="bg-primary/10 text-primary border-0 text-[10px]">{group.category}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1 break-words">
               {group.school_name}{group.coach_name ? ` · ${group.coach_name}` : ""}
             </p>
             <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
+              <Users className="w-3 h-3 shrink-0" />
               <span>{group.participants?.length || 0} participantes</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-end md:self-start">
             <Button variant="ghost" size="icon" onClick={() => onEdit(group)} title="Editar grupo">
               <Pencil className="w-4 h-4" />
             </Button>
@@ -179,14 +179,14 @@ export default function Groups() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Grupos</h1>
           <p className="text-muted-foreground mt-1">
             {groups.length} grupos {!isAdmin && user?.school_name ? `· ${user.school_name}` : "inscritos"}
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2 w-full md:w-auto">
           <Plus className="w-4 h-4" /> Crear grupo nuevo
         </Button>
       </div>
@@ -215,13 +215,13 @@ export default function Groups() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
           {MODALITY_TABS.map(m => {
             const count = groups.filter(g => MODALITY_MAP[m]?.includes(g.category)).length;
             return (
-              <TabsTrigger key={m} value={m} className="flex gap-1.5 items-center">
-                {m}
-                <span className="text-xs bg-muted rounded-full px-1.5 py-0.5 text-muted-foreground">{count}</span>
+              <TabsTrigger key={m} value={m} className="flex gap-1.5 items-center text-xs md:text-sm">
+                <span className="truncate">{m}</span>
+                <span className="text-xs bg-muted rounded-full px-1.5 py-0.5 text-muted-foreground shrink-0">{count}</span>
               </TabsTrigger>
             );
           })}
