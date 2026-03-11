@@ -190,6 +190,9 @@ export default function Layout({ children, currentPageName }) {
     ? { ...user, role: "user", school_name: simulatedSchool, _simulating: true }
     : user;
 
+  // Determine if current effective user is admin (respects simulation)
+  const isEffectiveAdmin = effectiveUser?.role === "admin";
+
   return (
     <SimulacroContext.Provider value={{ isSimulacro, activate: activateSimulacro, deactivate: handleExitSimulacro }}>
     <UserContext.Provider value={effectiveUser}>
@@ -233,7 +236,7 @@ export default function Layout({ children, currentPageName }) {
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">
             {navItems
-              .filter(item => !item.adminOnly || user?.role === "admin")
+              .filter(item => !item.adminOnly || isEffectiveAdmin)
               .map((item) => {
                 const isActive = currentPageName === item.page;
                 return (
@@ -256,8 +259,8 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </nav>
 
-        {/* Simulacro toggle */}
-        {!isSimulacro && (
+        {/* Simulacro toggle - only for real admin */}
+        {!isSimulacro && user?.role === "admin" && (
           <div className="px-3 py-2 border-t border-sidebar-border">
             <button
               onClick={activateSimulacro}
@@ -269,8 +272,8 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
 
-        {/* School simulator selector */}
-        {schoolList.length > 0 && (
+        {/* School simulator selector - only for real admin */}
+        {schoolList.length > 0 && user?.role === "admin" && (
           <div className="px-3 py-3 border-t border-sidebar-border">
             <p className="text-[10px] text-sidebar-foreground/50 mb-1.5 flex items-center gap-1">
               <Eye className="w-3 h-3" /> Simular vista de escuela
