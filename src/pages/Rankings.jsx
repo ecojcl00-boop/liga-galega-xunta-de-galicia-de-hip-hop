@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Medal, Download } from "lucide-react";
+import { Trophy, Medal, Download, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import PodiumCategory from "../components/rankings/PodiumCategory";
 import LigaRankingView from "../components/rankings/LigaRankingView";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -46,6 +47,7 @@ function buildGlobalRanking(results) {
 }
 
 export default function Rankings() {
+  const { isSimulacro } = useSimulacro();
   const [view, setView] = useState("liga"); // "liga" | "competition" | "global"
 
   const [selectedCompetition, setSelectedCompetition] = useState(null);
@@ -59,7 +61,7 @@ export default function Rankings() {
   const { data: ligaResultados = [], isLoading: ligaLoading } = useQuery({
     queryKey: ["liga_resultados"],
     queryFn: () => base44.entities.LigaResultado.list("numero_jornada", 2000),
-    select: (data) => data.filter(r => !r.is_simulacro),
+    select: (data) => data.filter(r => isSimulacro ? r.is_simulacro : !r.is_simulacro),
   });
 
   const competitions = [...new Set(results.map(r => r.competition_name))];
@@ -174,6 +176,15 @@ export default function Rankings() {
           <Download className="w-4 h-4" /> Descargar PDF
         </Button>
       </div>
+
+      {isSimulacro && (
+        <div className="bg-amber-500 text-amber-950 px-4 py-3 rounded-lg flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span className="text-sm font-semibold">
+            Estás viendo el ranking en modo simulacro
+          </span>
+        </div>
+      )}
 
       {/* View toggle */}
       <div className="flex gap-2 flex-wrap">
