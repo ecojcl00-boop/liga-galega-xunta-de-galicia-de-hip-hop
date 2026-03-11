@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
@@ -54,6 +54,11 @@ export default function PortalEscuela() {
   const user = useUser();
   const [showWizard, setShowWizard] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser);
+  }, []);
 
   const schoolName = user?.school_name?.trim() || "";
 
@@ -137,33 +142,6 @@ export default function PortalEscuela() {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <Tabs defaultValue="inscripciones">
-        <TabsList className="grid grid-cols-5 w-full mb-6">
-          <TabsTrigger value="grupos" className="gap-1.5 select-none">
-            <Users className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mis Grupos</span>
-            <span className="sm:hidden">Grupos</span>
-          </TabsTrigger>
-          <TabsTrigger value="inscripciones" className="gap-1.5 select-none">
-            <ClipboardList className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Inscripciones</span>
-            <span className="sm:hidden">Inscr.</span>
-          </TabsTrigger>
-          <TabsTrigger value="documentos" className="gap-1.5 select-none">
-            <FileText className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mis Documentos</span>
-            <span className="sm:hidden">Docs</span>
-          </TabsTrigger>
-          <TabsTrigger value="ranking" className="gap-1.5 select-none">
-            <Trophy className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Ranking</span>
-            <span className="sm:hidden">Rank</span>
-          </TabsTrigger>
-          <TabsTrigger value="cuenta" className="gap-1.5 select-none">
-            <Settings className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cuenta</span>
-            <span className="sm:hidden">Cuenta</span>
-          </TabsTrigger>
-        </TabsList>
 
         {/* ── Mis Grupos ── */}
         <TabsContent value="grupos" className="space-y-4">
@@ -339,7 +317,7 @@ export default function PortalEscuela() {
             <CardContent className="pt-6 space-y-4">
               <div>
                 <h3 className="font-medium mb-1">Información de cuenta</h3>
-                <p className="text-sm text-muted-foreground">Email: {user.email}</p>
+                <p className="text-sm text-muted-foreground">Email: {currentUser?.email}</p>
                 <p className="text-sm text-muted-foreground">Escuela: {schoolName}</p>
               </div>
               <div className="border-t pt-4">
