@@ -2,6 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Trophy } from "lucide-react";
+import { useSimulacro } from "@/components/SimulacroContext";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -62,10 +63,11 @@ const medalColor = {
 };
 
 export default function RankingSummary() {
+  const { isSimulacro } = useSimulacro();
   const { data: resultados = [] } = useQuery({
-    queryKey: ["liga_resultados_home"],
+    queryKey: ["liga_resultados_home", isSimulacro],
     queryFn: () => base44.entities.LigaResultado.list(),
-    select: (data) => data.filter(r => !r.is_simulacro),
+    select: (data) => data.filter(r => isSimulacro ? r.is_simulacro : !r.is_simulacro),
   });
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
