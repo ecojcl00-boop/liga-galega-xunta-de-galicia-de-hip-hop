@@ -46,12 +46,12 @@ const PUBLIC_PAGES = ["Landing"];
 const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Registrations", "Groups", "Rankings", "JudgePanel"];
 
 export default function Layout({ children, currentPageName }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
   const [simulatedSchool, setSimulatedSchool] = useState(null);
   const [schoolList, setSchoolList] = useState([]);
-  const navigate = useNavigate();
 
   const [isSimulacro, setIsSimulacro] = useState(() => {
     try { return localStorage.getItem("simulacro_mode") === "true"; } catch { return false; }
@@ -93,6 +93,28 @@ export default function Layout({ children, currentPageName }) {
 
   const isPublicPage = PUBLIC_PAGES.includes(currentPageName);
 
+  // Handle redirects with useEffect to avoid conditional hook violations
+  useEffect(() => {
+    if (!authChecked) return;
+    
+    if (!user && !isPublicPage) {
+      const next = window.location.pathname + window.location.search;
+      window.location.replace(createPageUrl("Landing") + (next ? `?next=${encodeURIComponent(next)}` : ""));
+      return;
+    }
+
+    if (user && currentPageName === "Landing") {
+      const dest = user.role === "admin" ? createPageUrl("Dashboard") : createPageUrl("PortalEscuela");
+      navigate(dest, { replace: true });
+      return;
+    }
+
+    if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
+      navigate(createPageUrl("PortalEscuela"), { replace: true });
+      return;
+    }
+  }, [authChecked, user, isPublicPage, currentPageName, navigate]);
+
   if (!authChecked) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -102,8 +124,6 @@ export default function Layout({ children, currentPageName }) {
   }
 
   if (!user && !isPublicPage) {
-    const next = window.location.pathname + window.location.search;
-    window.location.replace(createPageUrl("Landing") + (next ? `?next=${encodeURIComponent(next)}` : ""));
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground text-sm">Redirigiendo...</p>
@@ -111,16 +131,11 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Landing page: if already logged in, redirect to appropriate portal
   if (user && currentPageName === "Landing") {
-    const dest = user.role === "admin" ? createPageUrl("Dashboard") : createPageUrl("PortalEscuela");
-    navigate(dest, { replace: true });
     return null;
   }
 
-  // Non-admin users → redirect to PortalEscuela unless already there or on a public page
   if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
-    navigate(createPageUrl("PortalEscuela"), { replace: true });
     return null;
   }
 
