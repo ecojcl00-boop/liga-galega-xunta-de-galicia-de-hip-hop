@@ -32,8 +32,6 @@ const navItems = [
   { name: "Competiciones", icon: Trophy, page: "Competitions" },
   { name: "Inscripciones", icon: ClipboardList, page: "Registrations" },
   { name: "Grupos", icon: Users, page: "Groups" },
-  { name: "Escuelas", icon: School, page: "Schools" },
-  { name: "Categorías", icon: BarChart3, page: "Categories" },
   { name: "Rankings", icon: Trophy, page: "Rankings" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
   { name: "Importar Datos", icon: ClipboardList, page: "ImportData", adminOnly: true },
@@ -44,8 +42,8 @@ const navItems = [
 // Only Landing is public
 const PUBLIC_PAGES = ["Landing"];
 
-// Pages that non-admin users (and simulated schools) can also access — ImportData is NOT included (admin-only)
-const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Dashboard", "Rankings", "Groups", "Schools", "Categories", "JudgePanel"];
+// Pages that non-admin users (and simulated schools) can also access
+const SCHOOL_ALLOWED_PAGES = ["PortalEscuela", "Registrations", "Groups", "Rankings", "JudgePanel"];
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -130,11 +128,10 @@ export default function Layout({ children, currentPageName }) {
   if (user && user.role !== "admin") {
     const schoolNavItems = [
       { name: "Inicio", page: "PortalEscuela" },
+      { name: "Inscripciones", page: "Registrations" },
       { name: "Grupos", page: "Groups" },
-      { name: "Escuelas", page: "Schools" },
-      { name: "Categorías", page: "Categories" },
       { name: "Rankings", page: "Rankings" },
-      { name: "Jueces", page: "JudgePanel" },
+      { name: "Panel de Jueces", page: "JudgePanel" },
     ];
     return (
       <SimulacroContext.Provider value={{ isSimulacro: false, activate: () => {}, deactivate: () => {} }}>
