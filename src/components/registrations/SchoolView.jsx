@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
+import CreateGroupDialog from "./CreateGroupDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 const statusColors = {
   pending:   "bg-yellow-100 text-yellow-700",
@@ -29,6 +31,8 @@ function norm(str = "") {
 
 export default function SchoolView({ user, competitions, allGroups, registrations }) {
   const [showWizard, setShowWizard] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const queryClient = useQueryClient();
 
   // Derive school name via normalized comparison
   const mySchoolName = useMemo(() => {
@@ -190,16 +194,32 @@ export default function SchoolView({ user, competitions, allGroups, registration
         </div>
       )}
 
-      {/* No groups at all */}
+      {/* No groups at all — CTA to create */}
       {myGroups.length === 0 && myRegistrations.length === 0 && (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
-            <p className="font-medium">No hay grupos asociados a {mySchoolName}</p>
-            <p className="text-sm mt-1">Contacta con el administrador para añadir grupos.</p>
+          <CardContent className="py-10 text-center space-y-4">
+            <Users className="w-10 h-10 mx-auto opacity-20" />
+            <div>
+              <p className="font-medium text-foreground">No hay grupos asociados a {mySchoolName}</p>
+              <p className="text-sm text-muted-foreground mt-1">Crea tu primer grupo para empezar a inscribirte en competiciones.</p>
+            </div>
+            <Button onClick={() => setShowCreateGroup(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Crear grupo nuevo e inscribirse
+            </Button>
           </CardContent>
         </Card>
       )}
+
+      <CreateGroupDialog
+        open={showCreateGroup}
+        onOpenChange={setShowCreateGroup}
+        schools={[{ id: mySchoolName, name: mySchoolName }]}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["groups"] });
+          setShowCreateGroup(false);
+          setShowWizard(true);
+        }}
+      />
     </div>
   );
 }

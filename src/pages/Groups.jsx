@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Users, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { Search, Users, ChevronDown, ChevronUp, Lock, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useUser } from "@/components/UserContext";
+import CreateGroupDialog from "@/components/registrations/CreateGroupDialog";
+import EditGroupDialog from "@/components/registrations/EditGroupDialog";
 
 const MODALITY_MAP = {
   Individual: ["Mini Individual A", "Mini Individual B", "Individual"],
@@ -21,7 +24,7 @@ const PAREJAS_ORDER = ["Mini Parejas A", "Mini Parejas B", "Parejas"];
 const GRUPOS_SUBCATEGORIES = ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"];
 const MODALITY_TABS = ["Individual", "Parejas", "Grupos", "Megacrew"];
 
-function GroupCard({ group, showBirthDate }) {
+function GroupCard({ group, showBirthDate, onEdit, onDelete, canDelete }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -40,11 +43,21 @@ function GroupCard({ group, showBirthDate }) {
               <span>{group.participants?.length || 0} participantes</span>
             </div>
           </div>
-          {group.participants?.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setExpanded(prev => !prev)}>
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(group)} title="Editar grupo">
+              <Pencil className="w-4 h-4" />
             </Button>
-          )}
+            {canDelete && (
+              <Button variant="ghost" size="icon" onClick={() => onDelete(group)} className="text-destructive hover:text-destructive" title="Eliminar grupo">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+            {group.participants?.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setExpanded(prev => !prev)}>
+                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            )}
+          </div>
         </div>
         {expanded && group.participants?.length > 0 && (
           <div className="mt-4 pt-4 border-t">
@@ -72,9 +85,13 @@ export default function Groups() {
   const [subTab, setSubTab] = useState("Baby");
   const [indSubTab, setIndSubTab] = useState("Mini Individual A");
   const [parSubTab, setParSubTab] = useState("Mini Parejas A");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [deletingGroup, setDeletingGroup] = useState(null);
 
   const user = useUser();
   const isAdmin = user?.role === "admin";
+  const queryClient = useQueryClient();
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["groups", user?.role, user?.school_name],
@@ -84,6 +101,20 @@ export default function Groups() {
       return base44.entities.Group.filter({ school_name: user.school_name }, "-created_date");
     },
     enabled: !!user,
+  });
+
+  const { data: registrations = [] } = useQuery({
+    queryKey: ["registrations"],
+    queryFn: () => base44.entities.Registration.list(),
+    enabled: !!user,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Group.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setDeletingGroup(null);
+    },
   });
 
   if (groupsLoading) {
@@ -107,6 +138,21 @@ export default function Groups() {
   const schools = isAdmin
     ? [...new Set(groups.map(g => g.school_name).filter(Boolean))].sort()
     : [];
+
+  const schoolOptions = schools.map(s => ({ id: s, name: s }));
+
+  const canDeleteGroup = (group) => {
+    const confirmedRegs = registrations.filter(r => r.group_id === group.id && r.status === "confirmed");
+    return confirmedRegs.length === 0;
+  };
+
+  const handleDelete = (group) => {
+    if (!canDeleteGroup(group)) {
+      alert("No se puede eliminar este grupo porque tiene inscripciones confirmadas.");
+      return;
+    }
+    setDeletingGroup(group);
+  };
 
   const getOrder = (cat) => {
     if (INDIVIDUAL_ORDER.includes(cat)) return INDIVIDUAL_ORDER.indexOf(cat);
@@ -133,11 +179,16 @@ export default function Groups() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Grupos</h1>
-        <p className="text-muted-foreground mt-1">
-          {groups.length} grupos {!isAdmin && user?.school_name ? `· ${user.school_name}` : "inscritos"}
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Grupos</h1>
+          <p className="text-muted-foreground mt-1">
+            {groups.length} grupos {!isAdmin && user?.school_name ? `· ${user.school_name}` : "inscritos"}
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> Crear grupo nuevo
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -222,13 +273,54 @@ export default function Groups() {
             ) : (
               <div className="grid gap-3">
                 {filteredForTab.map(group => (
-                  <GroupCard key={group.id} group={group} showBirthDate={isAdmin} />
+                  <GroupCard
+                    key={group.id}
+                    group={group}
+                    showBirthDate={isAdmin}
+                    onEdit={setEditingGroup}
+                    onDelete={handleDelete}
+                    canDelete={canDeleteGroup(group)}
+                  />
                 ))}
               </div>
             )}
           </TabsContent>
         ))}
       </Tabs>
+
+      <CreateGroupDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        schools={isAdmin ? schoolOptions : [{ id: user?.school_name, name: user?.school_name }]}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["groups"] })}
+      />
+
+      <EditGroupDialog
+        open={!!editingGroup}
+        onOpenChange={(open) => !open && setEditingGroup(null)}
+        group={editingGroup}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["groups"] })}
+      />
+
+      <AlertDialog open={!!deletingGroup} onOpenChange={(open) => !open && setDeletingGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar grupo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el grupo <strong>{deletingGroup?.name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate(deletingGroup.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
