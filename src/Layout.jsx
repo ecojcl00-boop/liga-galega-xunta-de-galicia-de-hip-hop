@@ -30,7 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SimulacroContext } from "./components/SimulacroContext";
 
 const navItems = [
-  { name: "Home", icon: LayoutDashboard, page: "Dashboard" },
+  { name: "Home", icon: LayoutDashboard, page: "Dashboard", adminOnly: true },
+  { name: "Mi Portal", icon: Home, page: "PortalEscuela", schoolOnly: true },
   { name: "Competiciones", icon: Trophy, page: "Competitions" },
   { name: "Inscripciones", icon: ClipboardList, page: "Registrations" },
   { name: "Grupos", icon: Users, page: "Groups" },
@@ -141,93 +142,7 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
-  // Non-admin layout: header with nav links + bottom mobile nav
-  if (user && user.role !== "admin") {
-    const location = useLocation();
-    const mobileNavItems = [
-      { name: "Home", page: "PortalEscuela", icon: Home },
-      { name: "Competiciones", page: "Competitions", icon: Trophy },
-      { name: "Mi Portal", page: "PortalEscuela", icon: User },
-    ];
-    return (
-      <SimulacroContext.Provider value={{ isSimulacro: false, activate: () => {}, deactivate: () => {} }}>
-      <UserContext.Provider value={user}>
-        <div className="min-h-screen bg-background pb-16 lg:pb-0" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
-          <header className="border-b bg-card sticky top-0 z-40 lg:block hidden">
-            <div className="h-14 flex items-center justify-between px-4 lg:px-6">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-black text-sm leading-none">G</span>
-                </div>
-                <span className="text-sm font-bold">
-                  <span className="text-foreground">HIPHOP</span>
-                  <span className="text-primary">GDT</span>
-                </span>
-                {user.school_name && (
-                  <span className="text-xs text-muted-foreground border-l pl-2 ml-1 hidden sm:inline">
-                    {user.school_name}
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground gap-2 select-none"
-                onClick={() => base44.auth.logout(createPageUrl("Landing"))}
-              >
-                Cerrar sesión
-              </Button>
-            </div>
-          </header>
-          
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-y-auto"
-              style={{ maxHeight: 'calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 64px)', overscrollBehaviorY: 'none' }}
-            >
-              {children}
-            </motion.main>
-          </AnimatePresence>
 
-          {/* Mobile Bottom Navigation */}
-          <nav 
-            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card border-t"
-            style={{ 
-              paddingBottom: 'var(--safe-area-inset-bottom)',
-              paddingLeft: 'var(--safe-area-inset-left)',
-              paddingRight: 'var(--safe-area-inset-right)'
-            }}
-          >
-            <div className="flex items-center justify-around h-16">
-              {mobileNavItems.map(item => {
-                const isActive = currentPageName === item.page;
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors select-none min-h-[44px]
-                      ${isActive 
-                        ? "text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                      }`}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        </div>
-      </UserContext.Provider>
-      </SimulacroContext.Provider>
-    );
-  }
 
   // Build effective user context: if simulating, inject school identity
   const effectiveUser = simulatedSchool
@@ -282,7 +197,11 @@ export default function Layout({ children, currentPageName }) {
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">
             {navItems
-              .filter(item => !item.adminOnly || isEffectiveAdmin)
+              .filter(item => {
+                if (item.adminOnly && !isEffectiveAdmin) return false;
+                if (item.schoolOnly && isEffectiveAdmin) return false;
+                return true;
+              })
               .map((item) => {
                 const isActive = currentPageName === item.page;
                 return (
