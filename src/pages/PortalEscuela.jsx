@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, ClipboardList, FileText, Trophy, Lock,
   Plus, ChevronLeft, Calendar, Download,
-  CheckCircle2, Circle
+  CheckCircle2, Circle, Settings, Trash2
 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { downloadFile } from "@/components/utils/downloadFile";
 import LigaRankingView from "@/components/rankings/LigaRankingView";
 import ReenrollmentWizard from "@/components/registrations/ReenrollmentWizard";
 import HistorialCompeticiones from "@/components/registrations/HistorialCompeticiones";
+import { createPageUrl } from "@/utils";
 
 const statusColors = {
   pending:   "bg-yellow-100 text-yellow-700",
@@ -51,6 +53,17 @@ function LockoutScreen() {
 export default function PortalEscuela() {
   const user = useUser();
   const [showWizard, setShowWizard] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      // Delete user account via backend function
+      await base44.functions.invoke("deleteMyAccount", {});
+    },
+    onSuccess: () => {
+      base44.auth.logout(createPageUrl("Landing"));
+    },
+  });
 
   if (!user) return null;
   if (!user.school_name?.trim()) return <LockoutScreen />;
@@ -120,25 +133,31 @@ export default function PortalEscuela() {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <Tabs defaultValue="inscripciones">
-        <TabsList className="grid grid-cols-4 w-full mb-6">
-          <TabsTrigger value="grupos" className="gap-1.5">
+        <TabsList className="grid grid-cols-5 w-full mb-6">
+          <TabsTrigger value="grupos" className="gap-1.5 select-none">
             <Users className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Mis Grupos</span>
             <span className="sm:hidden">Grupos</span>
           </TabsTrigger>
-          <TabsTrigger value="inscripciones" className="gap-1.5">
+          <TabsTrigger value="inscripciones" className="gap-1.5 select-none">
             <ClipboardList className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Inscripciones</span>
             <span className="sm:hidden">Inscr.</span>
           </TabsTrigger>
-          <TabsTrigger value="documentos" className="gap-1.5">
+          <TabsTrigger value="documentos" className="gap-1.5 select-none">
             <FileText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Mis Documentos</span>
             <span className="sm:hidden">Docs</span>
           </TabsTrigger>
-          <TabsTrigger value="ranking" className="gap-1.5">
+          <TabsTrigger value="ranking" className="gap-1.5 select-none">
             <Trophy className="w-3.5 h-3.5" />
-            Ranking
+            <span className="hidden sm:inline">Ranking</span>
+            <span className="sm:hidden">Rank</span>
+          </TabsTrigger>
+          <TabsTrigger value="cuenta" className="gap-1.5 select-none">
+            <Settings className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Cuenta</span>
+            <span className="sm:hidden">Cuenta</span>
           </TabsTrigger>
         </TabsList>
 
@@ -308,7 +327,57 @@ export default function PortalEscuela() {
         <TabsContent value="ranking">
           <LigaRankingView resultados={ligaResultados} />
         </TabsContent>
+
+        {/* ── Account Settings ── */}
+        <TabsContent value="cuenta" className="space-y-4">
+          <h2 className="text-lg font-semibold">Configuración de Cuenta</h2>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div>
+                <h3 className="font-medium mb-1">Información de cuenta</h3>
+                <p className="text-sm text-muted-foreground">Email: {user.email}</p>
+                <p className="text-sm text-muted-foreground">Escuela: {schoolName}</p>
+              </div>
+              <div className="border-t pt-4">
+                <h3 className="font-medium mb-2 text-destructive">Zona de peligro</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Eliminar tu cuenta es una acción permanente. Todos tus datos asociados serán eliminados.
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="gap-2 select-none"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar mi cuenta
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente tu cuenta y todos los datos asociados a ella.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="select-none">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAccountMutation.mutate()}
+              disabled={deleteAccountMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 select-none"
+            >
+              {deleteAccountMutation.isPending ? "Eliminando..." : "Sí, eliminar mi cuenta"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
