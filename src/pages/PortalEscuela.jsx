@@ -55,30 +55,19 @@ export default function PortalEscuela() {
   const [showWizard, setShowWizard] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      // Delete user account via backend function
-      await base44.functions.invoke("deleteMyAccount", {});
-    },
-    onSuccess: () => {
-      base44.auth.logout(createPageUrl("Landing"));
-    },
-  });
+  const schoolName = user?.school_name?.trim() || "";
 
-  if (!user) return null;
-  if (!user.school_name?.trim()) return <LockoutScreen />;
-
-  const schoolName = user.school_name.trim();
-
-  // All queries filter in DB — never list() + JS filter
+  // All hooks must be called unconditionally
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["portal_groups", schoolName],
     queryFn: () => base44.entities.Group.filter({ school_name: schoolName }, "name"),
+    enabled: !!schoolName,
   });
 
   const { data: registrations = [], isLoading: regsLoading } = useQuery({
     queryKey: ["portal_registrations", schoolName],
     queryFn: () => base44.entities.Registration.filter({ school_name: schoolName }, "-created_date"),
+    enabled: !!schoolName,
   });
 
   const { data: competitions = [] } = useQuery({
@@ -89,12 +78,27 @@ export default function PortalEscuela() {
   const { data: actas = [] } = useQuery({
     queryKey: ["portal_actas", schoolName],
     queryFn: () => base44.entities.ActaJueces.filter({ school_name: schoolName }, "-fecha"),
+    enabled: !!schoolName,
   });
 
   const { data: ligaResultados = [] } = useQuery({
     queryKey: ["portal_liga"],
     queryFn: () => base44.entities.LigaResultado.list(),
   });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      // Delete user account via backend function
+      await base44.functions.invoke("deleteMyAccount", {});
+    },
+    onSuccess: () => {
+      base44.auth.logout(createPageUrl("Landing"));
+    },
+  });
+
+  // Early returns after all hooks
+  if (!user) return null;
+  if (!user.school_name?.trim()) return <LockoutScreen />;
 
   const openCompetitions = competitions.filter(c => c.registration_open);
 
