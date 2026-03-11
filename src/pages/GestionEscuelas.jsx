@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   School, Plus, Pencil, UserPlus, CheckCircle2,
-  Phone, Mail, Users, ToggleLeft, ToggleRight, Lock,
+  Phone, Mail, Users, ToggleLeft, ToggleRight, Lock, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +44,11 @@ export default function GestionEscuelas() {
   const { data: groups = [] } = useQuery({
     queryKey: ["groups-for-school-mgmt"],
     queryFn: () => base44.entities.Group.list("school_name", 2000),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["all-users-for-schools"],
+    queryFn: () => base44.entities.User.list("email", 500),
   });
 
   // Groups count per school name
@@ -100,6 +105,24 @@ export default function GestionEscuelas() {
     updateSchool.mutate({ id: school.id, data: { is_active: nextActive } });
   };
 
+  const handleResendAccess = async (school) => {
+    if (!school.email) {
+      toast.error("Esta escuela no tiene email configurado");
+      return;
+    }
+    try {
+      await base44.users.inviteUser(school.email, "user");
+      toast.success(`Invitación reenviada a ${school.email}`);
+    } catch (err) {
+      toast.error("Error al reenviar la invitación: " + (err.message || "Inténtalo de nuevo"));
+    }
+  };
+
+  const getUserForSchool = (school) => {
+    if (!school.email) return null;
+    return allUsers.find(u => u.email?.toLowerCase() === school.email.toLowerCase());
+  };
+
   const activeSchools = schools.filter(s => s.is_active !== false);
   const inactiveSchools = schools.filter(s => s.is_active === false);
 
@@ -140,52 +163,80 @@ export default function GestionEscuelas() {
             </Card>
           )}
 
-          {activeSchools.map(school => (
-            <Card key={school.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4 flex items-center gap-4 flex-wrap">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <School className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base leading-tight">{school.name}</p>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
-                    {school.coach_name && <span>{school.coach_name}</span>}
-                    {school.email && (
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-3 h-3" /> {school.email}
-                      </span>
-                    )}
-                    {school.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" /> {school.phone}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {groupsBySchool[school.name] || 0} grupo{(groupsBySchool[school.name] || 0) !== 1 ? "s" : ""}
-                    </span>
+          {activeSchools.map(school => {
+            const linkedUser = getUserForSchool(school);
+            const hasLinkedSchool = linkedUser && linkedUser.school_name === school.name;
+            return (
+              <Card key={school.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4 flex items-center gap-4 flex-wrap">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <School className="w-5 h-5 text-primary" />
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline" size="sm"
-                    onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", phone: school.phone || "", city: school.city || "" }); }}
-                    className="gap-1.5"
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Editar
-                  </Button>
-                  <Button
-                    variant="ghost" size="sm"
-                    className="text-muted-foreground hover:text-amber-600 hover:bg-amber-50 gap-1.5"
-                    onClick={() => handleToggleActive(school)}
-                    title="Desactivar escuela"
-                  >
-                    <ToggleRight className="w-4 h-4" /> Desactivar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-base leading-tight">{school.name}</p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                      {school.coach_name && <span>{school.coach_name}</span>}
+                      {school.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {school.email}
+                        </span>
+                      )}
+                      {school.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {school.phone}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {groupsBySchool[school.name] || 0} grupo{(groupsBySchool[school.name] || 0) !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="mt-1.5">
+                      {hasLinkedSchool ? (
+                        <Badge variant="secondary" className="text-[10px] gap-1 bg-green-100 text-green-700 border-green-200">
+                          <CheckCircle2 className="w-3 h-3" /> Usuario vinculado
+                        </Badge>
+                      ) : linkedUser ? (
+                        <Badge variant="secondary" className="text-[10px] gap-1 bg-amber-100 text-amber-700 border-amber-200">
+                          ⚠️ Usuario existe pero sin escuela asignada
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] gap-1 text-muted-foreground">
+                          Pendiente de registro
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => handleResendAccess(school)}
+                      disabled={!school.email}
+                      className="gap-1.5"
+                      title="Reenviar invitación por email"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Reenviar acceso
+                    </Button>
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", phone: school.phone || "", city: school.city || "" }); }}
+                      className="gap-1.5"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm"
+                      className="text-muted-foreground hover:text-amber-600 hover:bg-amber-50 gap-1.5"
+                      onClick={() => handleToggleActive(school)}
+                      title="Desactivar escuela"
+                    >
+                      <ToggleRight className="w-4 h-4" /> Desactivar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
           {inactiveSchools.length > 0 && (
             <div className="pt-2">
