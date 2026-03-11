@@ -112,7 +112,8 @@ export default function PortalEscuela() {
 
   // Early returns after all hooks
   if (!user) return null;
-  if (!user.school_name?.trim()) return <LockoutScreen />;
+  // Only show lockout screen for non-admin users without school_name
+  if (user.role !== "admin" && !user.school_name?.trim()) return <LockoutScreen />;
 
   const openCompetitions = competitions.filter(c => c.registration_open);
 
