@@ -31,6 +31,7 @@ import { SimulacroContext } from "./components/SimulacroContext";
 
 const navItems = [
   { name: "Home", icon: LayoutDashboard, page: "Dashboard", adminOnly: true },
+  { name: "Home", icon: LayoutDashboard, page: "Dashboard", schoolOnly: true },
   { name: "Mi Portal", icon: Home, page: "PortalEscuela", schoolOnly: true },
   { name: "Competiciones", icon: Trophy, page: "Competitions" },
   { name: "Inscripciones", icon: ClipboardList, page: "Registrations" },
