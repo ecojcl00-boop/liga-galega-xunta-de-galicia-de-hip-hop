@@ -590,12 +590,13 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── STEP 2: SELECT GROUPS (CHECKBOXES) ──
   if (currentStep === "selectGroups") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Selecciona los grupos a inscribir</CardTitle>
-          <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Selecciona los grupos a inscribir</CardTitle>
+            <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
           {availableGroups.length === 0 && !showNewGroupForm ? (
             <p className="text-muted-foreground text-sm py-4 text-center">Todos los grupos ya están inscritos.</p>
           ) : (
@@ -694,12 +695,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  // ── DELETE CONFIRMATION DIALOG ──
-  if (groupToDelete) {
-    return (
+      {/* Delete confirmation dialog */}
       <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -722,6 +719,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>
     );
   }
 
