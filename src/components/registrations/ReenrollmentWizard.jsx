@@ -597,7 +597,18 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             <p className="text-sm text-muted-foreground">{selectedComp?.name} · {mySchoolName}</p>
           </CardHeader>
           <CardContent className="space-y-3">
-          {availableGroups.length === 0 && !showNewGroupForm ? (
+          {/* If no groups at all (first time), show create button prominently */}
+          {myGroups.length === 0 && extraGroups.length === 0 && !showNewGroupForm ? (
+            <div className="py-8 space-y-4 text-center">
+              <p className="text-muted-foreground text-sm">No tienes grupos creados todavía.</p>
+              <button
+                onClick={() => setShowNewGroupForm(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-5 h-5" /> Crear primer grupo
+              </button>
+            </div>
+          ) : availableGroups.length === 0 && !showNewGroupForm ? (
             <p className="text-muted-foreground text-sm py-4 text-center">Todos los grupos ya están inscritos.</p>
           ) : (
             availableGroups.map(group => {
