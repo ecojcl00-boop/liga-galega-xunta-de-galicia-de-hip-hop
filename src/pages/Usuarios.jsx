@@ -51,14 +51,17 @@ export default function Usuarios() {
 
   const openEdit = (u) => {
     setEditingUser(u);
-    setEditSchool(u.school_name || "");
+    setEditSchool(u.school_name || "__none__");
     setEditRole(u.role || "user");
   };
 
   const handleSave = () => {
     updateUser.mutate({
       id: editingUser.id,
-      data: { school_name: editSchool, role: editRole },
+      data: { 
+        school_name: editSchool === "__none__" ? "" : editSchool, 
+        role: editRole 
+      },
     });
   };
 
@@ -162,7 +165,7 @@ export default function Usuarios() {
                     <SelectValue placeholder="Sin escuela" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>Sin escuela</SelectItem>
+                    <SelectItem value="__none__">Sin escuela</SelectItem>
                     {schools.map((s) => (
                       <SelectItem key={s.id} value={s.name}>
                         {s.name}
