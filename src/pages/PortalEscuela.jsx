@@ -96,12 +96,6 @@ export default function PortalEscuela() {
     },
   });
 
-  // Early returns after all hooks
-  if (!user) return null;
-  if (!user.school_name?.trim()) return <LockoutScreen />;
-
-  const openCompetitions = competitions.filter(c => c.registration_open);
-
   const registeredGroupIds = useMemo(() => {
     const map = {};
     registrations.forEach(r => {
@@ -110,6 +104,12 @@ export default function PortalEscuela() {
     });
     return map;
   }, [registrations]);
+
+  // Early returns after all hooks
+  if (!user) return null;
+  if (!user.school_name?.trim()) return <LockoutScreen />;
+
+  const openCompetitions = competitions.filter(c => c.registration_open);
 
   // Wizard view
   if (showWizard) {
