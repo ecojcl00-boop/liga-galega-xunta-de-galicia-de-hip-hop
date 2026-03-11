@@ -27,6 +27,7 @@ export default function Usuarios() {
   const [editRole, setEditRole] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSchool, setInviteSchool] = useState("");
+  const [inviteRole, setInviteRole] = useState("user");
   const [inviteStatus, setInviteStatus] = useState(null); // null | "loading" | "ok" | "error"
   const [showInvite, setShowInvite] = useState(false);
 
@@ -65,10 +66,11 @@ export default function Usuarios() {
     if (!inviteEmail) return;
     setInviteStatus("loading");
     try {
-      await base44.users.inviteUser(inviteEmail, "user");
+      await base44.users.inviteUser(inviteEmail, inviteRole);
       setInviteStatus("ok");
       setInviteEmail("");
       setInviteSchool("");
+      setInviteRole("user");
       qc.invalidateQueries({ queryKey: ["users-list"] });
     } catch (e) {
       setInviteStatus("error");
@@ -215,8 +217,21 @@ export default function Usuarios() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Rol</label>
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Escuela</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-              Se enviará una invitación al email indicado. Una vez registrado, vuelve aquí para asignarle la escuela y el rol correctos.
+              Se enviará una invitación al email indicado. Una vez registrado, vuelve aquí para asignarle la escuela si es necesario.
             </div>
 
             {inviteStatus === "ok" && (
