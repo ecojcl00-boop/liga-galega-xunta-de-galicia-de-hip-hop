@@ -32,8 +32,8 @@ export default function JudgePanel() {
     queryFn: async () => {
       const all = await base44.entities.ActaJueces.list("-created_date");
       if (isAdmin) return all;
-      // Para escuelas, filtrar por su school_name
-      return all.filter(a => a.school_name === user?.school_name);
+      // Para escuelas, mostrar todos los documentos
+      return all;
     },
   });
 
