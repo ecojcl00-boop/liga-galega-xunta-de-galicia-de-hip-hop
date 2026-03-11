@@ -42,11 +42,6 @@ export default function GestionEscuelas() {
   const [inviteResult, setInviteResult] = useState(null);
   const [deletingSchool, setDeletingSchool] = useState(null);
 
-  if (user?.role !== "admin") {
-    navigate(createPageUrl("Dashboard"), { replace: true });
-    return null;
-  }
-
   const { data: schools = [], isLoading } = useQuery({
     queryKey: ["schools-management"],
     queryFn: () => base44.entities.School.list("name", 500),
@@ -145,6 +140,11 @@ export default function GestionEscuelas() {
 
   const activeSchools = schools.filter(s => s.is_active !== false);
   const inactiveSchools = schools.filter(s => s.is_active === false);
+
+  if (user?.role !== "admin") {
+    navigate(createPageUrl("Dashboard"), { replace: true });
+    return null;
+  }
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
