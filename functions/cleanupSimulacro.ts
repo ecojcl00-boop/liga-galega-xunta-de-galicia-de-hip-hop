@@ -5,7 +5,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function deleteAll(entity, records) {
   for (const r of records) {
     await entity.delete(r.id);
-    await sleep(80);
+    await sleep(150);
   }
 }
 
@@ -25,11 +25,9 @@ Deno.serve(async (req) => {
 
     console.log(`[INFO] Cleanup simulacro: ${regs.length} regs, ${ligaResultados.length} resultados, ${ligaComps.length} comps`);
 
-    await Promise.all([
-      deleteAll(base44.asServiceRole.entities.Registration, regs),
-      deleteAll(base44.asServiceRole.entities.LigaResultado, ligaResultados),
-      deleteAll(base44.asServiceRole.entities.LigaCompeticion, ligaComps),
-    ]);
+    await deleteAll(base44.asServiceRole.entities.Registration, regs);
+    await deleteAll(base44.asServiceRole.entities.LigaResultado, ligaResultados);
+    await deleteAll(base44.asServiceRole.entities.LigaCompeticion, ligaComps);
 
     console.log(`[INFO] Cleanup done`);
     return Response.json({
