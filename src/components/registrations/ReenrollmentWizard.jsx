@@ -590,7 +590,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── STEP 2: SELECT GROUPS (CHECKBOXES) ──
   if (currentStep === "selectGroups") {
     return (
-      <>
       <Card>
         <CardHeader>
           <CardTitle>Selecciona los grupos a inscribir</CardTitle>
@@ -695,8 +694,12 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Delete confirmation dialog */}
+  // ── DELETE CONFIRMATION DIALOG ──
+  if (groupToDelete) {
+    return (
       <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -719,7 +722,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </>
     );
   }
 
