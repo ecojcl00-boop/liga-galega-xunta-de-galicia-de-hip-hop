@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -51,6 +51,7 @@ const SCHOOL_ALLOWED_PAGES = ["Dashboard", "PortalEscuela", "Registrations", "Gr
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
+  const redirectedRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
@@ -99,7 +100,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Handle redirects with useEffect to avoid conditional hook violations
   useEffect(() => {
-    if (!authChecked) return;
+    if (!authChecked || redirectedRef.current) return;
     
     if (!user && !isPublicPage) {
       const next = window.location.pathname + window.location.search;
@@ -108,12 +109,14 @@ export default function Layout({ children, currentPageName }) {
     }
 
     if (user && currentPageName === "Landing") {
+      redirectedRef.current = true;
       const dest = user.role === "admin" ? createPageUrl("Dashboard") : createPageUrl("PortalEscuela");
       navigate(dest, { replace: true });
       return;
     }
 
     if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
+      redirectedRef.current = true;
       navigate(createPageUrl("PortalEscuela"), { replace: true });
       return;
     }
