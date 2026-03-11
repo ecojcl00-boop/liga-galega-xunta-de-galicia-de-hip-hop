@@ -12,8 +12,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   School, Plus, Pencil, UserPlus, CheckCircle2,
-  Phone, Mail, Users, ToggleLeft, ToggleRight, Lock, Send,
+  Phone, Mail, Users, ToggleLeft, ToggleRight, Lock, Send, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +40,7 @@ export default function GestionEscuelas() {
   const [editForm, setEditForm] = useState({ ...EMPTY_FORM });
   const [creating, setCreating] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
+  const [deletingSchool, setDeletingSchool] = useState(null);
 
   if (user?.role !== "admin") {
     navigate(createPageUrl("Dashboard"), { replace: true });
@@ -64,6 +75,15 @@ export default function GestionEscuelas() {
       qc.invalidateQueries({ queryKey: ["schools-management"] });
       setEditingSchool(null);
       toast.success("Escuela actualizada");
+    },
+  });
+
+  const deleteSchool = useMutation({
+    mutationFn: (id) => base44.entities.School.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["schools-management"] });
+      setDeletingSchool(null);
+      toast.success("Escuela eliminada");
     },
   });
 
@@ -231,6 +251,14 @@ export default function GestionEscuelas() {
                       title="Desactivar escuela"
                     >
                       <ToggleRight className="w-4 h-4" /> Desactivar
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm"
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
+                      onClick={() => setDeletingSchool(school)}
+                      title="Eliminar escuela"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
                     </Button>
                   </div>
                 </CardContent>
@@ -411,6 +439,28 @@ export default function GestionEscuelas() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deletingSchool} onOpenChange={o => { if (!o) setDeletingSchool(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Seguro que quieres eliminar la escuela {deletingSchool?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán todos sus datos. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteSchool.mutate(deletingSchool.id)}
+              disabled={deleteSchool.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSchool.isPending ? "Eliminando..." : "Sí, eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
