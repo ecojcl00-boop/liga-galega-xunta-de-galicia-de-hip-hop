@@ -13,10 +13,13 @@ import { Plus, Pencil, Trash2, Trophy, MapPin, Calendar, Users, ClipboardList } 
 import CompetitionRegistrationsPanel from "../components/registrations/CompetitionRegistrationsPanel";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useUser } from "../components/UserContext";
 
 const emptyForm = { name: "", date: "", location: "", registration_open: true };
 
 export default function Competitions() {
+  const user = useUser();
+  const isAdmin = user?.role === "admin";
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -78,9 +81,11 @@ export default function Competitions() {
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Competiciones</h1>
           <p className="text-muted-foreground mt-1">{competitions.length} competiciones registradas</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> Nueva Competición
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="w-4 h-4" /> Nueva Competición
+          </Button>
+        )}
       </div>
 
       {competitions.length === 0 ? (
@@ -107,17 +112,19 @@ export default function Competitions() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
-                        <ClipboardList className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(comp)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(comp.id)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
+                          <ClipboardList className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(comp)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(comp.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -142,13 +149,15 @@ export default function Competitions() {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t">
-                    <span className="text-xs text-muted-foreground">Inscripciones</span>
-                    <Switch
-                      checked={comp.registration_open ?? false}
-                      onCheckedChange={(val) => toggleMutation.mutate({ id: comp.id, registration_open: val })}
-                    />
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <span className="text-xs text-muted-foreground">Inscripciones</span>
+                      <Switch
+                        checked={comp.registration_open ?? false}
+                        onCheckedChange={(val) => toggleMutation.mutate({ id: comp.id, registration_open: val })}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
