@@ -18,16 +18,7 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
-  // Accumulate puntos_liga (primary criteria)
-  const puntosLigaMap = new Map();
-  resultados
-    .filter(r => r.categoria === categoria && r.puntos_liga != null)
-    .forEach(r => {
-      const key = nd(r.grupo_nombre);
-      puntosLigaMap.set(key, (puntosLigaMap.get(key) || 0) + r.puntos_liga);
-    });
-
-  // Accumulate puntuacion from LigaResultado (first tiebreaker)
+  // Accumulate puntuacion from LigaResultado (primary numeric tiebreaker)
   const puntMap = new Map();
   resultados
     .filter(r => r.categoria === categoria && r.puntuacion > 0)
@@ -36,21 +27,36 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       puntMap.set(key, (puntMap.get(key) || 0) + r.puntuacion);
     });
 
+  // Accumulate judge scores per group for secondary tiebreaker
+  const scoreMap = new Map();
+  judgeScores
+    .filter(s => nd(s.category || "") === nd(categoria))
+    .forEach(s => {
+      const key = nd(s.group_name || "");
+      scoreMap.set(key, (scoreMap.get(key) || 0) + (s.total || 0));
+    });
+
   const items = [...grupos.values()];
+  const allVals = items.flatMap(g => Object.values(g.puestos));
+  const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
 
   items.sort((a, b) => {
-    // Primary: accumulated puntos_liga
-    const pla = puntosLigaMap.get(nd(a.nombre)) || 0;
-    const plb = puntosLigaMap.get(nd(b.nombre)) || 0;
-    if (plb !== pla) return plb - pla;
-    // Tiebreaker: accumulated puntuacion from LigaResultado
-    const pa = puntMap.get(nd(a.nombre)) || 0;
-    const pb = puntMap.get(nd(b.nombre)) || 0;
+    for (let pos = 1; pos <= maxPos; pos++) {
+      const ac = Object.values(a.puestos).filter(p => p === pos).length;
+      const bc = Object.values(b.puestos).filter(p => p === pos).length;
+      if (bc !== ac) return bc - ac;
+    }
+    // Final tiebreaker: accumulated puntuacion from LigaResultado, then judge scores
+    const pa = puntMap ? (puntMap.get(nd(a.nombre)) || 0) : 0;
+    const pb = puntMap ? (puntMap.get(nd(b.nombre)) || 0) : 0;
     if (pb !== pa) return pb - pa;
+    const sa = scoreMap.get(nd(a.nombre)) || 0;
+    const sb = scoreMap.get(nd(b.nombre)) || 0;
+    if (sb !== sa) return sb - sa;
     return a.nombre.localeCompare(b.nombre);
   });
 
-  return items.map((g, i) => ({ ...g, posicion: i + 1, puntos_liga: puntosLigaMap.get(nd(g.nombre)) || 0 }));
+  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
 }
 
 Deno.serve(async (req) => {
@@ -120,9 +126,6 @@ Deno.serve(async (req) => {
       const group = allGroups.find(g => nd(g.name) === normName);
       if (!group) log.notFound.push(r.group_name);
 
-      const puesto = Number(r.position);
-      const puntosLiga = puesto === 1 ? 100 : puesto === 2 ? 90 : puesto === 3 ? 80 : puesto === 4 ? 70 : puesto === 5 ? 60 : puesto === 6 ? 50 : puesto === 7 ? 40 : puesto === 8 ? 30 : puesto === 9 ? 20 : puesto === 10 ? 10 : 0;
-
       toCreate.push({
         competicion_id: compId,
         competicion_nombre: nombre_competicion || `Jornada ${numero_jornada}`,
@@ -132,9 +135,8 @@ Deno.serve(async (req) => {
         grupo_nombre_original: group ? null : r.group_name,
         school_name: r.school_name || group?.school_name || "",
         categoria: r.category,
-        puesto: puesto,
+        puesto: Number(r.position),
         puntuacion: r.score ? Number(r.score) : null,
-        puntos_liga: puntosLiga,
         is_simulacro: !!is_simulacro,
       });
 
