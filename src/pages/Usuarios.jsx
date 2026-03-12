@@ -88,9 +88,21 @@ export default function Usuarios() {
 
   const handleInvite = async () => {
     if (!inviteEmail) return;
+    if (inviteRole === "user" && !inviteSchool) return;
     setInviteStatus("loading");
     try {
       await base44.users.inviteUser(inviteEmail, inviteRole);
+      
+      // If school role, wait a bit and assign school_name to the newly invited user
+      if (inviteRole === "user" && inviteSchool) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const allUsers = await base44.entities.User.list();
+        const newUser = allUsers.find(u => u.email === inviteEmail);
+        if (newUser) {
+          await base44.entities.User.update(newUser.id, { school_name: inviteSchool });
+        }
+      }
+      
       setInviteStatus("ok");
       setInviteEmail("");
       setInviteSchool("");
@@ -112,7 +124,7 @@ export default function Usuarios() {
         </div>
         <Button onClick={() => { setShowInvite(true); setInviteStatus(null); }} className="gap-2">
           <UserPlus className="w-4 h-4" />
-          Invitar usuario
+          ＋ Añadir usuario
         </Button>
       </div>
 
@@ -281,14 +293,14 @@ export default function Usuarios() {
       <Dialog open={showInvite} onOpenChange={(o) => !o && setShowInvite(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Invitar usuario de escuela</DialogTitle>
+            <DialogTitle>＋ Añadir usuario</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Email</label>
               <Input
                 type="email"
-                placeholder="coach@escuela.com"
+                placeholder="usuario@email.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
               />
@@ -307,15 +319,44 @@ export default function Usuarios() {
               </Select>
             </div>
 
-            <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-              Se enviará una invitación al email indicado. 
-              {inviteRole === "user" && " Una vez registrado, vuelve aquí para asignarle la escuela si es necesario."}
-            </div>
+            {inviteRole === "user" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Escuela asignada</label>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Buscar escuela..."
+                    value={schoolSearch}
+                    onChange={(e) => setSchoolSearch(e.target.value)}
+                  />
+                  <div className="max-h-48 overflow-y-auto border rounded-md">
+                    {schools
+                      .filter((s) =>
+                        s.name.toLowerCase().includes(schoolSearch.toLowerCase())
+                      )
+                      .map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setInviteSchool(s.name); setSchoolSearch(""); }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                            inviteSchool === s.name ? "bg-primary/10 font-medium" : ""
+                          }`}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                  </div>
+                  {inviteSchool && (
+                    <p className="text-xs text-muted-foreground">
+                      Seleccionada: <strong>{inviteSchool}</strong>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {inviteStatus === "ok" && (
               <p className="text-sm text-green-600 font-medium">
-                ✓ Invitación enviada.
-                {inviteRole === "user" && " Cuando el usuario se registre, asígnale la escuela desde la tabla."}
+                ✓ Invitación enviada a {inviteEmail}
               </p>
             )}
             {inviteStatus === "error" && (
@@ -330,7 +371,7 @@ export default function Usuarios() {
               </Button>
               <Button
                 onClick={handleInvite}
-                disabled={!inviteEmail || inviteStatus === "loading"}
+                disabled={!inviteEmail || (inviteRole === "user" && !inviteSchool) || inviteStatus === "loading"}
               >
                 {inviteStatus === "loading" ? "Enviando..." : "Enviar invitación"}
               </Button>
