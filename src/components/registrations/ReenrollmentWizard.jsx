@@ -360,6 +360,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const submitLock = useRef(false);
 
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
@@ -460,9 +461,11 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       setIsSuccess(true);
       setIsSubmitting(false);
+      submitLock.current = false;
     },
     onError: () => {
       setIsSubmitting(false);
+      submitLock.current = false;
     },
   });
 
@@ -516,7 +519,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   };
 
   const handleConfirm = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || submitLock.current) return;
+    submitLock.current = true;
     setIsSubmitting(true);
     
     const data = selectedGroups.map(group => {
