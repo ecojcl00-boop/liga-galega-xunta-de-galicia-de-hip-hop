@@ -24,6 +24,7 @@ export default function Usuarios() {
   const qc = useQueryClient();
   const [editingUser, setEditingUser] = useState(null);
   const [editSchool, setEditSchool] = useState("");
+  const [schoolSearch, setSchoolSearch] = useState("");
   const [editRole, setEditRole] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSchool, setInviteSchool] = useState("");
@@ -52,6 +53,7 @@ export default function Usuarios() {
   const openEdit = (u) => {
     setEditingUser(u);
     setEditSchool(u.school_name || "__none__");
+    setSchoolSearch("");
     setEditRole(u.role || "user");
   };
 
@@ -160,19 +162,43 @@ export default function Usuarios() {
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Escuela asignada</label>
-                <Select value={editSchool} onValueChange={setEditSchool}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sin escuela" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin escuela</SelectItem>
-                    {schools.map((s) => (
-                      <SelectItem key={s.id} value={s.name}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Buscar escuela..."
+                    value={schoolSearch}
+                    onChange={(e) => setSchoolSearch(e.target.value)}
+                  />
+                  <div className="max-h-48 overflow-y-auto border rounded-md">
+                    <button
+                      onClick={() => { setEditSchool("__none__"); setSchoolSearch(""); }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                        editSchool === "__none__" ? "bg-primary/10 font-medium" : ""
+                      }`}
+                    >
+                      Sin escuela
+                    </button>
+                    {schools
+                      .filter((s) =>
+                        s.name.toLowerCase().includes(schoolSearch.toLowerCase())
+                      )
+                      .map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setEditSchool(s.name); setSchoolSearch(""); }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                            editSchool === s.name ? "bg-primary/10 font-medium" : ""
+                          }`}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                  </div>
+                  {editSchool !== "__none__" && (
+                    <p className="text-xs text-muted-foreground">
+                      Seleccionada: <strong>{editSchool}</strong>
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
