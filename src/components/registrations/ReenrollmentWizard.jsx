@@ -355,6 +355,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [groupDocuments, setGroupDocuments] = useState({});
   const [uploadingGroup, setUploadingGroup] = useState({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [extraGroups, setExtraGroups] = useState([]); // groups created during this wizard session
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
@@ -392,8 +393,21 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── MUTATIONS ──
   const createMutation = useMutation({
     mutationFn: async (regs) => {
-      // Create all registrations
-      for (const reg of regs) await base44.entities.Registration.create(reg);
+      // Check for existing registrations and update or create accordingly
+      for (const reg of regs) {
+        const existing = await base44.entities.Registration.filter({
+          group_id: reg.group_id,
+          competition_id: reg.competition_id,
+        });
+        
+        if (existing.length > 0) {
+          // Update existing registration
+          await base44.entities.Registration.update(existing[0].id, reg);
+        } else {
+          // Create new registration
+          await base44.entities.Registration.create(reg);
+        }
+      }
       
       // After all registrations are created, send the 2 permitted emails
       if (regs.length > 0) {
@@ -445,6 +459,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       setIsSuccess(true);
+      setIsSubmitting(false);
+    },
+    onError: () => {
+      setIsSubmitting(false);
     },
   });
 
@@ -498,6 +516,9 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   };
 
   const handleConfirm = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    
     const data = selectedGroups.map(group => {
       const ps   = groupParticipants[group.id] ?? group.participants ?? [];
       const docs = groupDocuments[group.id] || [];
@@ -559,9 +580,9 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
           <Check className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-xl font-bold">¡Inscripción enviada!</h2>
+        <h2 className="text-xl font-bold">¡Inscripción confirmada correctamente!</h2>
         <p className="text-muted-foreground max-w-sm mx-auto">
-          Tu inscripción está <strong>pendiente de revisión</strong> por el administrador.
+          Tu inscripción está <strong>pendiente de revisión</strong> por el administrador. Recibirás un email de confirmación.
         </p>
         <Button onClick={onSuccess}>Volver al panel</Button>
       </div>
@@ -881,13 +902,23 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               setEditingGroupId(selectedGroups[selectedGroups.length - 1].id);
               setCurrentStep("editing");
             }}
+            disabled={isSubmitting}
             className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" /> Volver a editar
           </Button>
-          <Button onClick={handleConfirm} disabled={createMutation.isPending} className="gap-2">
-            {createMutation.isPending ? "Enviando..." : "Confirmar inscripción"}
-            <Check className="w-4 h-4" />
+          <Button onClick={handleConfirm} disabled={isSubmitting} className="gap-2">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Procesando inscripción...
+              </>
+            ) : (
+              <>
+                Confirmar inscripción
+                <Check className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>
