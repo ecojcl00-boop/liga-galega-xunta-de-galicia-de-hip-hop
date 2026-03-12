@@ -517,7 +517,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   const handleConfirm = () => {
     if (isSubmitting) return;
-    setIsSubmitting(true);
     
     const data = selectedGroups.map(group => {
       const ps   = groupParticipants[group.id] ?? group.participants ?? [];
@@ -610,6 +609,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   // ── STEP 2: SELECT GROUPS (CHECKBOXES) ──
   if (currentStep === "selectGroups") {
+    const allRegistered = allMyGroups.length > 0 && availableGroups.length === 0;
+    
     return (
       <>
         <Card>
@@ -629,41 +630,57 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
                 <Plus className="w-5 h-5" /> Crear primer grupo
               </button>
             </div>
-          ) : availableGroups.length === 0 && !showNewGroupForm ? (
-            <p className="text-muted-foreground text-sm py-4 text-center">Todos los grupos ya están inscritos.</p>
+          ) : allRegistered && !showNewGroupForm ? (
+            <p className="text-muted-foreground text-sm py-4 text-center">Todos tus grupos ya están inscritos en esta competición</p>
           ) : (
-            availableGroups.map(group => {
+            allMyGroups.map(group => {
+              const isRegistered = alreadyRegisteredIds.has(group.id);
               const selected = selectedGroupIds.has(group.id);
               const isNew = extraGroups.some(g => g.id === group.id);
               return (
                 <div key={group.id}
-                  className={`p-4 rounded-xl border-2 transition-colors ${selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                  className={`p-4 rounded-xl border-2 transition-colors ${
+                    isRegistered 
+                      ? "border-green-200 bg-green-50/50 opacity-60" 
+                      : selected 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/30"
+                  }`}>
                   <div className="flex items-center gap-3">
                     <div 
-                      onClick={() => toggleGroup(group.id)}
-                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                      onClick={() => !isRegistered && toggleGroup(group.id)}
+                      className={`flex items-center gap-3 flex-1 ${isRegistered ? "cursor-not-allowed" : "cursor-pointer"}`}
                     >
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${selected ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                        {selected && <Check className="w-3 h-3 text-primary-foreground" />}
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        isRegistered 
+                          ? "bg-green-100 border-green-300" 
+                          : selected 
+                            ? "bg-primary border-primary" 
+                            : "border-muted-foreground"
+                      }`}>
+                        {(selected || isRegistered) && <Check className={`w-3 h-3 ${isRegistered ? "text-green-600" : "text-primary-foreground"}`} />}
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-sm flex items-center gap-2">
                           {group.name}
-                          {isNew && <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">Nuevo</Badge>}
+                          {isRegistered && <Badge variant="outline" className="text-[10px] py-0 border-green-400 text-green-600 bg-green-50">Ya inscrito ✓</Badge>}
+                          {isNew && !isRegistered && <Badge variant="outline" className="text-[10px] py-0 border-primary text-primary">Nuevo</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setGroupToDelete(group);
-                      }}
-                      className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                      title="Eliminar grupo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!isRegistered && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setGroupToDelete(group);
+                        }}
+                        className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                        title="Eliminar grupo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -687,22 +704,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             >
               <Plus className="w-4 h-4" /> Añadir grupo nuevo
             </button>
-          )}
-
-          {/* Already registered */}
-          {allMyGroups.filter(g => alreadyRegisteredIds.has(g.id)).length > 0 && (
-            <div className="pt-2 space-y-2">
-              <p className="text-xs text-muted-foreground font-medium uppercase">Ya inscritos</p>
-              {allMyGroups.filter(g => alreadyRegisteredIds.has(g.id)).map(g => (
-                <div key={g.id} className="p-4 rounded-xl border border-dashed opacity-50 flex items-center gap-3">
-                  <Check className="w-4 h-4 text-green-600 shrink-0" />
-                  <div>
-                    <div className="font-semibold text-sm">{g.name}</div>
-                    <div className="text-xs text-muted-foreground">{g.category}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
 
           {/* Navigation */}
@@ -907,7 +908,14 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           >
             <ChevronLeft className="w-4 h-4" /> Volver a editar
           </Button>
-          <Button onClick={handleConfirm} disabled={isSubmitting} className="gap-2">
+          <Button 
+            onClick={() => {
+              setIsSubmitting(true);
+              handleConfirm();
+            }} 
+            disabled={isSubmitting} 
+            className="gap-2"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
