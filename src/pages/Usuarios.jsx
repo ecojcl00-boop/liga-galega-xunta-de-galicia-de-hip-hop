@@ -18,7 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, Pencil, Shield, School } from "lucide-react";
+import { UserPlus, Pencil, Shield, School, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Usuarios() {
   const qc = useQueryClient();
@@ -31,6 +41,7 @@ export default function Usuarios() {
   const [inviteRole, setInviteRole] = useState("user");
   const [inviteStatus, setInviteStatus] = useState(null); // null | "loading" | "ok" | "error"
   const [showInvite, setShowInvite] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["users-list"],
@@ -47,6 +58,14 @@ export default function Usuarios() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users-list"] });
       setEditingUser(null);
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: (id) => base44.entities.User.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users-list"] });
+      setUserToDelete(null);
     },
   });
 
@@ -135,6 +154,14 @@ export default function Usuarios() {
                       onClick={() => openEdit(u)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setUserToDelete(u)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -228,6 +255,27 @@ export default function Usuarios() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(o) => !o && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Seguro que quieres eliminar el usuario {userToDelete?.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteUser.mutate(userToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Invite dialog */}
       <Dialog open={showInvite} onOpenChange={(o) => !o && setShowInvite(false)}>
