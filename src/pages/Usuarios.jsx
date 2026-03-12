@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, Pencil, Shield, School, Trash2 } from "lucide-react";
+import { UserPlus, Pencil, Shield, School, Trash2, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ export default function Usuarios() {
   const [editSchool, setEditSchool] = useState("");
   const [schoolSearch, setSchoolSearch] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [editName, setEditName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSchool, setInviteSchool] = useState("");
   const [inviteRole, setInviteRole] = useState("user");
@@ -74,12 +75,14 @@ export default function Usuarios() {
     setEditSchool(u.school_name || "__none__");
     setSchoolSearch("");
     setEditRole(u.role || "user");
+    setEditName(u.full_name || "");
   };
 
   const handleSave = () => {
     updateUser.mutate({
       id: editingUser.id,
       data: { 
+        full_name: editName,
         school_name: editSchool === "__none__" ? "" : editSchool, 
         role: editRole 
       },
@@ -127,10 +130,20 @@ export default function Usuarios() {
             Administra roles y escuelas asignadas a cada cuenta.
           </p>
         </div>
-        <Button onClick={() => { setShowInvite(true); setInviteStatus(null); }} className="gap-2">
-          <UserPlus className="w-4 h-4" />
-          ＋ Añadir usuario
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => qc.invalidateQueries({ queryKey: ["users-list"] })}
+            title="Recargar lista de usuarios"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+          <Button onClick={() => { setShowInvite(true); setInviteStatus(null); }} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            ＋ Añadir usuario
+          </Button>
+        </div>
       </div>
 
       {/* Users table */}
@@ -200,8 +213,16 @@ export default function Usuarios() {
           {editingUser && (
             <div className="space-y-4 pt-2">
               <div>
-                <p className="text-sm font-medium mb-1">{editingUser.full_name || editingUser.email}</p>
                 <p className="text-xs text-muted-foreground">{editingUser.email}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Nombre completo</label>
+                <Input
+                  placeholder="Nombre del usuario"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
               </div>
 
               <div className="space-y-1.5">
