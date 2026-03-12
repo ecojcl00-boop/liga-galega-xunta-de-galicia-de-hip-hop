@@ -360,6 +360,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
@@ -516,7 +517,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   };
 
   const handleConfirm = async () => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     
     const data = selectedGroups.map(group => {
@@ -908,6 +910,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleConfirm(); }} 
             disabled={isSubmitting} 
             className="gap-2"
+            style={{ touchAction: 'manipulation' }}
           >
             {isSubmitting ? (
               <>
