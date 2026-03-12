@@ -20,7 +20,7 @@ function nd(str = "") {
   return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-// Ranking by position counts, with judge score as final tiebreaker
+// Ranking by accumulated puntos_liga, with puntuacion as tiebreaker
 function calcularRanking(resultados, categoria, judgeScores = []) {
   const grupos = new Map();
   resultados
@@ -31,7 +31,16 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
-  // Accumulated puntuacion from LigaResultado (primary numeric tiebreaker)
+  // Accumulated puntos_liga (primary criteria)
+  const puntosLigaMap = new Map();
+  resultados
+    .filter(r => r.categoria === categoria && r.puntos_liga != null)
+    .forEach(r => {
+      const key = nd(r.grupo_nombre);
+      puntosLigaMap.set(key, (puntosLigaMap.get(key) || 0) + r.puntos_liga);
+    });
+
+  // Accumulated puntuacion from LigaResultado (tiebreaker)
   const puntMap = new Map();
   resultados
     .filter(r => r.categoria === categoria && r.puntuacion > 0)
@@ -40,42 +49,25 @@ function calcularRanking(resultados, categoria, judgeScores = []) {
       puntMap.set(key, (puntMap.get(key) || 0) + r.puntuacion);
     });
 
-  // Accumulated judge scores per group in this category (secondary tiebreaker)
-  const scoreMap = new Map();
-  judgeScores
-    .filter(s => nd(s.category || "") === nd(categoria))
-    .forEach(s => {
-      const key = nd(s.group_name || "");
-      scoreMap.set(key, (scoreMap.get(key) || 0) + (s.total || 0));
-    });
-
   const items = [...grupos.values()];
-  const allVals = items.flatMap(g => Object.values(g.puestos));
-  const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
 
   items.sort((a, b) => {
-    // Primary criteria: position count (1st first, then 2nd, etc.)
-    for (let pos = 1; pos <= maxPos; pos++) {
-      const ac = Object.values(a.puestos).filter(p => p === pos).length;
-      const bc = Object.values(b.puestos).filter(p => p === pos).length;
-      if (bc !== ac) return bc - ac;
-    }
-    // Tiebreaker 1: accumulated puntuacion from LigaResultado
+    // Primary: accumulated puntos_liga
+    const pla = puntosLigaMap.get(nd(a.nombre)) || 0;
+    const plb = puntosLigaMap.get(nd(b.nombre)) || 0;
+    if (plb !== pla) return plb - pla;
+    // Tiebreaker: accumulated puntuacion from LigaResultado
     const pa = puntMap.get(nd(a.nombre)) || 0;
     const pb = puntMap.get(nd(b.nombre)) || 0;
     if (pb !== pa) return pb - pa;
-    // Tiebreaker 2: accumulated judge scores
-    const sa = scoreMap.get(nd(a.nombre)) || 0;
-    const sb = scoreMap.get(nd(b.nombre)) || 0;
-    if (sb !== sa) return sb - sa;
     return a.nombre.localeCompare(b.nombre);
   });
 
   return items.map((g, i) => ({
     ...g,
     posicion: i + 1,
+    puntos_liga: puntosLigaMap.get(nd(g.nombre)) || 0,
     puntuacion: puntMap.get(nd(g.nombre)) || 0,
-    judgeScore: scoreMap.get(nd(g.nombre)) || 0,
   }));
 }
 
@@ -121,7 +113,7 @@ function CategoryRanking({ categoria, resultados, jornadas, judgeScores }) {
   if (ranking.length === 0) return null;
 
   const top3 = ranking.slice(0, 3);
-  const hasScores = ranking.some(g => g.puntuacion > 0 || g.judgeScore > 0);
+  const hasScores = ranking.some(g => g.puntos_liga > 0);
 
   return (
     <Card>
@@ -165,8 +157,8 @@ function CategoryRanking({ categoria, resultados, jornadas, judgeScores }) {
                     <th key={j} className="text-center py-2 px-3 text-muted-foreground font-medium">J{j}</th>
                   ))}
                   {hasScores && (
-                    <th className="text-center py-2 px-3 text-muted-foreground font-medium" title="Puntuación acumulada (criterio de desempate final)">
-                      Pts.
+                    <th className="text-center py-2 px-3 text-muted-foreground font-medium" title="Puntos de liga acumulados">
+                      Puntos
                     </th>
                   )}
                 </tr>
@@ -190,8 +182,8 @@ function CategoryRanking({ categoria, resultados, jornadas, judgeScores }) {
                       </td>
                     ))}
                     {hasScores && (
-                      <td className="text-center py-2 px-3 text-xs tabular-nums text-muted-foreground">
-                        {g.puntuacion > 0 ? g.puntuacion.toFixed(1) : g.judgeScore > 0 ? g.judgeScore.toFixed(1) : "—"}
+                      <td className="text-center py-2 px-3 text-sm tabular-nums font-semibold">
+                        {g.puntos_liga || 0}
                       </td>
                     )}
                   </tr>

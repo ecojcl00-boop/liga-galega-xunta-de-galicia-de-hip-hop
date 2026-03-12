@@ -27,6 +27,15 @@ function calcularRanking(resultados, categoria) {
       grupos.get(key).puestos[r.numero_jornada] = r.puesto;
     });
 
+  // Accumulated puntos_liga (primary criteria)
+  const puntosLigaMap = new Map();
+  resultados
+    .filter(r => r.categoria === categoria && r.puntos_liga != null)
+    .forEach(r => {
+      const key = nd(r.grupo_nombre);
+      puntosLigaMap.set(key, (puntosLigaMap.get(key) || 0) + r.puntos_liga);
+    });
+
   // Accumulated puntuacion per group (tiebreaker)
   const puntMap = new Map();
   resultados
@@ -37,22 +46,20 @@ function calcularRanking(resultados, categoria) {
     });
 
   const items = [...grupos.values()];
-  const allVals = items.flatMap(g => Object.values(g.puestos));
-  const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
 
   items.sort((a, b) => {
-    for (let pos = 1; pos <= maxPos; pos++) {
-      const ac = Object.values(a.puestos).filter(p => p === pos).length;
-      const bc = Object.values(b.puestos).filter(p => p === pos).length;
-      if (bc !== ac) return bc - ac;
-    }
+    // Primary: accumulated puntos_liga
+    const pla = puntosLigaMap.get(nd(a.nombre)) || 0;
+    const plb = puntosLigaMap.get(nd(b.nombre)) || 0;
+    if (plb !== pla) return plb - pla;
+    // Tiebreaker: accumulated puntuacion
     const pa = puntMap.get(nd(a.nombre)) || 0;
     const pb = puntMap.get(nd(b.nombre)) || 0;
     if (pb !== pa) return pb - pa;
     return a.nombre.localeCompare(b.nombre);
   });
 
-  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
+  return items.map((g, i) => ({ ...g, posicion: i + 1, puntos_liga: puntosLigaMap.get(nd(g.nombre)) || 0 }));
 }
 
 const medalEmoji = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -96,6 +103,7 @@ export default function RankingSummary() {
                 <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${medalColor[i + 1] || "bg-muted/30"}`}>
                   <span className="text-base">{medalEmoji[i + 1]}</span>
                   <span className="font-medium text-sm flex-1 truncate">{g.nombre}</span>
+                  <span className="text-xs font-semibold tabular-nums">{g.puntos_liga} pts</span>
                   <span className="text-xs text-muted-foreground truncate hidden sm:block">{g.school}</span>
                 </div>
               ))}
