@@ -308,12 +308,14 @@ export default function Usuarios() {
             </div>
 
             <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-              Se enviará una invitación al email indicado. Una vez registrado, vuelve aquí para asignarle la escuela si es necesario.
+              Se enviará una invitación al email indicado. 
+              {inviteRole === "user" && " Una vez registrado, vuelve aquí para asignarle la escuela si es necesario."}
             </div>
 
             {inviteStatus === "ok" && (
               <p className="text-sm text-green-600 font-medium">
-                ✓ Invitación enviada. Cuando el usuario se registre, asígnale la escuela desde la tabla.
+                ✓ Invitación enviada.
+                {inviteRole === "user" && " Cuando el usuario se registre, asígnale la escuela desde la tabla."}
               </p>
             )}
             {inviteStatus === "error" && (
