@@ -459,11 +459,11 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       queryClient.invalidateQueries({ queryKey: ["groups"] });
-      setIsSuccess(true);
       setIsSubmitting(false);
-      submitLock.current = false;
     },
     onError: () => {
+      // En caso de error, volver atrás
+      setIsSuccess(false);
       setIsSubmitting(false);
       submitLock.current = false;
     },
@@ -523,6 +523,9 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     submitLock.current = true;
     setIsSubmitting(true);
     
+    // Mostrar pantalla de éxito inmediatamente
+    setIsSuccess(true);
+    
     const data = selectedGroups.map(group => {
       const ps   = groupParticipants[group.id] ?? group.participants ?? [];
       const docs = groupDocuments[group.id] || [];
@@ -542,6 +545,8 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
         is_simulacro: isSimulacro,
       };
     });
+    
+    // Enviar la mutación en segundo plano
     createMutation.mutate(data);
   };
 
