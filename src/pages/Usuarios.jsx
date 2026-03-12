@@ -151,6 +151,7 @@ export default function Usuarios() {
       setInviteSchool("");
       setInviteRole("user");
     } catch (e) {
+      console.error(e);
       setInviteStatus("error");
     }
   };
