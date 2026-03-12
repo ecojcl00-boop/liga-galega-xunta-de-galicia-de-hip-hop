@@ -93,9 +93,11 @@ export default function Usuarios() {
     try {
       await base44.users.inviteUser(inviteEmail, inviteRole);
       
-      // If school role, wait a bit and assign school_name to the newly invited user
+      // Wait for user to be created in the database
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // If school role, assign school_name to the newly invited user
       if (inviteRole === "user" && inviteSchool) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
         const allUsers = await base44.entities.User.list();
         const newUser = allUsers.find(u => u.email === inviteEmail);
         if (newUser) {
@@ -103,11 +105,14 @@ export default function Usuarios() {
         }
       }
       
+      // Force refresh of the users list
+      await qc.invalidateQueries({ queryKey: ["users-list"] });
+      await qc.refetchQueries({ queryKey: ["users-list"] });
+      
       setInviteStatus("ok");
       setInviteEmail("");
       setInviteSchool("");
       setInviteRole("user");
-      qc.invalidateQueries({ queryKey: ["users-list"] });
     } catch (e) {
       setInviteStatus("error");
     }
