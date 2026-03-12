@@ -545,8 +545,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       setCurrentStep("success");
     } catch (error) {
       console.error("Error al confirmar inscripción:", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -914,7 +912,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             <ChevronLeft className="w-4 h-4" /> Volver a editar
           </Button>
           <Button 
-            onClick={handleConfirm} 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleConfirm(); }} 
             disabled={isSubmitting} 
             className="gap-2"
           >
