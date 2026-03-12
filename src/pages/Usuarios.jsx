@@ -49,10 +49,28 @@ export default function Usuarios() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: pendingInvitations = [], isLoading: loadingPending } = useQuery({
+    queryKey: ["pending-invitations"],
+    queryFn: () => base44.entities.InvitacionPendiente.list(),
+  });
+
   const { data: schools = [] } = useQuery({
     queryKey: ["schools-list"],
     queryFn: () => base44.entities.School.list(),
   });
+
+  // Cleanup: Remove pending invitations when user becomes active
+  React.useEffect(() => {
+    const activeEmails = users.map(u => u.email);
+    const toCleanup = pendingInvitations.filter(inv => activeEmails.includes(inv.email));
+    
+    if (toCleanup.length > 0) {
+      toCleanup.forEach(inv => {
+        base44.entities.InvitacionPendiente.delete(inv.id);
+      });
+      qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+    }
+  }, [users, pendingInvitations]);
 
   const updateUser = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
@@ -112,18 +130,20 @@ export default function Usuarios() {
     if (inviteRole === "user" && !inviteSchool) return;
     setInviteStatus("loading");
     try {
-      // Create user record with invited status first
-      await base44.entities.User.create({
+      // Create pending invitation record
+      await base44.entities.InvitacionPendiente.create({
         email: inviteEmail,
         role: inviteRole,
         school_name: inviteRole === "user" ? inviteSchool : "",
-        status: "invited"
+        status: "pending",
+        fecha_invitacion: new Date().toISOString()
       });
       
       // Send invitation
       await base44.users.inviteUser(inviteEmail, inviteRole);
       
-      // Refresh list
+      // Refresh lists
+      await qc.invalidateQueries({ queryKey: ["pending-invitations"] });
       await qc.invalidateQueries({ queryKey: ["users-list"] });
       
       setInviteStatus("ok");
@@ -136,11 +156,22 @@ export default function Usuarios() {
   };
 
   const resendInvite = useMutation({
-    mutationFn: async (user) => {
-      await base44.users.inviteUser(user.email, user.role);
+    mutationFn: async (invitation) => {
+      await base44.users.inviteUser(invitation.email, invitation.role);
+      await base44.entities.InvitacionPendiente.update(invitation.id, {
+        fecha_invitacion: new Date().toISOString()
+      });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["users-list"] });
+      qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+    }
+  });
+
+  const deletePendingInvitation = useMutation({
+    mutationFn: (id) => base44.entities.InvitacionPendiente.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+      setUserToDelete(null);
     }
   });
 
@@ -175,10 +206,57 @@ export default function Usuarios() {
           <CardTitle className="text-base">Usuarios registrados</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {loadingUsers ? (
+          {(loadingUsers || loadingPending) ? (
             <p className="text-sm text-muted-foreground p-6">Cargando...</p>
           ) : (
             <div className="divide-y">
+              {/* Pending invitations */}
+              {pendingInvitations.map((inv) => (
+                <div
+                  key={`pending-${inv.id}`}
+                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-orange-500/5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{inv.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Invitado el {new Date(inv.fecha_invitacion).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 ml-4 shrink-0">
+                    {inv.school_name ? (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <School className="w-3 h-3" />
+                        {inv.school_name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">Sin escuela</span>
+                    )}
+                    <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                      <Mail className="w-3 h-3" />
+                      Pendiente
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => resendInvite.mutate(inv)}
+                      disabled={resendInvite.isPending}
+                    >
+                      <Mail className="w-3 h-3" />
+                      Reenviar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setUserToDelete({ ...inv, isPending: true })}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {/* Active users */}
               {users.map((u) => (
                 <div
                   key={u.id}
@@ -197,37 +275,17 @@ export default function Usuarios() {
                     ) : (
                       <span className="text-xs text-muted-foreground/50">Sin escuela</span>
                     )}
-                    {u.status === "invited" ? (
-                      <Badge variant="outline" className="gap-1">
-                        <Mail className="w-3 h-3" />
-                        Invitación enviada
-                      </Badge>
-                    ) : (
-                      <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                        {u.role === "admin" ? "Admin" : "Escuela"}
-                      </Badge>
-                    )}
-                    {u.status === "invited" ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs gap-1"
-                        onClick={() => resendInvite.mutate(u)}
-                        disabled={resendInvite.isPending}
-                      >
-                        <Mail className="w-3 h-3" />
-                        Reenviar
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openEdit(u)}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                      {u.role === "admin" ? "Admin" : "Escuela"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => openEdit(u)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -239,7 +297,7 @@ export default function Usuarios() {
                   </div>
                 </div>
               ))}
-              {users.length === 0 && (
+              {users.length === 0 && pendingInvitations.length === 0 && (
                 <p className="text-sm text-muted-foreground p-6">No hay usuarios.</p>
               )}
             </div>
@@ -349,7 +407,13 @@ export default function Usuarios() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteUser.mutate(userToDelete.id)}
+              onClick={() => {
+                if (userToDelete.isPending) {
+                  deletePendingInvitation.mutate(userToDelete.id);
+                } else {
+                  deleteUser.mutate(userToDelete.id);
+                }
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
