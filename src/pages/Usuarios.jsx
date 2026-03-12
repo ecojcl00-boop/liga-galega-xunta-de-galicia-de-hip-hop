@@ -89,6 +89,24 @@ export default function Usuarios() {
     });
   };
 
+  const handleSchoolSelect = async (schoolName) => {
+    setInviteSchool(schoolName);
+    setSchoolSearch("");
+    
+    // Try to find email from School entity first
+    const schoolsFromDB = await base44.entities.School.filter({ name: schoolName });
+    if (schoolsFromDB && schoolsFromDB.length > 0 && schoolsFromDB[0].email) {
+      setInviteEmail(schoolsFromDB[0].email);
+      return;
+    }
+    
+    // If not found, try from Group entity
+    const groups = await base44.entities.Group.filter({ school_name: schoolName });
+    if (groups && groups.length > 0 && groups[0].coach_email) {
+      setInviteEmail(groups[0].coach_email);
+    }
+  };
+
   const handleInvite = async () => {
     if (!inviteEmail) return;
     if (inviteRole === "user" && !inviteSchool) return;
@@ -362,7 +380,7 @@ export default function Usuarios() {
                       .map((s) => (
                         <button
                           key={s.id}
-                          onClick={() => { setInviteSchool(s.name); setSchoolSearch(""); }}
+                          onClick={() => handleSchoolSelect(s.name)}
                           className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
                             inviteSchool === s.name ? "bg-primary/10 font-medium" : ""
                           }`}
