@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, Pencil, Shield, School, Trash2, RefreshCw } from "lucide-react";
+import { UserPlus, Pencil, Shield, School, Trash2, RefreshCw, Mail } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,23 +112,19 @@ export default function Usuarios() {
     if (inviteRole === "user" && !inviteSchool) return;
     setInviteStatus("loading");
     try {
+      // Create user record with invited status first
+      await base44.entities.User.create({
+        email: inviteEmail,
+        role: inviteRole,
+        school_name: inviteRole === "user" ? inviteSchool : "",
+        status: "invited"
+      });
+      
+      // Send invitation
       await base44.users.inviteUser(inviteEmail, inviteRole);
       
-      // Wait for user to be created in the database
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // If school role, assign school_name to the newly invited user
-      if (inviteRole === "user" && inviteSchool) {
-        const allUsers = await base44.entities.User.list();
-        const newUser = allUsers.find(u => u.email === inviteEmail);
-        if (newUser) {
-          await base44.entities.User.update(newUser.id, { school_name: inviteSchool });
-        }
-      }
-      
-      // Force refresh of the users list
+      // Refresh list
       await qc.invalidateQueries({ queryKey: ["users-list"] });
-      await qc.refetchQueries({ queryKey: ["users-list"] });
       
       setInviteStatus("ok");
       setInviteEmail("");
@@ -138,6 +134,15 @@ export default function Usuarios() {
       setInviteStatus("error");
     }
   };
+
+  const resendInvite = useMutation({
+    mutationFn: async (user) => {
+      await base44.users.inviteUser(user.email, user.role);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users-list"] });
+    }
+  });
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
@@ -192,17 +197,37 @@ export default function Usuarios() {
                     ) : (
                       <span className="text-xs text-muted-foreground/50">Sin escuela</span>
                     )}
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                      {u.role === "admin" ? "Admin" : "Escuela"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEdit(u)}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
+                    {u.status === "invited" ? (
+                      <Badge variant="outline" className="gap-1">
+                        <Mail className="w-3 h-3" />
+                        Invitación enviada
+                      </Badge>
+                    ) : (
+                      <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                        {u.role === "admin" ? "Admin" : "Escuela"}
+                      </Badge>
+                    )}
+                    {u.status === "invited" ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => resendInvite.mutate(u)}
+                        disabled={resendInvite.isPending}
+                      >
+                        <Mail className="w-3 h-3" />
+                        Reenviar
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEdit(u)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
