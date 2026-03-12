@@ -517,6 +517,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
 
   const handleConfirm = () => {
     if (isSubmitting) return;
+    setIsSubmitting(true);
     
     const data = selectedGroups.map(group => {
       const ps   = groupParticipants[group.id] ?? group.participants ?? [];
@@ -909,10 +910,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
             <ChevronLeft className="w-4 h-4" /> Volver a editar
           </Button>
           <Button 
-            onClick={() => {
-              setIsSubmitting(true);
-              handleConfirm();
-            }} 
+            onClick={handleConfirm} 
             disabled={isSubmitting} 
             className="gap-2"
           >
