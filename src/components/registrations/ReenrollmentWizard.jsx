@@ -458,13 +458,11 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       queryClient.invalidateQueries({ queryKey: ["groups"] });
-      setIsSubmitting(false);
+      setCurrentStep("success");
     },
-    onError: () => {
-      // En caso de error, volver atrás
-      setIsSuccess(false);
+    onError: (error) => {
+      console.error("Error en inscripción:", error);
       setIsSubmitting(false);
-      submitLock.current = false;
     },
   });
 
@@ -521,31 +519,26 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     if (isSubmitting) return;
     setIsSubmitting(true);
     
-    try {
-      const data = selectedGroups.map(group => {
-        const ps = groupParticipants[group.id] ?? group.participants ?? [];
-        const docs = groupDocuments[group.id] || [];
-        return {
-          competition_id: selectedComp.id,
-          competition_name: selectedComp.name,
-          group_id: group.id,
-          group_name: group.name,
-          school_name: group.school_name,
-          category: group.category,
-          coach_name: group.coach_name,
-          status: "pending",
-          payment_status: "pending",
-          participants_count: ps.length,
-          participants: ps,
-          documents: docs,
-          is_simulacro: isSimulacro,
-        };
-      });
-      await createMutation.mutateAsync(data);
-      setCurrentStep("success");
-    } catch (error) {
-      console.error("Error al confirmar inscripción:", error);
-    }
+    const data = selectedGroups.map(group => {
+      const ps = groupParticipants[group.id] ?? group.participants ?? [];
+      const docs = groupDocuments[group.id] || [];
+      return {
+        competition_id: selectedComp.id,
+        competition_name: selectedComp.name,
+        group_id: group.id,
+        group_name: group.name,
+        school_name: group.school_name,
+        category: group.category,
+        coach_name: group.coach_name,
+        status: "pending",
+        payment_status: "pending",
+        participants_count: ps.length,
+        participants: ps,
+        documents: docs,
+        is_simulacro: isSimulacro,
+      };
+    });
+    await createMutation.mutateAsync(data);
   };
 
   // Called when a new group is successfully created from NewGroupForm
