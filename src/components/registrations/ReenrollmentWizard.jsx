@@ -206,8 +206,8 @@ function DocUploader({ documents, onChange, uploading, onUpload }) {
         <Button type="button" variant="outline" size="sm" className="gap-2" disabled={uploading} onClick={() => otherRef.current?.click()}>
           <FileText className="w-3.5 h-3.5" /> Otro
         </Button>
-        <input ref={authRef}  type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0], "autorizacion"); e.target.value = ""; }} />
-        <input ref={musicRef} type="file" accept=".mp3,audio/*"         className="hidden" onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0], "musica");       e.target.value = ""; }} />
+        <input ref={authRef}  type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0], "autorizacion"); e.target.value = ""; }} />
+        <input ref={musicRef} type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg"         className="hidden" onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0], "musica");       e.target.value = ""; }} />
         <input ref={otherRef} type="file"                                className="hidden" onChange={e => { if (e.target.files[0]) onUpload(e.target.files[0], "otro");         e.target.value = ""; }} />
       </div>
       {uploading && <p className="text-xs text-muted-foreground animate-pulse">Subiendo...</p>}
