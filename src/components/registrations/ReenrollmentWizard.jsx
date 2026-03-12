@@ -360,7 +360,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const submitLock = useRef(false);
 
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
@@ -518,36 +517,37 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     setUploadingGroup(prev => ({ ...prev, [groupId]: false }));
   };
 
-  const handleConfirm = () => {
-    if (isSubmitting || submitLock.current) return;
-    submitLock.current = true;
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     
-    // Mostrar pantalla de éxito inmediatamente
-    setIsSuccess(true);
-    
-    const data = selectedGroups.map(group => {
-      const ps   = groupParticipants[group.id] ?? group.participants ?? [];
-      const docs = groupDocuments[group.id] || [];
-      return {
-        competition_id: selectedComp.id,
-        competition_name: selectedComp.name,
-        group_id: group.id,
-        group_name: group.name,
-        school_name: group.school_name,
-        category: group.category,
-        coach_name: group.coach_name,
-        status: "pending",
-        payment_status: "pending",
-        participants_count: ps.length,
-        participants: ps,
-        documents: docs,
-        is_simulacro: isSimulacro,
-      };
-    });
-    
-    // Enviar la mutación en segundo plano
-    createMutation.mutate(data);
+    try {
+      const data = selectedGroups.map(group => {
+        const ps = groupParticipants[group.id] ?? group.participants ?? [];
+        const docs = groupDocuments[group.id] || [];
+        return {
+          competition_id: selectedComp.id,
+          competition_name: selectedComp.name,
+          group_id: group.id,
+          group_name: group.name,
+          school_name: group.school_name,
+          category: group.category,
+          coach_name: group.coach_name,
+          status: "pending",
+          payment_status: "pending",
+          participants_count: ps.length,
+          participants: ps,
+          documents: docs,
+          is_simulacro: isSimulacro,
+        };
+      });
+      await createMutation.mutateAsync(data);
+      setCurrentStep("success");
+    } catch (error) {
+      console.error("Error al confirmar inscripción:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Called when a new group is successfully created from NewGroupForm
@@ -583,17 +583,12 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   };
 
   // ── SUCCESS SCREEN ──
-  if (isSuccess) {
+  if (currentStep === "success") {
     return (
-      <div className="text-center space-y-4 py-12">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <Check className="w-8 h-8 text-green-600" />
-        </div>
-        <h2 className="text-xl font-bold">¡Inscripción confirmada correctamente!</h2>
-        <p className="text-muted-foreground max-w-sm mx-auto">
-          Tu inscripción está <strong>pendiente de revisión</strong> por el administrador. Recibirás un email de confirmación.
-        </p>
-        <Button onClick={onSuccess}>Volver al panel</Button>
+      <div className="text-center p-8">
+        <h2 className="text-2xl font-bold text-green-500 mb-4">✓ Inscripción confirmada</h2>
+        <p className="text-foreground">Tu inscripción ha sido registrada correctamente.</p>
+        <Button onClick={onSuccess} className="mt-4">Volver al panel</Button>
       </div>
     );
   }
