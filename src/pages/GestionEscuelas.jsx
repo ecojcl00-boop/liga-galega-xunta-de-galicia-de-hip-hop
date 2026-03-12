@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
@@ -141,8 +141,13 @@ export default function GestionEscuelas() {
   const activeSchools = schools.filter(s => s.is_active !== false);
   const inactiveSchools = schools.filter(s => s.is_active === false);
 
+  useEffect(() => {
+    if (user?.role !== "admin") {
+      navigate(createPageUrl("Dashboard"), { replace: true });
+    }
+  }, [user, navigate]);
+
   if (user?.role !== "admin") {
-    navigate(createPageUrl("Dashboard"), { replace: true });
     return null;
   }
 
