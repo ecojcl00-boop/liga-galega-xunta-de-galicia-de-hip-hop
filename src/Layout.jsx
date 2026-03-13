@@ -148,7 +148,8 @@ export default function Layout({ children, currentPageName }) {
 
 
 
-  // Build effective user context: if simulating, inject school identity
+  // Build effective user context: if simulating a school, inject school identity
+  // IMPORTANT: Only override role when actually simulating a school (not when simulatedSchool is null)
   const effectiveUser = simulatedSchool
     ? { ...user, role: "user", school_name: simulatedSchool, _simulating: true }
     : user;
