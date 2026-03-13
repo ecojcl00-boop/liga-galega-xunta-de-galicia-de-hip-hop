@@ -123,12 +123,17 @@ export default function Competitions() {
     `;
     
     sortedSchools.forEach(school => {
-      const participants = participantsBySchool[school];
-      const count = participants.length;
+      const nombresUnicos = [...new Set(
+        participantsBySchool[school].map(p => p.name.trim().toLowerCase().replace(/\s+/g, ' '))
+      )].sort();
+      const count = nombresUnicos.length;
       
       htmlContent += `<div class="school">${school.toUpperCase()}</div>\n`;
-      participants.forEach((p, i) => {
-        htmlContent += `<div class="participant">${i + 1}. ${p.name}</div>\n`;
+      nombresUnicos.forEach((nombre, i) => {
+        const nombreOriginal = participantsBySchool[school].find(p => 
+          p.name.trim().toLowerCase().replace(/\s+/g, ' ') === nombre
+        )?.name || nombre;
+        htmlContent += `<div class="participant">${i + 1}. ${nombreOriginal}</div>\n`;
       });
       htmlContent += `<div class="total">Total: ${count} participante${count !== 1 ? 's' : ''}</div>\n`;
     });
