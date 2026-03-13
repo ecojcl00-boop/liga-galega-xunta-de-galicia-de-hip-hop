@@ -105,7 +105,7 @@ export default function Competitions() {
     Object.keys(participantsBySchool).forEach(school => {
       const participantMap = new Map();
       participantsBySchool[school].forEach(p => {
-        const key = p.name.trim().toLowerCase() + p.birthDate;
+        const key = p.name.trim().toLowerCase().replace(/\s+/g, ' ');
         if (!participantMap.has(key)) {
           participantMap.set(key, p);
         }
