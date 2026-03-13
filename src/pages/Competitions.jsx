@@ -103,13 +103,14 @@ export default function Competitions() {
     // Remove duplicates (same normalized name + birth date)
     const uniqueBySchool = {};
     Object.keys(participantsBySchool).forEach(school => {
-      const seen = new Set();
-      uniqueBySchool[school] = participantsBySchool[school].filter(p => {
-        const key = `${p.name.toLowerCase().trim().replace(/\s+/g, ' ')}|${p.birthDate}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+      const participantMap = new Map();
+      participantsBySchool[school].forEach(p => {
+        const key = p.name.trim().toLowerCase() + p.birthDate;
+        if (!participantMap.has(key)) {
+          participantMap.set(key, p);
+        }
       });
+      uniqueBySchool[school] = Array.from(participantMap.values());
       // Sort participants alphabetically
       uniqueBySchool[school].sort((a, b) => a.name.localeCompare(b.name));
     });

@@ -110,7 +110,7 @@ export default function Layout({ children, currentPageName }) {
 
     if (user && currentPageName === "Landing") {
       redirectedRef.current = true;
-      const dest = user.role === "admin" ? createPageUrl("Dashboard") : createPageUrl("PortalEscuela");
+      const dest = createPageUrl("Dashboard");
       navigate(dest, { replace: true });
       return;
     }
