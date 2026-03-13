@@ -25,6 +25,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
   const [filterCat, setFilterCat]       = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch]             = useState("");
+  const [csvComp, setCsvComp]           = useState("all");
 
   const [expandedComps, setExpandedComps] = useState(new Set());
   const [expandedCats, setExpandedCats]   = useState(new Set());
@@ -88,8 +89,9 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
   }, {});
 
   const exportCSV = () => {
+    const toExport = csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp);
     const headers = ["Competición", "Categoría", "Grupo", "Escuela", "Entrenador", "Participantes", "Estado", "Pago"];
-    const rows = filtered.map(r => [
+    const rows = toExport.map(r => [
       r.competition_name, r.category, r.group_name, r.school_name,
       r.coach_name, r.participants_count || 0, r.status, r.payment_status,
     ]);
@@ -99,7 +101,8 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "inscripciones.csv";
+    const filename = csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    a.download = filename;
     a.click();
   };
 
@@ -155,8 +158,20 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCSV} className="gap-2 shrink-0">
-          <Download className="w-4 h-4" /> CSV ({filtered.length})
+      </div>
+
+      {/* CSV Download */}
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+        <Select value={csvComp} onValueChange={setCsvComp}>
+          <SelectTrigger className="w-full sm:w-60"><SelectValue placeholder="Competición para CSV" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las competiciones</SelectItem>
+            {allCompNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={exportCSV} className="gap-2 shrink-0 w-full sm:w-auto">
+          <Download className="w-4 h-4" />
+          Descargar CSV — {csvComp === "all" ? "Todas las competiciones" : csvComp} ({csvComp === "all" ? filtered.length : filtered.filter(r => r.competition_name === csvComp).length})
         </Button>
       </div>
 
