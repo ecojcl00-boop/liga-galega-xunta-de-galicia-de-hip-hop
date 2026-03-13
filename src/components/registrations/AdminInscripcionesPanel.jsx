@@ -17,6 +17,7 @@ const STATUS_CONFIG = {
   cancelled: { label: "Cancelado",   color: "bg-muted text-muted-foreground", icon: "⚫" },
 };
 
+// Force redeploy - 2026-03-13
 export default function AdminInscripcionesPanel({ registrations, competitions }) {
   const queryClient = useQueryClient();
 
