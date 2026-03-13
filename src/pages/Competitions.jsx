@@ -123,17 +123,22 @@ export default function Competitions() {
     `;
     
     sortedSchools.forEach(school => {
-      const nombresUnicos = [...new Set(
-        participantsBySchool[school].map(p => p.name.trim().toLowerCase().replace(/\s+/g, ' '))
-      )].sort();
+      const vistos = new Map();
+      participantsBySchool[school].forEach(p => {
+        const nombreNorm = p.name.trim().toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // elimina acentos
+          .replace(/\s+/g, ' ');
+        const clave = p.birthDate ? p.birthDate.trim() : nombreNorm;
+        if (!vistos.has(clave)) {
+          vistos.set(clave, p.name.trim());
+        }
+      });
+      const nombresUnicos = [...vistos.values()].sort((a, b) => a.localeCompare(b));
       const count = nombresUnicos.length;
       
       htmlContent += `<div class="school">${school.toUpperCase()}</div>\n`;
       nombresUnicos.forEach((nombre, i) => {
-        const nombreOriginal = participantsBySchool[school].find(p => 
-          p.name.trim().toLowerCase().replace(/\s+/g, ' ') === nombre
-        )?.name || nombre;
-        htmlContent += `<div class="participant">${i + 1}. ${nombreOriginal}</div>\n`;
+        htmlContent += `<div class="participant">${i + 1}. ${nombre}</div>\n`;
       });
       htmlContent += `<div class="total">Total: ${count} participante${count !== 1 ? 's' : ''}</div>\n`;
     });
