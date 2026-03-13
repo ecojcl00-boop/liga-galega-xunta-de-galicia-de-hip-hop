@@ -90,11 +90,35 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
 
   const exportCSV = (compName = null) => {
     const toExport = compName ? filtered.filter(r => r.competition_name === compName) : (csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp));
-    const headers = ["Competición", "Categoría", "Grupo", "Escuela", "Entrenador", "Participantes", "Estado", "Pago"];
-    const rows = toExport.map(r => [
-      r.competition_name, r.category, r.group_name, r.school_name,
-      r.coach_name, r.participants_count || 0, r.status, r.payment_status,
-    ]);
+    
+    // Find max number of participants across all registrations
+    const maxParticipants = Math.max(...toExport.map(r => (r.participants || []).length), 0);
+    
+    // Build headers with participant columns
+    const baseHeaders = ["Competición", "Categoría", "Grupo", "Escuela", "Entrenador", "Participantes", "Estado", "Pago"];
+    const participantHeaders = [];
+    for (let i = 1; i <= maxParticipants; i++) {
+      participantHeaders.push(`Participante ${i}`, `Participante ${i} - Fecha nacimiento`);
+    }
+    const headers = [...baseHeaders, ...participantHeaders];
+    
+    // Build rows with participant data
+    const rows = toExport.map(r => {
+      const baseRow = [
+        r.competition_name, r.category, r.group_name, r.school_name,
+        r.coach_name, r.participants_count || 0, r.status, r.payment_status,
+      ];
+      const participantCells = [];
+      for (let i = 0; i < maxParticipants; i++) {
+        const participant = (r.participants || [])[i];
+        participantCells.push(
+          participant ? (participant.name || participant) : "",
+          participant?.birth_date || ""
+        );
+      }
+      return [...baseRow, ...participantCells];
+    });
+    
     const csv = [headers, ...rows]
       .map(row => row.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
       .join("\n");
