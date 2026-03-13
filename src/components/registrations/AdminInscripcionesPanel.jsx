@@ -90,7 +90,9 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
   }, {});
 
   const exportCSV = (compName = null) => {
-    const toExport = compName ? filtered.filter(r => r.competition_name === compName) : (csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp));
+    // Validate that compName is a string (not an event object)
+    const validCompName = typeof compName === 'string' ? compName : null;
+    const toExport = validCompName ? filtered.filter(r => r.competition_name === validCompName) : (csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp));
     
     // Find max number of participants across all registrations
     const maxParticipants = Math.max(...toExport.map(r => (r.participants || []).length), 0);
@@ -126,7 +128,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    const filename = compName ? `inscripciones_${compName.replace(/[^a-z0-9]/gi, '_')}.csv` : (csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`);
+    const filename = validCompName ? `inscripciones_${validCompName.replace(/[^a-z0-9]/gi, '_')}.csv` : (csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`);
     a.download = filename;
     a.click();
   };
@@ -194,7 +196,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
             {allCompNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportCSV} className="gap-2 shrink-0 w-full sm:w-auto">
+        <Button variant="outline" onClick={() => exportCSV()} className="gap-2 shrink-0 w-full sm:w-auto">
           <Download className="w-4 h-4" />
           Descargar CSV — {csvComp === "all" ? "Todas las competiciones" : csvComp} ({csvComp === "all" ? filtered.length : filtered.filter(r => r.competition_name === csvComp).length})
         </Button>
