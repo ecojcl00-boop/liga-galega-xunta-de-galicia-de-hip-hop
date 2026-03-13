@@ -88,8 +88,8 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     return acc;
   }, {});
 
-  const exportCSV = () => {
-    const toExport = csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp);
+  const exportCSV = (compName = null) => {
+    const toExport = compName ? filtered.filter(r => r.competition_name === compName) : (csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp));
     const headers = ["Competición", "Categoría", "Grupo", "Escuela", "Entrenador", "Participantes", "Estado", "Pago"];
     const rows = toExport.map(r => [
       r.competition_name, r.category, r.group_name, r.school_name,
@@ -101,7 +101,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    const filename = csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    const filename = compName ? `inscripciones_${compName.replace(/[^a-z0-9]/gi, '_')}.csv` : (csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`);
     a.download = filename;
     a.click();
   };
@@ -187,17 +187,26 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
           return (
             <div key={comp} className="rounded-xl border bg-card overflow-hidden">
               {/* Competition header */}
-              <button
-                onClick={() => toggle(setExpandedComps)(comp)}
-                className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors"
-              >
-                <div className="flex items-center gap-3">
+              <div className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                <button
+                  onClick={() => toggle(setExpandedComps)(comp)}
+                  className="flex items-center gap-3 flex-1"
+                >
                   <Trophy className="w-4 h-4 text-primary shrink-0" />
                   <span className="font-semibold">{comp}</span>
                   <Badge variant="outline" className="text-xs">{totalRegs} grupos</Badge>
-                </div>
-                {isCompOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-              </button>
+                  {isCompOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" /> : <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />}
+                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); exportCSV(comp); }}
+                  className="gap-1.5 text-xs shrink-0 ml-3"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Descargar CSV — {comp}
+                </Button>
+              </div>
 
               {isCompOpen && (
                 <div className="divide-y border-t">
