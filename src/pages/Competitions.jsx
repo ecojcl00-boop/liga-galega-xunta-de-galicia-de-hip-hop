@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Trophy, MapPin, Calendar, Users, ClipboardList } from "lucide-react";
+import { Plus, Pencil, Trash2, Trophy, MapPin, Calendar, Users, ClipboardList, Download } from "lucide-react";
 import CompetitionRegistrationsPanel from "../components/registrations/CompetitionRegistrationsPanel";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -36,6 +36,11 @@ export default function Competitions() {
   const { data: registrations = [] } = useQuery({
     queryKey: ["registrations"],
     queryFn: () => base44.entities.Registration.list(),
+  });
+
+  const { data: groups = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: () => base44.entities.Group.list(),
   });
 
   const createMutation = useMutation({
@@ -70,6 +75,55 @@ export default function Competitions() {
 
   const getRegistrationCount = (competitionName) => {
     return registrations.filter(r => r.competition_name === competitionName).length;
+  };
+
+  const exportCompetitionCSV = (comp) => {
+    const compRegs = registrations.filter(r => r.competition_name === comp.name);
+    
+    // Find max participants across all registrations
+    const maxParticipants = Math.max(...compRegs.map(r => (r.participants || []).length), 0);
+    
+    // Build headers
+    const baseHeaders = ["Competición", "Fecha", "Escuela", "Entrenador", "Nombre del grupo", "Categoría"];
+    const participantHeaders = [];
+    for (let i = 1; i <= maxParticipants; i++) {
+      participantHeaders.push(`Participante ${i}`, `Fecha nacimiento ${i}`);
+    }
+    const headers = [...baseHeaders, ...participantHeaders];
+    
+    // Build rows
+    const rows = compRegs.map(reg => {
+      const group = groups.find(g => g.id === reg.group_id || g.name === reg.group_name);
+      const baseRow = [
+        comp.name,
+        comp.date || "",
+        reg.school_name || group?.school_name || "",
+        reg.coach_name || group?.coach_name || "",
+        reg.group_name,
+        reg.category || group?.category || "",
+      ];
+      
+      const participantCells = [];
+      for (let i = 0; i < maxParticipants; i++) {
+        const participant = (reg.participants || [])[i];
+        participantCells.push(
+          participant ? (participant.name || participant) : "",
+          participant?.birth_date || ""
+        );
+      }
+      
+      return [...baseRow, ...participantCells];
+    });
+    
+    const csv = [headers, ...rows]
+      .map(row => row.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `inscripciones_${comp.name.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    a.click();
   };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
@@ -114,6 +168,9 @@ export default function Competitions() {
                     </div>
                     {isAdmin && (
                       <div className="flex gap-1 shrink-0 self-end md:self-start">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar CSV" onClick={() => exportCompetitionCSV(comp)}>
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
                           <ClipboardList className="w-3.5 h-3.5" />
                         </Button>
