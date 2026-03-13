@@ -80,49 +80,61 @@ export default function Competitions() {
   const exportCompetitionCSV = (comp) => {
     const compRegs = registrations.filter(r => r.competition_name === comp.name);
     
-    // Find max participants across all registrations
-    const maxParticipants = Math.max(...compRegs.map(r => (r.participants || []).length), 0);
+    // Collect all participants with their school
+    const participantsBySchool = {};
     
-    // Build headers
-    const baseHeaders = ["Competición", "Fecha", "Escuela", "Entrenador", "Nombre del grupo", "Categoría"];
-    const participantHeaders = [];
-    for (let i = 1; i <= maxParticipants; i++) {
-      participantHeaders.push(`Participante ${i}`, `Fecha nacimiento ${i}`);
-    }
-    const headers = [...baseHeaders, ...participantHeaders];
-    
-    // Build rows
-    const rows = compRegs.map(reg => {
+    compRegs.forEach(reg => {
       const group = groups.find(g => g.id === reg.group_id || g.name === reg.group_name);
-      const baseRow = [
-        comp.name,
-        comp.date || "",
-        reg.school_name || group?.school_name || "",
-        reg.coach_name || group?.coach_name || "",
-        reg.group_name,
-        reg.category || group?.category || "",
-      ];
+      const schoolName = reg.school_name || group?.school_name || "SIN ESCUELA";
       
-      const participantCells = [];
-      for (let i = 0; i < maxParticipants; i++) {
-        const participant = (reg.participants || [])[i];
-        participantCells.push(
-          participant ? (participant.name || participant) : "",
-          participant?.birth_date || ""
-        );
+      if (!participantsBySchool[schoolName]) {
+        participantsBySchool[schoolName] = [];
       }
       
-      return [...baseRow, ...participantCells];
+      (reg.participants || []).forEach(p => {
+        const name = p?.name || p;
+        const birthDate = p?.birth_date || "";
+        if (name) {
+          participantsBySchool[schoolName].push({ name, birthDate });
+        }
+      });
     });
     
-    const csv = [headers, ...rows]
-      .map(row => row.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+    // Remove duplicates (same normalized name + birth date)
+    const uniqueBySchool = {};
+    Object.keys(participantsBySchool).forEach(school => {
+      const seen = new Set();
+      uniqueBySchool[school] = participantsBySchool[school].filter(p => {
+        const key = `${p.name.toLowerCase().trim().replace(/\s+/g, ' ')}|${p.birthDate}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      // Sort participants alphabetically
+      uniqueBySchool[school].sort((a, b) => a.name.localeCompare(b.name));
+    });
     
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    // Sort schools alphabetically
+    const sortedSchools = Object.keys(uniqueBySchool).sort();
+    
+    // Build text content
+    const lines = [];
+    sortedSchools.forEach((school, index) => {
+      lines.push(school.toUpperCase());
+      uniqueBySchool[school].forEach(p => {
+        lines.push(p.name);
+      });
+      if (index < sortedSchools.length - 1) {
+        lines.push(""); // Blank line between schools
+      }
+    });
+    
+    const content = lines.join("\n");
+    
+    const blob = new Blob(["\ufeff" + content], { type: "text/plain;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `inscripciones_${comp.name.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    a.download = `inscripciones_${comp.name.replace(/[^a-z0-9]/gi, '_')}.txt`;
     a.click();
   };
 
