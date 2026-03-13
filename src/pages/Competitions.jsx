@@ -117,25 +117,47 @@ export default function Competitions() {
     // Sort schools alphabetically
     const sortedSchools = Object.keys(uniqueBySchool).sort();
     
-    // Build text content
-    const lines = [];
-    sortedSchools.forEach((school, index) => {
-      lines.push(school.toUpperCase());
-      uniqueBySchool[school].forEach(p => {
-        lines.push(p.name);
+    // Build HTML content
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Inscripciones ${comp.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          .school { font-weight: bold; font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
+          .participant { margin-left: 20px; margin-bottom: 5px; }
+          .total { margin-left: 20px; margin-top: 10px; margin-bottom: 30px; }
+        </style>
+      </head>
+      <body>
+    `;
+    
+    sortedSchools.forEach(school => {
+      const participants = uniqueBySchool[school];
+      const count = participants.length;
+      
+      htmlContent += `<div class="school">${school.toUpperCase()}</div>\n`;
+      participants.forEach((p, i) => {
+        htmlContent += `<div class="participant">${i + 1}. ${p.name}</div>\n`;
       });
-      if (index < sortedSchools.length - 1) {
-        lines.push(""); // Blank line between schools
-      }
+      htmlContent += `<div class="total">Total: ${count} participante${count !== 1 ? 's' : ''}</div>\n`;
     });
     
-    const content = lines.join("\n");
+    htmlContent += `
+      </body>
+      </html>
+    `;
     
-    const blob = new Blob(["\ufeff" + content], { type: "text/plain;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `inscripciones_${comp.name.replace(/[^a-z0-9]/gi, '_')}.txt`;
-    a.click();
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
   };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
