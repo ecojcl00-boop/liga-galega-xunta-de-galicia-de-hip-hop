@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ImportData from './pages/ImportData';
+import ImportarDatos from './pages/ImportarDatos';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -61,6 +62,11 @@ const AuthenticatedApp = () => {
       <Route path="/ImportData" element={
         <LayoutWrapper currentPageName="ImportData">
           <ImportData />
+        </LayoutWrapper>
+      } />
+      <Route path="/ImportarDatos" element={
+        <LayoutWrapper currentPageName="ImportarDatos">
+          <ImportarDatos />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
