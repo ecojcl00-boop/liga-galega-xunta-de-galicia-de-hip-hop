@@ -1,97 +1,198 @@
-import React from "react";
-import { useUser } from "@/components/UserContext";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Database, Trophy, Gavel, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import ImportInscripciones from "@/components/import/ImportInscripciones";
-import ImportLigaJornada from "@/components/import/ImportLigaJornada";
-import ImportActaJueces from "@/components/import/ImportActaJueces";
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ImportData() {
-  const user = useUser();
-  const navigate = useNavigate();
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null);
+  const { toast } = useToast();
 
-  // Admin-only: redirect non-admins to their portal
-  if (user && user.role !== "admin") {
-    navigate(createPageUrl("PortalEscuela"), { replace: true });
-    return null;
-  }
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setStatus(null);
+    }
+  };
+
+  const parseExcelData = (data) => {
+    const groups = [];
+    
+    data.forEach(row => {
+      const participants = [];
+      
+      // Extraer participantes (pares de nombre y fecha)
+      let i = 1;
+      while (row[`nombre_participante_${i}`] || row[`fecha_nacimiento_${i}`]) {
+        if (row[`nombre_participante_${i}`]) {
+          participants.push({
+            name: row[`nombre_participante_${i}`],
+            birth_date: row[`fecha_nacimiento_${i}`] || '',
+            dni: ''
+          });
+        }
+        i++;
+      }
+
+      groups.push({
+        name: row.nombre_grupo,
+        school_name: row.escuela,
+        category: row.categoria,
+        coach_name: row.nombre_entrenador,
+        coach_email: row.email_entrenador,
+        coach_phone: row.telefono_entrenador,
+        participants: participants
+      });
+    });
+
+    return groups;
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      toast({
+        title: 'Error',
+        description: 'Por favor selecciona un archivo',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: 'loading', message: 'Subiendo archivo...' });
+
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    
+    setStatus({ type: 'loading', message: 'Extrayendo datos...' });
+    
+    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
+        type: 'object',
+        properties: {
+          nombre_grupo: { type: 'string' },
+          escuela: { type: 'string' },
+          categoria: { type: 'string' },
+          nombre_entrenador: { type: 'string' },
+          email_entrenador: { type: 'string' },
+          telefono_entrenador: { type: 'string' },
+          nombre_participante_1: { type: 'string' },
+          fecha_nacimiento_1: { type: 'string' },
+          nombre_participante_2: { type: 'string' },
+          fecha_nacimiento_2: { type: 'string' },
+          nombre_participante_3: { type: 'string' },
+          fecha_nacimiento_3: { type: 'string' },
+          nombre_participante_4: { type: 'string' },
+          fecha_nacimiento_4: { type: 'string' },
+          nombre_participante_5: { type: 'string' },
+          fecha_nacimiento_5: { type: 'string' },
+          nombre_participante_6: { type: 'string' },
+          fecha_nacimiento_6: { type: 'string' },
+          nombre_participante_7: { type: 'string' },
+          fecha_nacimiento_7: { type: 'string' },
+          nombre_participante_8: { type: 'string' },
+          fecha_nacimiento_8: { type: 'string' }
+        }
+      }
+    });
+
+    if (result.status === 'error') {
+      setStatus({ type: 'error', message: result.details });
+      setLoading(false);
+      toast({
+        title: 'Error',
+        description: result.details,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setStatus({ type: 'loading', message: 'Creando grupos...' });
+    
+    const groups = parseExcelData(result.output);
+    await base44.entities.Group.bulkCreate(groups);
+
+    setStatus({ type: 'loading', message: 'Creando competición...' });
+    
+    await base44.entities.LigaCompeticion.create({
+      name: 'MARÍN 2026',
+      date: '2026-03-01',
+      numero_jornada: 1,
+      is_simulacro: false
+    });
+
+    setStatus({ 
+      type: 'success', 
+      message: `Importados ${groups.length} grupos y creada competición MARÍN 2026` 
+    });
+    setLoading(false);
+    
+    toast({
+      title: 'Importación exitosa',
+      description: `Se importaron ${groups.length} grupos correctamente`
+    });
+  };
 
   return (
-    <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-12">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="w-4 h-4" /> Volver
-        </Button>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Importar Datos</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            Solo administradores. Tres herramientas de importación independientes.
-          </p>
-        </div>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Importar Inscripciones</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Archivo Excel de Inscripciones
+                </label>
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  disabled={loading}
+                />
+              </div>
+
+              <Button
+                onClick={handleImport}
+                disabled={!file || loading}
+                className="w-full"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {loading ? 'Importando...' : 'Importar Datos'}
+              </Button>
+            </div>
+
+            {status && (
+              <Card className={
+                status.type === 'success' ? 'border-green-500' :
+                status.type === 'error' ? 'border-red-500' : 'border-blue-500'
+              }>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    {status.type === 'success' && (
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                    )}
+                    {status.type === 'error' && (
+                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                    )}
+                    {status.type === 'loading' && (
+                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mt-0.5" />
+                    )}
+                    <p className="text-sm">{status.message}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* ── Opción 1 ── */}
-      <section className="space-y-4">
-        <div className="flex items-start gap-3 pb-3 border-b">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 mt-0.5">
-            1
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Database className="w-5 h-5 text-primary" /> Importar inscripciones desde Excel
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Sube el .xlsx de inscripciones. Selecciona la competición antes de procesar.
-              Nunca borra datos existentes — solo añade o actualiza.
-            </p>
-          </div>
-        </div>
-        <ImportInscripciones />
-      </section>
-
-      {/* ── Opción 2 ── */}
-      <section className="space-y-4">
-        <div className="flex items-start gap-3 pb-3 border-b">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 mt-0.5">
-            2
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" /> Importar resultados de jornada (liga)
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Sube el documento de resultados. Confirma el número de jornada antes de procesar.
-              El ranking se recalcula automáticamente. No sobreescribe jornadas ya importadas.
-            </p>
-          </div>
-        </div>
-        <ImportLigaJornada />
-      </section>
-
-      {/* ── Opción 3 ── */}
-      <section className="space-y-4">
-        <div className="flex items-start gap-3 pb-3 border-b">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 mt-0.5">
-            3
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Gavel className="w-5 h-5 text-primary" /> Subir puntuaciones de jueces
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Asigna el documento a una escuela y competición. Solo esa escuela lo verá en su portal privado.
-            </p>
-          </div>
-        </div>
-        <ImportActaJueces />
-      </section>
     </div>
   );
 }
