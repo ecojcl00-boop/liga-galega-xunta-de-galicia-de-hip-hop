@@ -110,7 +110,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
     <div className="space-y-4">
       {sortedComps.map(comp => {
         const compRegs = registrations.filter(r =>
-          r.competition_id === comp.id || r.competition_name === comp.name
+          r.competition_name === comp.name
         );
 
         // School view: skip competitions where this school has no registrations
