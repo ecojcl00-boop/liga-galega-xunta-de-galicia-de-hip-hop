@@ -90,6 +90,7 @@ function SchoolSection({ schoolName, regs, groups }) {
 // groups: all groups for participant lookup
 // isAdmin: boolean — if false, groups by school are NOT shown
 export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin }) {
+  console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
 
   const sortedComps = useMemo(() =>
