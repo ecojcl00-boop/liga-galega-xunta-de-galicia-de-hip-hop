@@ -94,7 +94,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
   const [expandedComp, setExpandedComp] = useState(null);
 
   const sortedComps = useMemo(() =>
-    [...competitions].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+    [...competitions].sort((a, b) => new Date(b.date) - new Date(a.date)),
     [competitions]
   );
 
@@ -172,7 +172,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                         {isAdmin && schoolCount ? ` · ${schoolCount} escuelas` : ""}
                       </Badge>
                     )}
-                    {comp.registration_open !== undefined && (
+                    {comp.registration_open !== undefined && comp.registration_open !== null && (
                       <Badge variant={comp.registration_open ? "default" : "outline"} className="text-[10px]">
                         {comp.registration_open ? "Abierta" : "Cerrada"}
                       </Badge>
