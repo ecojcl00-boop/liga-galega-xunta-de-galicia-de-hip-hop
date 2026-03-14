@@ -185,7 +185,25 @@ export default function ImportarDatos() {
       await loadData();
     }
 
-    await base44.entities.Group.bulkCreate(previewGroups);
+    const createdGroups = await base44.entities.Group.bulkCreate(previewGroups);
+
+    // Crear registros de inscripción
+    const selectedComp = competitions.find(c => c.id === compId);
+    const registrations = createdGroups.map(group => ({
+      group_id: group.id,
+      group_name: group.name,
+      school_name: group.school_name,
+      category: group.category,
+      competition_id: compId,
+      competition_name: selectedComp?.name || '',
+      coach_name: group.coach_name,
+      status: 'confirmed',
+      payment_status: 'paid',
+      participants: group.participants,
+      participants_count: group.participants.length,
+      is_simulacro: false
+    }));
+    await base44.entities.Registration.bulkCreate(registrations);
 
     setInscripcionesStatus({ 
       type: 'success', 
