@@ -1,21 +1,30 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import ImportData from './pages/ImportData';
+import Layout from './layout';
+
+// Page imports
+import Competitions from './pages/Competitions';
+import Dashboard from './pages/Dashboard';
+import GestionEscuelas from './pages/GestionEscuelas';
+import Groups from './pages/Groups';
 import ImportarDatos from './pages/ImportarDatos';
+import ImportData from './pages/ImportData';
+import JudgePanel from './pages/JudgePanel';
+import Landing from './pages/Landing';
+import PortalEscuela from './pages/PortalEscuela';
+import Rankings from './pages/Rankings';
+import Registrations from './pages/Registrations';
+import Schools from './pages/Schools';
+import Usuarios from './pages/Usuarios';
 
-const { Pages, Layout, mainPage } = pagesConfig;
-const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
-
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
+const LayoutWrapper = ({ children, currentPageName }) => (
   <Layout currentPageName={currentPageName}>{children}</Layout>
-  : <>{children}</>;
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,25 +52,26 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
+      <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+      
+      <Route path="/Competitions" element={
+        <LayoutWrapper currentPageName="Competitions">
+          <Competitions />
         </LayoutWrapper>
       } />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      <Route path="/ImportData" element={
-        <LayoutWrapper currentPageName="ImportData">
-          <ImportData />
+      <Route path="/Dashboard" element={
+        <LayoutWrapper currentPageName="Dashboard">
+          <Dashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/GestionEscuelas" element={
+        <LayoutWrapper currentPageName="GestionEscuelas">
+          <GestionEscuelas />
+        </LayoutWrapper>
+      } />
+      <Route path="/Groups" element={
+        <LayoutWrapper currentPageName="Groups">
+          <Groups />
         </LayoutWrapper>
       } />
       <Route path="/ImportarDatos" element={
@@ -69,6 +79,47 @@ const AuthenticatedApp = () => {
           <ImportarDatos />
         </LayoutWrapper>
       } />
+      <Route path="/ImportData" element={
+        <LayoutWrapper currentPageName="ImportData">
+          <ImportData />
+        </LayoutWrapper>
+      } />
+      <Route path="/JudgePanel" element={
+        <LayoutWrapper currentPageName="JudgePanel">
+          <JudgePanel />
+        </LayoutWrapper>
+      } />
+      <Route path="/Landing" element={
+        <LayoutWrapper currentPageName="Landing">
+          <Landing />
+        </LayoutWrapper>
+      } />
+      <Route path="/PortalEscuela" element={
+        <LayoutWrapper currentPageName="PortalEscuela">
+          <PortalEscuela />
+        </LayoutWrapper>
+      } />
+      <Route path="/Rankings" element={
+        <LayoutWrapper currentPageName="Rankings">
+          <Rankings />
+        </LayoutWrapper>
+      } />
+      <Route path="/Registrations" element={
+        <LayoutWrapper currentPageName="Registrations">
+          <Registrations />
+        </LayoutWrapper>
+      } />
+      <Route path="/Schools" element={
+        <LayoutWrapper currentPageName="Schools">
+          <Schools />
+        </LayoutWrapper>
+      } />
+      <Route path="/Usuarios" element={
+        <LayoutWrapper currentPageName="Usuarios">
+          <Usuarios />
+        </LayoutWrapper>
+      } />
+      
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
