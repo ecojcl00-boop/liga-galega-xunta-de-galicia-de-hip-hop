@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { UserContext } from "./components/UserContext";
+import { UserContext } from "./UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SimulacroContext } from "./components/SimulacroContext";
+import { SimulacroContext } from "./SimulacroContext";
 
 const navItems = [
   { name: "Home", icon: LayoutDashboard, page: "Dashboard", adminOnly: true },
