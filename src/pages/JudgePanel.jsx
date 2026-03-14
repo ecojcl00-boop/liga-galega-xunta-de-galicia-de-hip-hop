@@ -67,10 +67,10 @@ export default function JudgePanel() {
       // Create acta record with exact school_name match
       await base44.entities.ActaJueces.create({
         school_name: formData.school_name.trim(), // Trim to avoid extra spaces
-        competicion_nombre: formData.competicion_nombre,
+        competition_name: formData.competicion_nombre,
         fecha: formData.fecha,
-        document_url: uploadResult.file_url,
-        document_name: selectedFile.name,
+        file_url: uploadResult.file_url,
+        file_name: selectedFile.name,
         notas: formData.notas,
       });
 
@@ -127,8 +127,8 @@ export default function JudgePanel() {
                       <FileText className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-base">{acta.competicion_nombre}</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-0.5">{acta.document_name}</p>
+                      <CardTitle className="text-base">{acta.competition_name}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{acta.file_name}</p>
                     </div>
                   </div>
                   {isAdmin && (
@@ -163,7 +163,7 @@ export default function JudgePanel() {
                   variant="outline"
                   size="sm"
                   className="w-full gap-2"
-                  onClick={() => downloadFile(acta.document_url)}
+                  onClick={() => downloadFile(acta.file_url)}
                 >
                   <Download className="w-3.5 h-3.5" /> Descargar
                 </Button>
