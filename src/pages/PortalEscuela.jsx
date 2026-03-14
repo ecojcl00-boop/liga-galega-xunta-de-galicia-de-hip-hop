@@ -143,6 +143,12 @@ export default function PortalEscuela() {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <Tabs defaultValue="inscripciones">
+        <TabsList>
+          <TabsTrigger value="inscripciones">Inscripciones</TabsTrigger>
+          <TabsTrigger value="grupos">Mis Grupos</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
+          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+        </TabsList>
 
         {/* ── Mis Grupos ── */}
         <TabsContent value="grupos" className="space-y-4">

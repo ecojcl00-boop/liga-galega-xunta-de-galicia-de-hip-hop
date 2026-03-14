@@ -45,7 +45,7 @@ export default function Registrations() {
 
   const { data: competitions = [] } = useQuery({
     queryKey: ["competitions"],
-    queryFn: () => base44.entities.Competition.list("-date"),
+    queryFn: () => base44.entities.LigaCompeticion.list("-date"),
     enabled: !!user,
   });
 
