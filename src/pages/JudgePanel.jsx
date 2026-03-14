@@ -182,14 +182,13 @@ export default function JudgePanel() {
             </DialogHeader>
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="space-y-2">
-                <Label>Escuela *</Label>
+                <Label>Escuela (opcional)</Label>
                 <select
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                   value={formData.school_name}
                   onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
-                  required
                 >
-                  <option value="">Selecciona una escuela</option>
+                  <option value="">Disponible para todos</option>
                   {schools.map((s) => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
