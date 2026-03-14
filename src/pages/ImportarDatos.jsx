@@ -199,7 +199,10 @@ export default function ImportarDatos() {
       coach_name: group.coach_name,
       status: 'confirmed',
       payment_status: 'paid',
-      participants: group.participants,
+      participants: group.participants.map(p => ({
+        ...p,
+        birth_date: p.birth_date?.replace(/['"`]/g, '') || ''
+      })),
       participants_count: group.participants.length,
       is_simulacro: false
     }));
