@@ -365,10 +365,13 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   // ── DERIVED STATE ──
   const singleComp = competitions.length === 1 ? competitions[0] : null;
 
-  const alreadyRegisteredIds = useMemo(() =>
-    new Set(registrations.filter(r => r.competition_id === selectedComp?.id).map(r => r.group_id)),
-    [registrations, selectedComp]
-  );
+  const alreadyRegisteredIds = useMemo(() => {
+    if (!selectedComp) return new Set();
+    const filtered = registrations.filter(r => 
+      r.competition_id === selectedComp.id || r.competition_name === selectedComp.name
+    );
+    return new Set(filtered.map(r => r.group_id));
+  }, [registrations, selectedComp]);
 
   // All my groups = fetched from server + newly created this session
   const allMyGroups = useMemo(() => [...myGroups, ...extraGroups], [myGroups, extraGroups]);

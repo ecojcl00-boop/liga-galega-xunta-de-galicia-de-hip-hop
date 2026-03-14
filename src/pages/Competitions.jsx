@@ -80,8 +80,8 @@ export default function Competitions() {
   const exportCompetitionCSV = (comp) => {
     const compRegs = registrations.filter(r => r.competition_name === comp.name);
     
+    // Agrupar participantes por escuela
     const participantsBySchool = {};
-    const globalSeen = new Set();
 
     compRegs.forEach(reg => {
       const schoolName = reg.school_name || "SIN ESCUELA";
@@ -91,19 +91,12 @@ export default function Competitions() {
       (reg.participants || []).forEach(p => {
         const name = (p?.name || p || "").trim();
         if (!name) return;
-        const key = schoolName + "||" + name.toLowerCase().replace(/\s+/g, ' ');
-        if (!globalSeen.has(key)) {
-          globalSeen.add(key);
-          participantsBySchool[schoolName].push({ name, birthDate: p?.birth_date || "" });
-        }
+        participantsBySchool[schoolName].push({ name, birthDate: p?.birth_date || "" });
       });
     });
     
-    // Sort schools alphabetically and participants within each school
-    const sortedSchools = Object.keys(participantsBySchool).sort();
-    Object.keys(participantsBySchool).forEach(school => {
-      participantsBySchool[school].sort((a, b) => a.name.localeCompare(b.name));
-    });
+    // Ordenar escuelas alfabéticamente
+    const sortedSchools = Object.keys(participantsBySchool).sort((a, b) => a.localeCompare(b, "es"));
     
     // Build HTML content
     let htmlContent = `
@@ -114,29 +107,32 @@ export default function Competitions() {
         <title>Inscripciones ${comp.name}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; }
-          .school { font-weight: bold; font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
+          .school { font-weight: bold; font-size: 20px; margin-top: 30px; margin-bottom: 10px; }
           .participant { margin-left: 20px; margin-bottom: 5px; }
-          .total { margin-left: 20px; margin-top: 10px; margin-bottom: 30px; }
+          .total { margin-left: 20px; margin-top: 10px; margin-bottom: 30px; font-weight: normal; }
         </style>
       </head>
       <body>
     `;
     
     sortedSchools.forEach(school => {
+      // Deduplicar participantes por escuela
       const vistos = new Map();
       participantsBySchool[school].forEach(p => {
         const nombreNorm = p.name.trim().toLowerCase()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // elimina acentos
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
           .replace(/\s+/g, ' ');
         const clave = p.birthDate ? p.birthDate.trim() : nombreNorm;
         if (!vistos.has(clave)) {
           vistos.set(clave, p.name.trim());
         }
       });
-      const nombresUnicos = [...vistos.values()].sort((a, b) => a.localeCompare(b));
+      
+      // Ordenar participantes alfabéticamente dentro de la escuela
+      const nombresUnicos = [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
       const count = nombresUnicos.length;
       
-      htmlContent += `<div class="school">${school.toUpperCase()}</div>\n`;
+      htmlContent += `<div class="school">${school}</div>\n`;
       nombresUnicos.forEach((nombre, i) => {
         htmlContent += `<div class="participant">${i + 1}. ${nombre}</div>\n`;
       });

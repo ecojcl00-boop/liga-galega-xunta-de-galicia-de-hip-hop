@@ -71,12 +71,20 @@ export default function SchoolView({ user, competitions, allGroups, registration
     [registrations, mySchoolName]
   );
 
-  // Which group IDs are already registered per competition
+  // Which group IDs are already registered per competition (by ID and by name)
   const registeredGroupIds = useMemo(() => {
     const map = {};
     myRegistrations.forEach(r => {
-      if (!map[r.competition_id]) map[r.competition_id] = new Set();
-      map[r.competition_id].add(r.group_id);
+      // Index by competition_id
+      if (r.competition_id) {
+        if (!map[r.competition_id]) map[r.competition_id] = new Set();
+        map[r.competition_id].add(r.group_id);
+      }
+      // Also index by competition_name
+      if (r.competition_name) {
+        if (!map[r.competition_name]) map[r.competition_name] = new Set();
+        map[r.competition_name].add(r.group_id);
+      }
     });
     return map;
   }, [myRegistrations]);
@@ -132,8 +140,12 @@ export default function SchoolView({ user, competitions, allGroups, registration
           <h2 className="text-base font-semibold">Mis grupos ({myGroups.length})</h2>
           <div className="grid gap-2">
             {myGroups.map(group => {
-              const registeredComps = openCompetitions.filter(c => registeredGroupIds[c.id]?.has(group.id));
-              const pendingComps = openCompetitions.filter(c => !registeredGroupIds[c.id]?.has(group.id));
+              const registeredComps = openCompetitions.filter(c => 
+                registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
+              );
+              const pendingComps = openCompetitions.filter(c => 
+                !registeredGroupIds[c.id]?.has(group.id) && !registeredGroupIds[c.name]?.has(group.id)
+              );
               return (
                 <div key={group.id} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-card gap-3 flex-wrap">
                   <div className="flex items-center gap-3">

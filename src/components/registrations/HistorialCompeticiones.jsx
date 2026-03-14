@@ -172,9 +172,11 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                         {isAdmin && schoolCount ? ` · ${schoolCount} escuelas` : ""}
                       </Badge>
                     )}
-                    <Badge variant={comp.registration_open ? "default" : "outline"} className="text-[10px]">
-                      {comp.registration_open ? "Abierta" : "Cerrada"}
-                    </Badge>
+                    {comp.registration_open !== undefined && (
+                      <Badge variant={comp.registration_open ? "default" : "outline"} className="text-[10px]">
+                        {comp.registration_open ? "Abierta" : "Cerrada"}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
