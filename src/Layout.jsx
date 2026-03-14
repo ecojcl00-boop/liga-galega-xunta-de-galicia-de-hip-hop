@@ -110,7 +110,7 @@ export default function Layout({ children, currentPageName }) {
 
     if (user && currentPageName === "Landing") {
       redirectedRef.current = true;
-      const dest = createPageUrl("Home");
+      const dest = createPageUrl("Dashboard");
       navigate(dest, { replace: true });
       return;
     }
