@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 export default function ImportData() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
-  const { toast } = useToast();
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -55,11 +53,7 @@ export default function ImportData() {
 
   const handleImport = async () => {
     if (!file) {
-      toast({
-        title: 'Error',
-        description: 'Por favor selecciona un archivo',
-        variant: 'destructive'
-      });
+      setStatus({ type: 'error', message: 'Por favor selecciona un archivo' });
       return;
     }
 
@@ -104,11 +98,6 @@ export default function ImportData() {
     if (result.status === 'error') {
       setStatus({ type: 'error', message: result.details });
       setLoading(false);
-      toast({
-        title: 'Error',
-        description: result.details,
-        variant: 'destructive'
-      });
       return;
     }
 
@@ -131,11 +120,6 @@ export default function ImportData() {
       message: `Importados ${groups.length} grupos y creada competición MARÍN 2026` 
     });
     setLoading(false);
-    
-    toast({
-      title: 'Importación exitosa',
-      description: `Se importaron ${groups.length} grupos correctamente`
-    });
   };
 
   return (
