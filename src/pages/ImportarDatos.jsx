@@ -318,9 +318,9 @@ export default function ImportarDatos() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-[hsl(0,0%,4%)] p-6">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Importar Datos</h1>
+        <h1 className="text-3xl font-bold mb-6 text-white">Importar Datos</h1>
         
         <Tabs defaultValue="inscripciones" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
