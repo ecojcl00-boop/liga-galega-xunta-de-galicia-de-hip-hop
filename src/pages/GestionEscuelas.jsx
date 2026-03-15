@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const EMPTY_FORM = { name: "", coach_name: "", email: "", phone: "", city: "" };
+const EMPTY_FORM = { name: "", coach_name: "", email: "", emails_adicionales: "", phone: "", city: "" };
 
 export default function GestionEscuelas() {
   const user = useUser();
@@ -125,9 +125,18 @@ export default function GestionEscuelas() {
       toast.error("Esta escuela no tiene email configurado");
       return;
     }
+    
+    const emails = [school.email];
+    if (school.emails_adicionales) {
+      const adicionales = school.emails_adicionales.split(',').map(e => e.trim()).filter(e => e);
+      emails.push(...adicionales);
+    }
+    
     try {
-      await base44.users.inviteUser(school.email, "user");
-      toast.success(`Invitación reenviada a ${school.email}`);
+      for (const email of emails) {
+        await base44.users.inviteUser(email, "user");
+      }
+      toast.success(`Invitación enviada a ${emails.length} email${emails.length > 1 ? 's' : ''}`);
     } catch (err) {
       toast.error("Error al reenviar la invitación: " + (err.message || "Inténtalo de nuevo"));
     }
@@ -211,6 +220,11 @@ export default function GestionEscuelas() {
                           <Phone className="w-3 h-3" /> {school.phone}
                         </span>
                       )}
+                      {school.emails_adicionales && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> Emails extra: {school.emails_adicionales}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
                         {groupsBySchool[school.name] || 0} grupo{(groupsBySchool[school.name] || 0) !== 1 ? "s" : ""}
@@ -244,7 +258,7 @@ export default function GestionEscuelas() {
                     </Button>
                     <Button
                       variant="outline" size="sm"
-                      onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", phone: school.phone || "", city: school.city || "" }); }}
+                      onClick={() => { setEditingSchool(school); setEditForm({ name: school.name, coach_name: school.coach_name || "", email: school.email || "", emails_adicionales: school.emails_adicionales || "", phone: school.phone || "", city: school.city || "" }); }}
                       className="gap-1.5"
                     >
                       <Pencil className="w-3.5 h-3.5" /> Editar
@@ -340,6 +354,18 @@ export default function GestionEscuelas() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
+                Emails adicionales{" "}
+                <span className="font-normal text-muted-foreground">(separados por comas, opcional)</span>
+              </label>
+              <Input
+                type="text"
+                placeholder="email1@ejemplo.com, email2@ejemplo.com"
+                value={form.emails_adicionales}
+                onChange={e => setForm(f => ({ ...f, emails_adicionales: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
                 Teléfono{" "}
                 <span className="font-normal text-muted-foreground">(opcional)</span>
               </label>
@@ -425,6 +451,18 @@ export default function GestionEscuelas() {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Email</label>
                 <Input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Emails adicionales{" "}
+                  <span className="font-normal text-muted-foreground">(separados por comas)</span>
+                </label>
+                <Input 
+                  type="text" 
+                  placeholder="email1@ejemplo.com, email2@ejemplo.com"
+                  value={editForm.emails_adicionales || ""} 
+                  onChange={e => setEditForm(f => ({ ...f, emails_adicionales: e.target.value }))} 
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Teléfono</label>
