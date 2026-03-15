@@ -2,12 +2,14 @@ import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock, Pencil, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 import CreateGroupDialog from "./CreateGroupDialog";
 import EditGroupDialog from "./EditGroupDialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 const statusColors = {
   pending:   "bg-yellow-100 text-yellow-700",
@@ -35,6 +37,11 @@ export default function SchoolView({ user, competitions, allGroups, registration
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const [editingParticipant, setEditingParticipant] = useState(null); // { groupId, participantIndex }
+  const [editName, setEditName] = useState("");
+  const [editBirthDate, setEditBirthDate] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
   // Derive school name via normalized comparison
@@ -100,6 +107,49 @@ export default function SchoolView({ user, competitions, allGroups, registration
     return acc;
   }, {}), [myRegistrations]);
 
+  const toggleExpanded = (groupId) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      next.has(groupId) ? next.delete(groupId) : next.add(groupId);
+      return next;
+    });
+  };
+
+  const startEditParticipant = (groupId, participantIndex, participant) => {
+    setEditingParticipant({ groupId, participantIndex });
+    setEditName(participant.name || "");
+    setEditBirthDate(participant.birth_date || "");
+  };
+
+  const cancelEditParticipant = () => {
+    setEditingParticipant(null);
+    setEditName("");
+    setEditBirthDate("");
+  };
+
+  const saveEditParticipant = async () => {
+    if (!editingParticipant || !editName.trim()) return;
+    
+    setIsSaving(true);
+    const group = myGroups.find(g => g.id === editingParticipant.groupId);
+    if (!group) {
+      setIsSaving(false);
+      return;
+    }
+
+    const updatedParticipants = [...(group.participants || [])];
+    updatedParticipants[editingParticipant.participantIndex] = {
+      name: editName.trim(),
+      birth_date: editBirthDate
+    };
+
+    await base44.entities.Group.update(group.id, { participants: updatedParticipants });
+    queryClient.invalidateQueries({ queryKey: ["groups"] });
+    
+    setIsSaving(false);
+    cancelEditParticipant();
+  };
+
   if (showWizard) {
     return (
       <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
@@ -151,46 +201,127 @@ export default function SchoolView({ user, competitions, allGroups, registration
               const registeredComps = openCompetitions.filter(c => 
                 registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
               );
+              const isExpanded = expandedGroups.has(group.id);
+              const participants = group.participants || [];
+              
               return (
-                <div key={group.id} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-card gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Users className="w-4 h-4 text-primary" />
+                <Card key={group.id} className="overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 flex-1">
+                      <button
+                        onClick={() => toggleExpanded(group.id)}
+                        className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
+                      >
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-primary" />}
+                      </button>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">{group.name}</div>
+                        <div className="text-xs text-muted-foreground">{group.category} · {participants.length} participantes</div>
+                        {registeredComps.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {registeredComps.map(c => (
+                              <Badge key={c.id} className="text-[10px] bg-green-100 text-green-700 border-green-300">
+                                Inscrito en {c.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm">{group.name}</div>
-                      <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
-                      {registeredComps.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {registeredComps.map(c => (
-                            <Badge key={c.id} className="text-[10px] bg-green-100 text-green-700 border-green-300">
-                              Inscrito en {c.name}
-                            </Badge>
-                          ))}
-                        </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => { setSelectedGroup(group); setShowEditGroup(true); }}
+                        className="gap-2"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Modificar
+                      </Button>
+                      {openCompetitions.length > 0 && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => setShowWizard(true)}
+                          className="gap-2"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Inscribir
+                        </Button>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => { setSelectedGroup(group); setShowEditGroup(true); }}
-                      className="gap-2"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Modificar
-                    </Button>
-                    {openCompetitions.length > 0 && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => setShowWizard(true)}
-                        className="gap-2"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Inscribir
-                      </Button>
-                    )}
-                  </div>
-                </div>
+
+                  {/* Expanded participants list */}
+                  {isExpanded && participants.length > 0 && (
+                    <div className="border-t bg-muted/10 px-4 py-3">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                        Participantes ({participants.length})
+                      </div>
+                      <div className="space-y-2">
+                        {participants.map((participant, idx) => {
+                          const isEditing = editingParticipant?.groupId === group.id && editingParticipant?.participantIndex === idx;
+                          
+                          if (isEditing) {
+                            return (
+                              <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border-2 border-primary">
+                                <Input
+                                  value={editName}
+                                  onChange={e => setEditName(e.target.value)}
+                                  placeholder="Nombre completo"
+                                  className="flex-1 h-8 text-sm"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter") saveEditParticipant();
+                                    if (e.key === "Escape") cancelEditParticipant();
+                                  }}
+                                />
+                                <Input
+                                  type="date"
+                                  value={editBirthDate}
+                                  onChange={e => setEditBirthDate(e.target.value)}
+                                  className="w-36 h-8 text-sm"
+                                />
+                                <button
+                                  onClick={saveEditParticipant}
+                                  disabled={isSaving || !editName.trim()}
+                                  className="text-primary hover:text-primary/80 shrink-0 disabled:opacity-50"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={cancelEditParticipant}
+                                  disabled={isSaving}
+                                  className="text-muted-foreground hover:text-foreground shrink-0 disabled:opacity-50"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card hover:bg-muted/20 transition-colors group">
+                              <span className="text-sm flex-1">{participant.name}</span>
+                              {participant.birth_date && (
+                                <span className="text-xs text-muted-foreground">{participant.birth_date}</span>
+                              )}
+                              <button
+                                onClick={() => startEditParticipant(group.id, idx, participant)}
+                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all shrink-0"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {isExpanded && participants.length === 0 && (
+                    <div className="border-t bg-muted/10 px-4 py-6 text-center">
+                      <p className="text-sm text-muted-foreground">Sin participantes</p>
+                    </div>
+                  )}
+                </Card>
               );
             })}
           </div>
