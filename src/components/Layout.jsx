@@ -130,6 +130,12 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (!authChecked || redirectedRef.current) return;
     
+    if (currentPageName === "JudgePanel" && user && user.role === "admin") {
+      redirectedRef.current = true;
+      navigate(createPageUrl("Dashboard"), { replace: true });
+      return;
+    }
+    
     if (!user && !isPublicPage) {
       const next = window.location.pathname + window.location.search;
       window.location.replace(createPageUrl("Landing") + (next ? `?next=${encodeURIComponent(next)}` : ""));

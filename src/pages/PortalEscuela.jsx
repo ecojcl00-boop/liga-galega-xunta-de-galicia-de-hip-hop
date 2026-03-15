@@ -221,26 +221,19 @@ export default function PortalEscuela() {
         <TabsContent value="inscripciones" className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold">Mis Inscripciones</h2>
-            {openCompetitions.length > 0 && groups.length > 0 && (
-              <Button onClick={() => setShowWizard(true)} className="gap-2">
-                <Plus className="w-4 h-4" /> Inscribirse a competición
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setShowWizard(true)} variant="outline" className="gap-2">
+                <Plus className="w-4 h-4" /> Crear grupo nuevo
               </Button>
-            )}
+              {openCompetitions.length > 0 && (
+                <Button onClick={() => setShowWizard(true)} className="gap-2">
+                  <Plus className="w-4 h-4" /> Inscribirse a competición
+                </Button>
+              )}
+            </div>
           </div>
 
-          {openCompetitions.length > 0 && groups.length > 0 && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="py-4 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <p className="font-semibold text-sm">{openCompetitions[0].name}</p>
-                  <p className="text-xs text-muted-foreground">Inscripciones abiertas</p>
-                </div>
-                <Button onClick={() => setShowWizard(true)} size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" /> Inscribirse
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+
 
           {regsLoading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>

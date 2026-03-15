@@ -127,11 +127,16 @@ export default function SchoolView({ user, competitions, allGroups, registration
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Inscripciones</h1>
           {mySchoolName && <p className="text-muted-foreground mt-1">{mySchoolName}</p>}
         </div>
-        {openCompetitions.length > 0 && myGroups.length > 0 && (
-          <Button onClick={() => setShowWizard(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Inscribirse a una competición
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setShowCreateGroup(true)} variant="outline" className="gap-2">
+            <Plus className="w-4 h-4" /> Crear grupo nuevo
           </Button>
-        )}
+          {openCompetitions.length > 0 && (
+            <Button onClick={() => setShowWizard(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Inscribirse a una competición
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* My Groups — always visible */}
@@ -142,9 +147,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
             {myGroups.map(group => {
               const registeredComps = openCompetitions.filter(c => 
                 registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
-              );
-              const pendingComps = openCompetitions.filter(c => 
-                !registeredGroupIds[c.id]?.has(group.id) && !registeredGroupIds[c.name]?.has(group.id)
               );
               return (
                 <div key={group.id} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-card gap-3 flex-wrap">
@@ -158,16 +160,17 @@ export default function SchoolView({ user, competitions, allGroups, registration
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {registeredComps.map(c => (
-                      <span key={c.id} className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" /> {c.name}
+                    {registeredComps.length > 0 ? (
+                      registeredComps.map(c => (
+                        <span key={c.id} className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3" /> Inscrito en {c.name}
+                        </span>
+                      ))
+                    ) : openCompetitions.length > 0 ? (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        <Circle className="w-3 h-3" /> Sin inscribir
                       </span>
-                    ))}
-                    {pendingComps.map(c => (
-                      <span key={c.id} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        <Circle className="w-3 h-3" /> Sin inscribir en {c.name}
-                      </span>
-                    ))}
+                    ) : null}
                   </div>
                 </div>
               );
@@ -176,23 +179,7 @@ export default function SchoolView({ user, competitions, allGroups, registration
         </div>
       )}
 
-      {/* Open competition CTA */}
-      {openCompetitions.length > 0 && myGroups.length > 0 && openCompetitions.some(c => {
-        const registeredInComp = registeredGroupIds[c.id] || registeredGroupIds[c.name] || new Set();
-        return myGroups.some(g => !registeredInComp.has(g.id));
-      }) && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="py-4 flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-semibold text-sm">{openCompetitions[0].name}</p>
-              <p className="text-xs text-muted-foreground">Inscripciones abiertas</p>
-            </div>
-            <Button onClick={() => setShowWizard(true)} className="gap-2">
-              <Plus className="w-4 h-4" /> Inscribirse a una competición
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Registration history */}
       {myRegistrations.length > 0 && (

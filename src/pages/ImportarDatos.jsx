@@ -312,6 +312,82 @@ export default function ImportarDatos() {
     setActaSchool('');
   };
 
+  const handleSyncParticipants = async () => {
+    if (!inscripcionesFile) {
+      setInscripcionesStatus({ type: 'error', message: 'Selecciona un archivo' });
+      return;
+    }
+
+    setLoading(true);
+    setInscripcionesStatus({ type: 'loading', message: 'Subiendo archivo...' });
+
+    const { file_url } = await base44.integrations.Core.UploadFile({ file: inscripcionesFile });
+    
+    setInscripcionesStatus({ type: 'loading', message: 'Extrayendo datos...' });
+    
+    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      file_url,
+      json_schema: {
+        type: 'object',
+        properties: {
+          nombre_grupo: { type: 'string' },
+          escuela: { type: 'string' },
+          categoria: { type: 'string' },
+          nombre_entrenador: { type: 'string' },
+          email_entrenador: { type: 'string' },
+          telefono_entrenador: { type: 'string' },
+          nombre_participante_1: { type: 'string' },
+          fecha_nacimiento_1: { type: 'string' },
+          nombre_participante_2: { type: 'string' },
+          fecha_nacimiento_2: { type: 'string' },
+          nombre_participante_3: { type: 'string' },
+          fecha_nacimiento_3: { type: 'string' },
+          nombre_participante_4: { type: 'string' },
+          fecha_nacimiento_4: { type: 'string' },
+          nombre_participante_5: { type: 'string' },
+          fecha_nacimiento_5: { type: 'string' },
+          nombre_participante_6: { type: 'string' },
+          fecha_nacimiento_6: { type: 'string' },
+          nombre_participante_7: { type: 'string' },
+          fecha_nacimiento_7: { type: 'string' },
+          nombre_participante_8: { type: 'string' },
+          fecha_nacimiento_8: { type: 'string' }
+        }
+      }
+    });
+
+    if (result.status === 'error') {
+      setInscripcionesStatus({ type: 'error', message: result.details });
+      setLoading(false);
+      return;
+    }
+
+    setInscripcionesStatus({ type: 'loading', message: 'Sincronizando participantes...' });
+    
+    const groups = parseInscripciones(result.output);
+    let updated = 0;
+    
+    for (const groupData of groups) {
+      const existing = await base44.entities.Group.filter({
+        name: groupData.name,
+        school_name: groupData.school_name
+      });
+      
+      if (existing.length > 0) {
+        await base44.entities.Group.update(existing[0].id, {
+          participants: groupData.participants
+        });
+        updated++;
+      }
+    }
+
+    setInscripcionesStatus({ 
+      type: 'success', 
+      message: `Sincronizados ${updated} grupos con participantes del Excel` 
+    });
+    setLoading(false);
+  };
+
   const StatusMessage = ({ status }) => {
     if (!status) return null;
     
@@ -432,14 +508,24 @@ export default function ImportarDatos() {
                 </div>
 
                 {!previewGroups ? (
-                  <Button
-                    onClick={handlePreviewInscripciones}
-                    disabled={!inscripcionesFile || loading}
-                    className="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {loading ? 'Procesando...' : 'Vista Previa'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handlePreviewInscripciones}
+                      disabled={!inscripcionesFile || loading}
+                      className="flex-1"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {loading ? 'Procesando...' : 'Vista Previa'}
+                    </Button>
+                    <Button
+                      onClick={handleSyncParticipants}
+                      disabled={!inscripcionesFile || loading}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {loading ? 'Sincronizando...' : 'Sincronizar Participantes'}
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     <Card className="bg-muted">
