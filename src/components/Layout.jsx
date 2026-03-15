@@ -194,8 +194,6 @@ export default function Layout({ children, currentPageName }) {
   // Determine if current effective user is admin (respects simulation)
   const isEffectiveAdmin = effectiveUser?.role === "admin";
 
-  const location = useLocation();
-
   return (
     <SimulacroContext.Provider value={{ isSimulacro, activate: activateSimulacro, deactivate: handleExitSimulacro }}>
     <UserContext.Provider value={effectiveUser}>
