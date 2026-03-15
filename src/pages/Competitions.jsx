@@ -104,7 +104,6 @@ export default function Competitions() {
     const sortedSchools = Object.keys(participantsBySchool).sort((a, b) => a.localeCompare(b, "es"));
 
     // PASO 5: generar PDF
-    const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
     // Título
