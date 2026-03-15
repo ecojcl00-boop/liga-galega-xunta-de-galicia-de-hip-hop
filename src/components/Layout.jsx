@@ -107,7 +107,7 @@ export default function Layout({ children, currentPageName }) {
         setAuthChecked(true);
         // Load school list for simulator
         if (u?.role === "admin") {
-          base44.entities.Group.list().then(groups => {
+          base44.entities.Group.list("name", 500).then(groups => {
             const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
             const normalized = new Map();
             groups.forEach(g => {
