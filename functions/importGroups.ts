@@ -251,7 +251,8 @@ Deno.serve(async (req) => {
 
     console.log(`[INFO] Registrations to reconnect: ${regReconnects.length}`);
     if (regReconnects.length > 0) {
-      await sequentialUpdates(base44.asServiceRole.entities.Registration, regReconnects, 350);
+      await sleep(1000);
+      await sequentialUpdates(base44.asServiceRole.entities.Registration, regReconnects, 600);
       log.registrationsReconnected = regReconnects.length;
     }
 
