@@ -84,7 +84,7 @@ function TabCompeticiones({ competitions, registrations, schoolName }) {
       {competitions.map(comp => {
         const fecha = formatDate(comp.date);
         const myCount = registrations.filter(r =>
-          r.competition_id === comp.id && nd(r.school_name) === nd(schoolName)
+          (r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)) && nd(r.school_name) === nd(schoolName)
         ).length;
         return (
           <Card key={comp.id}>
