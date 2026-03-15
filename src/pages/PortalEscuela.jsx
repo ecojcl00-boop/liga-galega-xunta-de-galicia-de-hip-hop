@@ -439,9 +439,6 @@ export default function PortalEscuela() {
           <TabsTrigger value="grupos" className="gap-1.5">
             <Users className="w-3.5 h-3.5" /> Mis Grupos
           </TabsTrigger>
-          <TabsTrigger value="inscripciones" className="gap-1.5">
-            <ClipboardList className="w-3.5 h-3.5" /> Inscripciones
-          </TabsTrigger>
           <TabsTrigger value="documentos" className="gap-1.5">
             <FileText className="w-3.5 h-3.5" /> Documentos
           </TabsTrigger>
