@@ -18,6 +18,12 @@ const STATUS_CONFIG = {
 };
 
 // Force redeploy - 2026-03-13
+const CATEGORY_ORDER = [
+  "MINI INDIVIDUAL A", "MINI INDIVIDUAL B", "INDIVIDUAL",
+  "MINI PAREJAS A", "MINI PAREJAS B", "PAREJAS",
+  "BABY", "INFANTIL", "JUNIOR", "YOUTH", "ABSOLUTA", "PREMIUM", "MEGACREW"
+];
+
 const normalizeSchoolName = (name) => {
   return String(name || "")
     .normalize("NFD")
