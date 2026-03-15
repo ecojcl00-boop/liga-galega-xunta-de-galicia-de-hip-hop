@@ -14,11 +14,13 @@ Deno.serve(async (req) => {
 
     console.log(`Total registros MARÍN 2026: ${allRegs.length}`);
 
-    // Agrupar por group_id, quedarse con el más antiguo (created_date menor)
+    // Agrupar por group_id si existe, si no por group_name normalizado
     const byGroupId = new Map();
 
     for (const reg of allRegs) {
-        const key = reg.group_id || reg.group_name; // fallback a group_name si no hay group_id
+        const key = reg.group_id
+            ? `id:${reg.group_id}`
+            : `name:${String(reg.group_name || "").trim().toLowerCase()}`;
         if (!byGroupId.has(key)) {
             byGroupId.set(key, []);
         }
