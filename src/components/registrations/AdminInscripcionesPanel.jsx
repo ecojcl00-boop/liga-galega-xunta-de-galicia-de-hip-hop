@@ -18,6 +18,15 @@ const STATUS_CONFIG = {
 };
 
 // Force redeploy - 2026-03-13
+const normalizeSchoolName = (name) => {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[,.\s]+/g, " ")
+    .trim();
+};
+
 export default function AdminInscripcionesPanel({ registrations, competitions }) {
   const queryClient = useQueryClient();
 
@@ -58,7 +67,20 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["registrations"] }); setDeleteId(null); },
   });
 
-  const allSchools     = [...new Set(registrations.map(r => r.school_name).filter(Boolean))].sort();
+  const allSchools = (() => {
+    const seen = new Set();
+    const unique = [];
+    registrations.forEach(r => {
+      if (r.school_name) {
+        const normalized = normalizeSchoolName(r.school_name);
+        if (!seen.has(normalized)) {
+          seen.add(normalized);
+          unique.push(r.school_name);
+        }
+      }
+    });
+    return unique.sort();
+  })();
   const allCategories  = [...new Set(registrations.map(r => r.category).filter(Boolean))].sort();
   const allCompNames   = [...new Set(registrations.map(r => r.competition_name).filter(Boolean))].sort();
 
