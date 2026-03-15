@@ -78,6 +78,21 @@ Deno.serve(async (req) => {
     console.log(`[INFO] Loaded: ${existingSchools.length} schools, ${existingGroups.length} groups, ${existingRegs.length} regs`);
 
     const schoolMap = new Map(existingSchools.map(s => [nd(s.name), s]));
+
+    // Reverse lookup: school email → school name, to resolve groups with missing school_name
+    const emailToSchoolName = new Map(
+      existingSchools.filter(s => s.email).map(s => [nd(s.email), s.name])
+    );
+
+    // Fix Bug 1: resolve school_name for existing groups that have it empty/null so that
+    // reimporting the same Excel never creates duplicates due to a missing school_name in the DB.
+    for (const g of existingGroups) {
+      if (!g.school_name?.trim()) {
+        const resolved = g.coach_email ? emailToSchoolName.get(nd(g.coach_email)) : null;
+        g.school_name = resolved || "";
+      }
+    }
+
     const groupMap = new Map(existingGroups.map(g => {
       const catKey = nd(normalizeCategory(g.category) || g.category || "");
       return [`${nd(g.name)}|${nd(g.school_name || "")}|${catKey}`, g];
