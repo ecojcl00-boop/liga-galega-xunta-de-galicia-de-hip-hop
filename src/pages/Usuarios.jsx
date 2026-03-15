@@ -535,9 +535,14 @@ export default function Usuarios() {
               </div>
             )}
 
-            {inviteStatus === "ok" && (
+            {inviteStatus === "ok" && inviteEmail && (
               <p className="text-sm text-green-600 font-medium">
                 ✓ Invitación enviada a {inviteEmail}
+              </p>
+            )}
+            {inviteStatus === "ok" && !inviteEmail && (
+              <p className="text-sm text-green-600 font-medium">
+                ✓ Usuario guardado. Recibirá acceso cuando le envíes el link.
               </p>
             )}
             {inviteStatus === "error" && (
@@ -549,6 +554,24 @@ export default function Usuarios() {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowInvite(false)}>
                 Cancelar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await base44.entities.User.create({
+                    email: inviteEmail,
+                    role: inviteRole,
+                    school_name: inviteRole === "user" ? inviteSchool : ""
+                  });
+                  qc.invalidateQueries({ queryKey: ["users-list"] });
+                  setInviteEmail("");
+                  setInviteSchool("");
+                  setInviteRole("user");
+                  setInviteStatus("ok");
+                }}
+                disabled={!inviteEmail || (inviteRole === "user" && !inviteSchool)}
+              >
+                Confirmar sin invitar
               </Button>
               <Button
                 onClick={handleInvite}
