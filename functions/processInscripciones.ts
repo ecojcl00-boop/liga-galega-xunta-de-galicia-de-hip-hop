@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       participantsCreated: 0, participantsExisting: 0,
       groupsCreated: 0, groupsUpdated: 0,
       registrationsCreated: 0,
-      warnings: [], errors: [],
+      warnings: [], errors: [], debugMisses: [],
     };
 
     // ── Cargar datos existentes ───────────────────────────────────────────────
@@ -170,6 +170,10 @@ Deno.serve(async (req) => {
       const existing = groupMap.get(groupKey);
 
       console.log(`[DEDUP] key="${groupKey}" found=${!!existing}`);
+
+      if (!existing && log.debugMisses.length < 20) {
+        log.debugMisses.push({ key: groupKey, groupName: row.groupName, category: row.category });
+      }
 
       if (!existing) {
         // Grupo nuevo
