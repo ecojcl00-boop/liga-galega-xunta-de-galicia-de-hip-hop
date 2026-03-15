@@ -544,7 +544,7 @@ export default function Usuarios() {
             )}
             {inviteStatus === "ok" && !inviteEmail && (
               <p className="text-sm text-green-600 font-medium">
-                ✓ Usuario guardado. Recibirá acceso cuando le envíes el link.
+                ✓ Usuario guardado. Cuando entre por primera vez se le asignará la escuela automáticamente.
               </p>
             )}
             {inviteStatus === "error" && (
@@ -560,13 +560,14 @@ export default function Usuarios() {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  await base44.entities.User.create({
+                  await base44.entities.InvitacionPendiente.create({
                     email: inviteEmail,
-                    full_name: inviteEmail.split('@')[0],
                     role: inviteRole,
-                    school_name: inviteRole === "user" ? inviteSchool : ""
+                    school_name: inviteRole === "user" ? inviteSchool : "",
+                    status: "pending",
+                    fecha_invitacion: new Date().toISOString()
                   });
-                  qc.invalidateQueries({ queryKey: ["users-list"] });
+                  qc.invalidateQueries({ queryKey: ["pending-invitations"] });
                   setInviteEmail("");
                   setInviteSchool("");
                   setInviteRole("user");
