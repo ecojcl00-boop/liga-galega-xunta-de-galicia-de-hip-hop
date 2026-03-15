@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import GestionEscuelas from './pages/GestionEscuelas';
 import Groups from './pages/Groups';
 import ImportarDatos from './pages/ImportarDatos';
+import ImportarGrupos from './pages/ImportarGrupos';
 import ImportData from './pages/ImportData';
 import JudgePanel from './pages/JudgePanel';
 import Landing from './pages/Landing';
@@ -77,6 +78,11 @@ const AuthenticatedApp = () => {
       <Route path="/ImportarDatos" element={
         <LayoutWrapper currentPageName="ImportarDatos">
           <ImportarDatos />
+        </LayoutWrapper>
+      } />
+      <Route path="/ImportarGrupos" element={
+        <LayoutWrapper currentPageName="ImportarGrupos">
+          <ImportarGrupos />
         </LayoutWrapper>
       } />
       <Route path="/ImportData" element={
