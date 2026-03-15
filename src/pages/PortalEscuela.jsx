@@ -1,39 +1,51 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Users, ClipboardList, FileText, Trophy, Lock,
-  Plus, ChevronLeft, Calendar, Download,
-  CheckCircle2, Circle, Settings, Trash2
+  Lock, Plus, Calendar, Download, FileText,
+  Users, CheckCircle2, Home, Trophy, ClipboardList
 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { downloadFile } from "@/components/utils/downloadFile";
 import LigaRankingView from "@/components/rankings/LigaRankingView";
 import ReenrollmentWizard from "@/components/registrations/ReenrollmentWizard";
 import HistorialCompeticiones from "@/components/registrations/HistorialCompeticiones";
-import { createPageUrl } from "@/utils";
+import Dashboard from "@/pages/Dashboard";
 
-const statusColors = {
-  pending:   "bg-yellow-100 text-yellow-700",
-  confirmed: "bg-primary/10 text-primary",
-  complete:  "bg-green-100 text-green-700",
-  rejected:  "bg-red-100 text-red-700",
-  cancelled: "bg-muted text-muted-foreground",
-};
+// ── Modalidades y orden ──────────────────────────────────────────────────────
+const MODALITY_ORDER = [
+  {
+    label: "Individual",
+    categories: ["Mini Individual A", "Mini Individual B", "Individual"],
+  },
+  {
+    label: "Parejas",
+    categories: ["Mini Parejas A", "Mini Parejas B", "Parejas"],
+  },
+  {
+    label: "Grupos",
+    categories: ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"],
+  },
+  {
+    label: "Mega Crew",
+    categories: ["Megacrew"],
+  },
+];
 
-const statusLabels = {
-  pending:   "🟡 Pendiente",
-  confirmed: "🔵 Confirmado",
-  complete:  "🟢 Completa",
-  rejected:  "🔴 Rechazada",
-  cancelled: "⚫ Cancelado",
-};
+function formatDate(dateStr) {
+  if (!dateStr) return null;
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
+// ── Pantalla de bloqueo ──────────────────────────────────────────────────────
 function LockoutScreen() {
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-4">
@@ -50,26 +62,299 @@ function LockoutScreen() {
   );
 }
 
+// ── Tab: Competiciones ───────────────────────────────────────────────────────
+function TabCompeticiones({ competitions }) {
+  if (competitions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">
+          <Calendar className="w-10 h-10 mx-auto opacity-20 mb-3" />
+          <p>No hay competiciones registradas todavía.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      {competitions.map(comp => {
+        const fecha = formatDate(comp.date);
+        return (
+          <Card key={comp.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="font-semibold">{comp.name}</h3>
+                  {fecha && (
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" /> {fecha}
+                    </p>
+                  )}
+                  {comp.location && (
+                    <p className="text-sm text-muted-foreground">{comp.location}</p>
+                  )}
+                </div>
+                <Badge variant={comp.registration_open ? "default" : "outline"} className="shrink-0">
+                  {comp.registration_open ? "Inscripciones abiertas" : "Inscripciones cerradas"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Tab: Mis Grupos ──────────────────────────────────────────────────────────
+function TabMisGrupos({ groups, registrations, competitions, loading }) {
+  // Para cada grupo, obtener los participantes del último registro o del grupo directamente
+  function getParticipants(group) {
+    const regsForGroup = registrations
+      .filter(r => r.group_id === group.id)
+      .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+    const lastReg = regsForGroup[0];
+    if (lastReg?.participants?.length > 0) return lastReg.participants;
+    return group.participants || [];
+  }
+
+  // Saber si el grupo está inscrito en alguna competición
+  function getRegisteredCompetitions(group) {
+    return competitions.filter(comp =>
+      registrations.some(r =>
+        (r.group_id === group.id) &&
+        (r.competition_id === comp.id || r.competition_name === comp.name)
+      )
+    );
+  }
+
+  if (loading) {
+    return <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>;
+  }
+
+  if (groups.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">
+          <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
+          <p>No hay grupos registrados para tu escuela.</p>
+          <p className="text-sm mt-1">Contacta con el administrador para añadir grupos.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Organizar por modalidad y categoría
+  const groupsByCategory = {};
+  groups.forEach(g => {
+    const cat = g.category || "Otros";
+    if (!groupsByCategory[cat]) groupsByCategory[cat] = [];
+    groupsByCategory[cat].push(g);
+  });
+
+  return (
+    <div className="space-y-6">
+      {MODALITY_ORDER.map(modality => {
+        const modalityGroups = modality.categories.flatMap(cat => groupsByCategory[cat] || []);
+        if (modalityGroups.length === 0) return null;
+
+        return (
+          <div key={modality.label}>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              {modality.label}
+            </h3>
+            <div className="grid gap-3">
+              {modality.categories.flatMap(cat =>
+                (groupsByCategory[cat] || []).map(group => {
+                  const participants = getParticipants(group);
+                  const registeredComps = getRegisteredCompetitions(group);
+
+                  return (
+                    <Card key={group.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-semibold">{group.name}</h4>
+                              <Badge variant="outline" className="text-xs">{group.category}</Badge>
+                            </div>
+                            {group.coach_name && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                Entrenador: {group.coach_name}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {participants.length} participante{participants.length !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                          {registeredComps.length > 0 && (
+                            <div className="flex flex-col gap-1 items-end">
+                              {registeredComps.map(comp => (
+                                <span
+                                  key={comp.id}
+                                  className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 whitespace-nowrap"
+                                >
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  {comp.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {participants.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Participantes:</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                              {participants.map((p, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs bg-muted/40 rounded px-2 py-1">
+                                  <span className="flex-1 font-medium">{p.name || p}</span>
+                                  {p.birth_date && (
+                                    <span className="text-muted-foreground shrink-0">
+                                      {p.birth_date}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Grupos con categoría no mapeada */}
+      {(() => {
+        const mappedCats = MODALITY_ORDER.flatMap(m => m.categories);
+        const ungrouped = groups.filter(g => !mappedCats.includes(g.category));
+        if (ungrouped.length === 0) return null;
+        return (
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Otros</h3>
+            <div className="grid gap-3">
+              {ungrouped.map(group => {
+                const participants = getParticipants(group);
+                const registeredComps = getRegisteredCompetitions(group);
+                return (
+                  <Card key={group.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-semibold">{group.name}</h4>
+                            <Badge variant="outline" className="text-xs">{group.category}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{participants.length} participante{participants.length !== 1 ? "s" : ""}</p>
+                        </div>
+                        {registeredComps.length > 0 && (
+                          <div className="flex flex-col gap-1 items-end">
+                            {registeredComps.map(comp => (
+                              <span key={comp.id} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 whitespace-nowrap">
+                                <CheckCircle2 className="w-3 h-3 shrink-0" />{comp.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {participants.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Participantes:</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            {participants.map((p, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs bg-muted/40 rounded px-2 py-1">
+                                <span className="flex-1 font-medium">{p.name || p}</span>
+                                {p.birth_date && <span className="text-muted-foreground shrink-0">{p.birth_date}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ── Tab: Documentos ──────────────────────────────────────────────────────────
+function TabDocumentos({ actas }) {
+  if (actas.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">
+          <FileText className="w-10 h-10 mx-auto opacity-20 mb-3" />
+          <p>No hay documentos disponibles para tu escuela todavía.</p>
+          <p className="text-sm mt-1">El administrador subirá las actas de jueces aquí.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      {actas.map(acta => {
+        const fecha = formatDate(acta.fecha);
+        return (
+          <div
+            key={acta.id}
+            className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+          >
+            <FileText className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">
+                {acta.file_name || acta.competition_name}
+              </p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Badge variant="secondary" className="text-xs">{acta.competition_name}</Badge>
+                {fecha && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> {fecha}
+                  </span>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 flex-shrink-0"
+              onClick={() => downloadFile(acta.file_url, acta.file_name || acta.competition_name || "acta")}
+            >
+              <Download className="w-3.5 h-3.5" /> Descargar
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── MAIN ─────────────────────────────────────────────────────────────────────
 export default function PortalEscuela() {
   const user = useUser();
+  const queryClient = useQueryClient();
   const [showWizard, setShowWizard] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    base44.auth.me().then(setCurrentUser);
-  }, []);
 
   const schoolName = user?.school_name?.trim() || "";
 
-  // All hooks must be called unconditionally
+  // Todos los hooks incondicionalmente
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["portal_groups", schoolName],
     queryFn: () => base44.entities.Group.filter({ school_name: schoolName }, "name"),
     enabled: !!schoolName,
   });
 
-  const { data: registrations = [], isLoading: regsLoading } = useQuery({
+  const { data: registrations = [] } = useQuery({
     queryKey: ["portal_registrations", schoolName],
     queryFn: () => base44.entities.Registration.filter({ school_name: schoolName }, "-created_date"),
     enabled: !!schoolName,
@@ -91,42 +376,20 @@ export default function PortalEscuela() {
     queryFn: () => base44.entities.LigaResultado.list(),
   });
 
-  const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      // Delete user account via backend function
-      await base44.functions.invoke("deleteMyAccount", {});
-    },
-    onSuccess: () => {
-      base44.auth.logout(createPageUrl("Landing"));
-    },
-  });
-
-  const registeredGroupIds = useMemo(() => {
-    const map = {};
-    registrations.forEach(r => {
-      if (!map[r.competition_id]) map[r.competition_id] = new Set();
-      map[r.competition_id].add(r.group_id);
-    });
-    return map;
-  }, [registrations]);
-
-  // Early returns after all hooks
+  // Returns condicionales DESPUÉS de todos los hooks
   if (!user) return null;
-  // Only show lockout screen for non-admin users without school_name
-  if (user.role !== "admin" && !user.school_name?.trim()) return <LockoutScreen />;
+  if (user.role !== "admin" && !schoolName) return <LockoutScreen />;
 
   const openCompetitions = competitions.filter(c => c.registration_open);
+  const resultadosSinSimulacro = useMemo(
+    () => ligaResultados.filter(r => !r.is_simulacro),
+    [ligaResultados]
+  );
 
-  // Wizard view
+  // Wizard a pantalla completa
   if (showWizard) {
     return (
-      <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => setShowWizard(false)} className="gap-2">
-            <ChevronLeft className="w-4 h-4" /> Volver
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Nueva inscripción</h1>
-        </div>
+      <div className="p-4 lg:p-8 space-y-4 max-w-4xl mx-auto">
         <ReenrollmentWizard
           user={user}
           mySchoolName={schoolName}
@@ -134,7 +397,11 @@ export default function PortalEscuela() {
           competitions={openCompetitions}
           allGroups={groups}
           registrations={registrations}
-          onSuccess={() => setShowWizard(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["portal_registrations", schoolName] });
+            queryClient.invalidateQueries({ queryKey: ["portal_groups", schoolName] });
+            setShowWizard(false);
+          }}
         />
       </div>
     );
@@ -142,13 +409,38 @@ export default function PortalEscuela() {
 
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
-      <Tabs defaultValue="inscripciones">
-        <TabsList>
-          <TabsTrigger value="inscripciones">Inscripciones</TabsTrigger>
-          <TabsTrigger value="grupos">Mis Grupos</TabsTrigger>
-          <TabsTrigger value="documentos">Documentos</TabsTrigger>
-          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+      <Tabs defaultValue="home">
+        <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
+          <TabsTrigger value="home" className="gap-1.5">
+            <Home className="w-3.5 h-3.5" /> Home
+          </TabsTrigger>
+          <TabsTrigger value="competiciones" className="gap-1.5">
+            <Calendar className="w-3.5 h-3.5" /> Competiciones
+          </TabsTrigger>
+          <TabsTrigger value="grupos" className="gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Mis Grupos
+          </TabsTrigger>
+          <TabsTrigger value="inscripciones" className="gap-1.5">
+            <ClipboardList className="w-3.5 h-3.5" /> Inscripciones
+          </TabsTrigger>
+          <TabsTrigger value="documentos" className="gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Documentos
+          </TabsTrigger>
+          <TabsTrigger value="ranking" className="gap-1.5">
+            <Trophy className="w-3.5 h-3.5" /> Ranking
+          </TabsTrigger>
         </TabsList>
+
+        {/* ── Home ── */}
+        <TabsContent value="home">
+          <Dashboard />
+        </TabsContent>
+
+        {/* ── Competiciones ── */}
+        <TabsContent value="competiciones" className="space-y-4">
+          <h2 className="text-lg font-semibold">Competiciones</h2>
+          <TabCompeticiones competitions={competitions} />
+        </TabsContent>
 
         {/* ── Mis Grupos ── */}
         <TabsContent value="grupos" className="space-y-4">
@@ -156,210 +448,41 @@ export default function PortalEscuela() {
             <h2 className="text-lg font-semibold">Mis Grupos</h2>
             <Badge variant="secondary">{groups.length} grupos</Badge>
           </div>
-          {groupsLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>
-          ) : groups.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-                <Users className="w-10 h-10 mx-auto opacity-20 mb-3" />
-                <p>No hay grupos registrados para {schoolName}</p>
-                <p className="text-sm mt-1">Contacta con el administrador para añadir grupos.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {groups.map(group => (
-                <Card key={group.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold">{group.name}</h3>
-                          <Badge variant="outline" className="text-xs">{group.category}</Badge>
-                        </div>
-                        {group.coach_name && (
-                          <p className="text-sm text-muted-foreground mt-1">Entrenador: {group.coach_name}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {group.participants?.length || 0} participantes
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {openCompetitions.map(c => {
-                          const registered = registeredGroupIds[c.id]?.has(group.id);
-                          return (
-                            <span key={c.id} className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${registered ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-                              {registered
-                                ? <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                                : <Circle className="w-3 h-3 flex-shrink-0" />}
-                              {c.name}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    {group.participants?.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Participantes:</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                          {group.participants.map((p, i) => (
-                            <span key={i} className="text-xs bg-muted/50 rounded px-2 py-1 truncate">
-                              {p.name || p}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <TabMisGrupos
+            groups={groups}
+            registrations={registrations}
+            competitions={competitions}
+            loading={groupsLoading}
+          />
         </TabsContent>
 
         {/* ── Inscripciones ── */}
         <TabsContent value="inscripciones" className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold">Mis Inscripciones</h2>
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => setShowWizard(true)} variant="outline" className="gap-2">
-                <Plus className="w-4 h-4" /> Crear grupo nuevo
-              </Button>
-              {openCompetitions.length > 0 && (
-                <Button onClick={() => setShowWizard(true)} className="gap-2">
-                  <Plus className="w-4 h-4" /> Inscribirse a competición
-                </Button>
-              )}
-            </div>
+            <Button onClick={() => setShowWizard(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Inscribirse a competición
+            </Button>
           </div>
-
-
-
-          {regsLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>
-          ) : registrations.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-                <ClipboardList className="w-10 h-10 mx-auto opacity-20 mb-3" />
-                <p>No hay inscripciones todavía</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <HistorialCompeticiones
-              competitions={competitions}
-              registrations={registrations}
-              groups={groups}
-              isAdmin={false}
-            />
-          )}
+          <HistorialCompeticiones
+            competitions={competitions}
+            registrations={registrations}
+            groups={groups}
+            isAdmin={false}
+          />
         </TabsContent>
 
-        {/* ── Mis Documentos ── */}
+        {/* ── Documentos ── */}
         <TabsContent value="documentos" className="space-y-4">
-          <h2 className="text-lg font-semibold">Mis Documentos</h2>
-          {actas.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
-                <FileText className="w-10 h-10 mx-auto opacity-20 mb-3" />
-                <p>No hay documentos disponibles para tu escuela todavía.</p>
-                <p className="text-sm mt-1">El administrador subirá las actas de jueces aquí.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {actas.map(acta => {
-                const fecha = acta.fecha
-                  ? new Date(acta.fecha + "T00:00:00").toLocaleDateString("es-ES", {
-                      day: "2-digit", month: "short", year: "numeric"
-                    })
-                  : null;
-                return (
-                  <div key={acta.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
-                    <FileText className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {acta.document_name || acta.competicion_nombre}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge variant="secondary" className="text-xs">{acta.competicion_nombre}</Badge>
-                        {fecha && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {fecha}
-                          </span>
-                        )}
-                      </div>
-                      {acta.notas && <p className="text-xs text-muted-foreground mt-1">{acta.notas}</p>}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 flex-shrink-0"
-                      onClick={() => downloadFile(acta.document_url, acta.document_name || acta.competicion_nombre || "acta")}
-                    >
-                      <Download className="w-3.5 h-3.5" /> Descargar
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <h2 className="text-lg font-semibold">Documentos</h2>
+          <TabDocumentos actas={actas} />
         </TabsContent>
 
         {/* ── Ranking ── */}
         <TabsContent value="ranking">
-          <LigaRankingView resultados={ligaResultados} />
-        </TabsContent>
-
-        {/* ── Account Settings ── */}
-        <TabsContent value="cuenta" className="space-y-4">
-          <h2 className="text-lg font-semibold">Configuración de Cuenta</h2>
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div>
-                <h3 className="font-medium mb-1">Información de cuenta</h3>
-                <p className="text-sm text-muted-foreground">Email: {currentUser?.email}</p>
-                <p className="text-sm text-muted-foreground">Escuela: {schoolName}</p>
-              </div>
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-2 text-destructive">Zona de peligro</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Eliminar tu cuenta es una acción permanente. Todos tus datos asociados serán eliminados.
-                </p>
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="gap-2 select-none"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar mi cuenta
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <LigaRankingView resultados={resultadosSinSimulacro} />
         </TabsContent>
       </Tabs>
-
-      {/* Delete Account Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente tu cuenta y todos los datos asociados a ella.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="select-none">Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteAccountMutation.mutate()}
-              disabled={deleteAccountMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 select-none"
-            >
-              {deleteAccountMutation.isPending ? "Eliminando..." : "Sí, eliminar mi cuenta"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
