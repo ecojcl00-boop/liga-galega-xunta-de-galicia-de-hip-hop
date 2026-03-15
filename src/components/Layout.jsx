@@ -82,8 +82,28 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     base44.auth.me()
-      .then(u => {
+      .then(async (u) => {
         setUser(u);
+        
+        // Auto-assign school from pending invitation
+        if (u?.role === "user" && (!u.school_name || u.school_name === "")) {
+          try {
+            const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
+            if (invitations.length > 0) {
+              const inv = invitations[0];
+              await base44.entities.User.update(u.id, {
+                school_name: inv.school_name,
+                role: inv.role
+              });
+              await base44.entities.InvitacionPendiente.delete(inv.id);
+              const updatedUser = await base44.auth.me();
+              setUser(updatedUser);
+            }
+          } catch (err) {
+            console.error("Auto-assign error:", err);
+          }
+        }
+        
         setAuthChecked(true);
         // Load school list for simulator
         if (u?.role === "admin") {
