@@ -108,7 +108,15 @@ export default function Layout({ children, currentPageName }) {
         // Load school list for simulator
         if (u?.role === "admin") {
           base44.entities.Group.list().then(groups => {
-            const names = [...new Set(groups.map(g => g.school_name).filter(Boolean))].sort();
+            const normalized = new Map();
+            groups.forEach(g => {
+              if (!g.school_name) return;
+              const key = g.school_name.toLowerCase().trim();
+              if (!normalized.has(key)) {
+                normalized.set(key, g.school_name.trim());
+              }
+            });
+            const names = [...normalized.values()].sort();
             setSchoolList(names);
           });
         }

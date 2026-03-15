@@ -177,7 +177,10 @@ export default function SchoolView({ user, competitions, allGroups, registration
       )}
 
       {/* Open competition CTA */}
-      {openCompetitions.length > 0 && myGroups.length > 0 && (
+      {openCompetitions.length > 0 && myGroups.length > 0 && openCompetitions.some(c => {
+        const registeredInComp = registeredGroupIds[c.id] || registeredGroupIds[c.name] || new Set();
+        return myGroups.some(g => !registeredInComp.has(g.id));
+      }) && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="py-4 flex items-center justify-between gap-4 flex-wrap">
             <div>

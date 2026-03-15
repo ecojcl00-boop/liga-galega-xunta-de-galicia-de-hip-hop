@@ -98,22 +98,11 @@ export default function Competitions() {
     // Ordenar escuelas alfabéticamente
     const sortedSchools = Object.keys(participantsBySchool).sort((a, b) => a.localeCompare(b, "es"));
     
-    // Build HTML content
-    let htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Inscripciones ${comp.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          .school { font-weight: bold; font-size: 20px; margin-top: 30px; margin-bottom: 10px; }
-          .participant { margin-left: 20px; margin-bottom: 5px; }
-          .total { margin-left: 20px; margin-top: 10px; margin-bottom: 30px; font-weight: normal; }
-        </style>
-      </head>
-      <body>
-    `;
+    // Crear PDF con jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    let y = 20;
     
     sortedSchools.forEach(school => {
       // Deduplicar participantes por escuela
@@ -132,28 +121,36 @@ export default function Competitions() {
       const nombresUnicos = [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
       const count = nombresUnicos.length;
       
-      htmlContent += `<div class="school">${school}</div>\n`;
+      // Nueva página si no hay espacio
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      
+      // Nombre de escuela en negrita tamaño 14
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(school, 20, y);
+      y += 8;
+      
+      // Participantes numerados tamaño 10
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
       nombresUnicos.forEach((nombre, i) => {
-        htmlContent += `<div class="participant">${i + 1}. ${nombre}</div>\n`;
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(`${i + 1}. ${nombre}`, 25, y);
+        y += 6;
       });
-      htmlContent += `<div class="total">Total: ${count} participante${count !== 1 ? 's' : ''}</div>\n`;
+      
+      // Total
+      doc.text(`Total: ${count} participante${count !== 1 ? 's' : ''}`, 25, y);
+      y += 15;
     });
     
-    htmlContent += `
-      </body>
-      </html>
-    `;
-    
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `Inscripciones_${comp.name.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    doc.save(`Inscripciones_${comp.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
