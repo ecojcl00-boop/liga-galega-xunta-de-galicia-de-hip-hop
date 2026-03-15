@@ -472,9 +472,9 @@ export default function Usuarios() {
 
       {/* Invite dialog */}
       <Dialog open={showInvite} onOpenChange={(o) => !o && setShowInvite(false)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>＋ Añadir usuario</DialogTitle>
+            <DialogTitle>Añadir usuario</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5 w-full">
