@@ -73,6 +73,38 @@ export default function SchoolView({ user, competitions, allGroups, registration
     [allGroups, mySchoolName]
   );
 
+  // Group structure by modality and category
+  const modalityStructure = [
+    {
+      name: "Individual",
+      categories: ["Mini Individual A", "Mini Individual B", "Individual"]
+    },
+    {
+      name: "Parejas",
+      categories: ["Mini Parejas A", "Mini Parejas B", "Parejas"]
+    },
+    {
+      name: "Grupos",
+      categories: ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"]
+    },
+    {
+      name: "Mega Crew",
+      categories: ["Megacrew"]
+    }
+  ];
+
+  // Group myGroups by modality structure
+  const groupedByModality = useMemo(() => {
+    return modalityStructure.map(modality => {
+      const categoriesWithGroups = modality.categories.map(category => {
+        const groups = myGroups.filter(g => g.category === category);
+        return groups.length > 0 ? { category, groups } : null;
+      }).filter(Boolean);
+      
+      return categoriesWithGroups.length > 0 ? { ...modality, categoriesWithGroups } : null;
+    }).filter(Boolean);
+  }, [myGroups]);
+
   const openCompetitions = competitions.filter(c => c.registration_open);
 
   // My registrations only — normalize school_name comparison
@@ -194,137 +226,150 @@ export default function SchoolView({ user, competitions, allGroups, registration
 
       {/* My Groups — always visible */}
       {myGroups.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-6">
           <h2 className="text-base font-semibold">Mis grupos ({myGroups.length})</h2>
-          <div className="grid gap-2">
-            {myGroups.map(group => {
-              const registeredComps = openCompetitions.filter(c => 
-                registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
-              );
-              const isExpanded = expandedGroups.has(group.id);
-              const participants = group.participants || [];
+          
+          {groupedByModality.map(modality => (
+            <div key={modality.name} className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground">{modality.name}</h3>
               
-              return (
-                <Card key={group.id} className="overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 gap-3 flex-wrap">
-                    <div className="flex items-center gap-3 flex-1">
-                      <button
-                        onClick={() => toggleExpanded(group.id)}
-                        className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
-                      >
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-primary" />}
-                      </button>
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm">{group.name}</div>
-                        <div className="text-xs text-muted-foreground">{group.category} · {participants.length} participantes</div>
-                        {registeredComps.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {registeredComps.map(c => (
-                              <Badge key={c.id} className="text-[10px] bg-green-100 text-green-700 border-green-300">
-                                Inscrito en {c.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => { setSelectedGroup(group); setShowEditGroup(true); }}
-                        className="gap-2"
-                      >
-                        <Pencil className="w-3.5 h-3.5" /> Modificar
-                      </Button>
-                      {openCompetitions.length > 0 && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => setShowWizard(true)}
-                          className="gap-2"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Inscribir
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expanded participants list */}
-                  {isExpanded && participants.length > 0 && (
-                    <div className="border-t bg-muted/10 px-4 py-3">
-                      <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                        Participantes ({participants.length})
-                      </div>
-                      <div className="space-y-2">
-                        {participants.map((participant, idx) => {
-                          const isEditing = editingParticipant?.groupId === group.id && editingParticipant?.participantIndex === idx;
-                          
-                          if (isEditing) {
-                            return (
-                              <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border-2 border-primary">
-                                <Input
-                                  value={editName}
-                                  onChange={e => setEditName(e.target.value)}
-                                  placeholder="Nombre completo"
-                                  className="flex-1 h-8 text-sm"
-                                  autoFocus
-                                  onKeyDown={e => {
-                                    if (e.key === "Enter") saveEditParticipant();
-                                    if (e.key === "Escape") cancelEditParticipant();
-                                  }}
-                                />
-                                <Input
-                                  type="date"
-                                  value={editBirthDate}
-                                  onChange={e => setEditBirthDate(e.target.value)}
-                                  className="w-36 h-8 text-sm"
-                                />
-                                <button
-                                  onClick={saveEditParticipant}
-                                  disabled={isSaving || !editName.trim()}
-                                  className="text-primary hover:text-primary/80 shrink-0 disabled:opacity-50"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={cancelEditParticipant}
-                                  disabled={isSaving}
-                                  className="text-muted-foreground hover:text-foreground shrink-0 disabled:opacity-50"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card hover:bg-muted/20 transition-colors group">
-                              <span className="text-sm flex-1">{participant.name}</span>
-                              {participant.birth_date && (
-                                <span className="text-xs text-muted-foreground">{participant.birth_date}</span>
-                              )}
+              {modality.categoriesWithGroups.map(({ category, groups }) => (
+                <div key={category} className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase pl-2">{category}</h4>
+                  
+                  <div className="grid gap-2">
+                    {groups.map(group => {
+                      const registeredComps = openCompetitions.filter(c => 
+                        registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
+                      );
+                      const isExpanded = expandedGroups.has(group.id);
+                      const participants = group.participants || [];
+                      
+                      return (
+                        <Card key={group.id} className="overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-3 gap-3 flex-wrap">
+                            <div className="flex items-center gap-3 flex-1">
                               <button
-                                onClick={() => startEditParticipant(group.id, idx, participant)}
-                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all shrink-0"
+                                onClick={() => toggleExpanded(group.id)}
+                                className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-primary" />}
                               </button>
+                              <div className="flex-1">
+                                <div className="font-semibold text-sm">{group.name}</div>
+                                <div className="text-xs text-muted-foreground">{participants.length} participantes</div>
+                                {registeredComps.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {registeredComps.map(c => (
+                                      <Badge key={c.id} className="text-[10px] bg-green-100 text-green-700 border-green-300">
+                                        Inscrito en {c.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => { setSelectedGroup(group); setShowEditGroup(true); }}
+                                className="gap-2"
+                              >
+                                <Pencil className="w-3.5 h-3.5" /> Modificar
+                              </Button>
+                              {openCompetitions.length > 0 && (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => setShowWizard(true)}
+                                  className="gap-2"
+                                >
+                                  <Plus className="w-3.5 h-3.5" /> Inscribir
+                                </Button>
+                              )}
+                            </div>
+                          </div>
 
-                  {isExpanded && participants.length === 0 && (
-                    <div className="border-t bg-muted/10 px-4 py-6 text-center">
-                      <p className="text-sm text-muted-foreground">Sin participantes</p>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+                          {/* Expanded participants list */}
+                          {isExpanded && participants.length > 0 && (
+                            <div className="border-t bg-muted/10 px-4 py-3">
+                              <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                                Participantes ({participants.length})
+                              </div>
+                              <div className="space-y-2">
+                                {participants.map((participant, idx) => {
+                                  const isEditing = editingParticipant?.groupId === group.id && editingParticipant?.participantIndex === idx;
+                                  
+                                  if (isEditing) {
+                                    return (
+                                      <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border-2 border-primary">
+                                        <Input
+                                          value={editName}
+                                          onChange={e => setEditName(e.target.value)}
+                                          placeholder="Nombre completo"
+                                          className="flex-1 h-8 text-sm"
+                                          autoFocus
+                                          onKeyDown={e => {
+                                            if (e.key === "Enter") saveEditParticipant();
+                                            if (e.key === "Escape") cancelEditParticipant();
+                                          }}
+                                        />
+                                        <Input
+                                          type="date"
+                                          value={editBirthDate}
+                                          onChange={e => setEditBirthDate(e.target.value)}
+                                          className="w-36 h-8 text-sm"
+                                        />
+                                        <button
+                                          onClick={saveEditParticipant}
+                                          disabled={isSaving || !editName.trim()}
+                                          className="text-primary hover:text-primary/80 shrink-0 disabled:opacity-50"
+                                        >
+                                          <Check className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={cancelEditParticipant}
+                                          disabled={isSaving}
+                                          className="text-muted-foreground hover:text-foreground shrink-0 disabled:opacity-50"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+
+                                  return (
+                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card hover:bg-muted/20 transition-colors group">
+                                      <span className="text-sm flex-1">{participant.name}</span>
+                                      {participant.birth_date && (
+                                        <span className="text-xs text-muted-foreground">{participant.birth_date}</span>
+                                      )}
+                                      <button
+                                        onClick={() => startEditParticipant(group.id, idx, participant)}
+                                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all shrink-0"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {isExpanded && participants.length === 0 && (
+                            <div className="border-t bg-muted/10 px-4 py-6 text-center">
+                              <p className="text-sm text-muted-foreground">Sin participantes</p>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       )}
 
