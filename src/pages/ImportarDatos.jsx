@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, CheckCircle, AlertCircle, FileText, Plus } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, FileText, Plus, RefreshCw } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -34,6 +34,10 @@ export default function ImportarDatos() {
   const [actaSchool, setActaSchool] = useState('');
   const [actaCompetition, setActaCompetition] = useState('');
   const [actaStatus, setActaStatus] = useState(null);
+
+  // Estado para sincronizar participantes
+  const [syncFile, setSyncFile] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -313,78 +317,50 @@ export default function ImportarDatos() {
   };
 
   const handleSyncParticipants = async () => {
-    if (!inscripcionesFile) {
-      setInscripcionesStatus({ type: 'error', message: 'Selecciona un archivo' });
+    if (!syncFile) {
+      setSyncStatus({ type: 'error', message: 'Selecciona un archivo' });
       return;
     }
 
     setLoading(true);
-    setInscripcionesStatus({ type: 'loading', message: 'Subiendo archivo...' });
+    setSyncStatus({ type: 'loading', message: 'Subiendo archivo...' });
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: inscripcionesFile });
-    
-    setInscripcionesStatus({ type: 'loading', message: 'Extrayendo datos...' });
-    
-    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
-        type: 'object',
-        properties: {
-          nombre_grupo: { type: 'string' },
-          escuela: { type: 'string' },
-          categoria: { type: 'string' },
-          nombre_entrenador: { type: 'string' },
-          email_entrenador: { type: 'string' },
-          telefono_entrenador: { type: 'string' },
-          nombre_participante_1: { type: 'string' },
-          fecha_nacimiento_1: { type: 'string' },
-          nombre_participante_2: { type: 'string' },
-          fecha_nacimiento_2: { type: 'string' },
-          nombre_participante_3: { type: 'string' },
-          fecha_nacimiento_3: { type: 'string' },
-          nombre_participante_4: { type: 'string' },
-          fecha_nacimiento_4: { type: 'string' },
-          nombre_participante_5: { type: 'string' },
-          fecha_nacimiento_5: { type: 'string' },
-          nombre_participante_6: { type: 'string' },
-          fecha_nacimiento_6: { type: 'string' },
-          nombre_participante_7: { type: 'string' },
-          fecha_nacimiento_7: { type: 'string' },
-          nombre_participante_8: { type: 'string' },
-          fecha_nacimiento_8: { type: 'string' }
-        }
-      }
-    });
-
-    if (result.status === 'error') {
-      setInscripcionesStatus({ type: 'error', message: result.details });
-      setLoading(false);
-      return;
-    }
-
-    setInscripcionesStatus({ type: 'loading', message: 'Sincronizando participantes...' });
-    
-    const groups = parseInscripciones(result.output);
-    let updated = 0;
-    
-    for (const groupData of groups) {
-      const existing = await base44.entities.Group.filter({
-        name: groupData.name,
-        school_name: groupData.school_name
-      });
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: syncFile });
       
-      if (existing.length > 0) {
-        await base44.entities.Group.update(existing[0].id, {
-          participants: groupData.participants
-        });
-        updated++;
-      }
-    }
+      setSyncStatus({ type: 'loading', message: 'Sincronizando participantes con el Excel...' });
+      
+      const response = await base44.functions.invoke('syncInscripciones', { file_url });
+      const result = response.data;
 
-    setInscripcionesStatus({ 
-      type: 'success', 
-      message: `Sincronizados ${updated} grupos con participantes del Excel` 
-    });
+      if (!result.success) {
+        setSyncStatus({ type: 'error', message: result.error || 'Error en la sincronización' });
+        setLoading(false);
+        return;
+      }
+
+      const { log } = result;
+      const totalChanges = log.groupsCorrected.length;
+      const totalAdded = log.participantsAdded.length;
+      const totalRemoved = log.participantsRemoved.length;
+
+      setSyncStatus({ 
+        type: 'success', 
+        message: `✅ Sincronización completada`,
+        details: {
+          groupsOk: log.groupsOk.length,
+          groupsCorrected: log.groupsCorrected,
+          groupsCreated: log.groupsCreated.length,
+          totalAdded,
+          totalRemoved,
+          warnings: log.warnings,
+          errors: log.errors
+        }
+      });
+    } catch (error) {
+      setSyncStatus({ type: 'error', message: error.message });
+    }
+    
     setLoading(false);
   };
 
@@ -420,10 +396,11 @@ export default function ImportarDatos() {
         <h1 className="text-3xl font-bold mb-6">Importar Datos</h1>
         
         <Tabs defaultValue="inscripciones" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="inscripciones">Inscripciones</TabsTrigger>
+            <TabsTrigger value="sync">Sincronizar</TabsTrigger>
             <TabsTrigger value="resultados">Resultados</TabsTrigger>
-            <TabsTrigger value="actas">Actas de Jueces</TabsTrigger>
+            <TabsTrigger value="actas">Actas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="inscripciones">
@@ -508,24 +485,14 @@ export default function ImportarDatos() {
                 </div>
 
                 {!previewGroups ? (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handlePreviewInscripciones}
-                      disabled={!inscripcionesFile || loading}
-                      className="flex-1"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {loading ? 'Procesando...' : 'Vista Previa'}
-                    </Button>
-                    <Button
-                      onClick={handleSyncParticipants}
-                      disabled={!inscripcionesFile || loading}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      {loading ? 'Sincronizando...' : 'Sincronizar Participantes'}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={handlePreviewInscripciones}
+                    disabled={!inscripcionesFile || loading}
+                    className="w-full"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {loading ? 'Procesando...' : 'Vista Previa'}
+                  </Button>
                 ) : (
                   <div className="space-y-3">
                     <Card className="bg-muted">
@@ -568,6 +535,101 @@ export default function ImportarDatos() {
                 )}
 
                 <StatusMessage status={inscripcionesStatus} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sync">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Sincronizar Participantes desde Excel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Sube un Excel con los participantes correctos. El sistema comparará con la base de datos y actualizará cada grupo para que coincida exactamente, sin borrar grupos ni inscripciones.
+                </p>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Archivo Excel (.xlsx)
+                  </label>
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setSyncFile(e.target.files[0])}
+                    disabled={loading}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleSyncParticipants}
+                  disabled={!syncFile || loading}
+                  className="w-full"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {loading ? 'Sincronizando...' : 'Sincronizar Participantes'}
+                </Button>
+
+                {syncStatus?.details && (
+                  <Card className="border-green-500">
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-center gap-2 text-green-600 font-semibold">
+                        <CheckCircle className="w-5 h-5" />
+                        {syncStatus.message}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="bg-muted p-3 rounded">
+                          <div className="font-semibold">Grupos sin cambios</div>
+                          <div className="text-2xl font-bold text-green-600">{syncStatus.details.groupsOk}</div>
+                        </div>
+                        <div className="bg-muted p-3 rounded">
+                          <div className="font-semibold">Grupos actualizados</div>
+                          <div className="text-2xl font-bold text-blue-600">{syncStatus.details.groupsCorrected.length}</div>
+                        </div>
+                        <div className="bg-muted p-3 rounded">
+                          <div className="font-semibold">Participantes añadidos</div>
+                          <div className="text-2xl font-bold text-green-600">{syncStatus.details.totalAdded}</div>
+                        </div>
+                        <div className="bg-muted p-3 rounded">
+                          <div className="font-semibold">Participantes eliminados</div>
+                          <div className="text-2xl font-bold text-red-600">{syncStatus.details.totalRemoved}</div>
+                        </div>
+                      </div>
+
+                      {syncStatus.details.groupsCorrected.length > 0 && (
+                        <div className="mt-3">
+                          <div className="font-semibold text-sm mb-2">Detalle de cambios:</div>
+                          <div className="max-h-60 overflow-y-auto space-y-2">
+                            {syncStatus.details.groupsCorrected.map((item, i) => (
+                              <div key={i} className="bg-background p-2 rounded text-xs">
+                                <div className="font-semibold">{item.group}</div>
+                                <div className="space-y-0.5 mt-1">
+                                  {item.changes.map((ch, j) => (
+                                    <div key={j} className={ch.startsWith('➕') ? 'text-green-600' : 'text-red-600'}>
+                                      {ch}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {syncStatus.details.groupsCreated.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          <strong>Grupos nuevos creados:</strong> {syncStatus.details.groupsCreated.join(', ')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <StatusMessage status={!syncStatus?.details ? syncStatus : null} />
               </CardContent>
             </Card>
           </TabsContent>
