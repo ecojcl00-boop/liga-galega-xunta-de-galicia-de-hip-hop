@@ -162,10 +162,16 @@ Deno.serve(async (req) => {
     }
     if (newSchoolsData.length + schoolUpdates.length > 0) await sleep(400);
 
+    // ── DEBUG: dump first 5 groupMap keys to diagnose deduplication misses ─────
+    const groupMapKeys = [...groupMap.keys()];
+    console.log(`[DEBUG] groupMap size: ${groupMapKeys.length}`);
+    console.log(`[DEBUG] First 5 groupMap keys: ${JSON.stringify(groupMapKeys.slice(0, 5))}`);
+
     // ── GROUPS ────────────────────────────────────────────────────────────────
     const newGroupsData = [];
     const groupUpdates = [];
     const seenGroupKeys = new Set();
+    let debugMissCount = 0;
 
     for (const row of parsedRows) {
       const schoolKey = nd(row.schoolName);
@@ -180,6 +186,17 @@ Deno.serve(async (req) => {
       seenGroupKeys.add(groupKey);
 
       const existing = groupMap.get(groupKey);
+
+      // DEBUG: for the first 5 misses, print both keys to spot the mismatch
+      if (!existing && debugMissCount < 5) {
+        debugMissCount++;
+        // Find the closest key in the map by group name to compare
+        const nameKey = nd(row.groupName);
+        const candidateKey = groupMapKeys.find(k => k.startsWith(nameKey + "|"));
+        console.log(`[DEBUG MISS ${debugMissCount}] Excel key : "${groupKey}"`);
+        console.log(`[DEBUG MISS ${debugMissCount}] Map candid: "${candidateKey ?? "(no match by name)"}"`);
+        console.log(`[DEBUG MISS ${debugMissCount}] Raw values — name:"${row.groupName}" school:"${row.schoolName}" category:"${row.category}"`);
+      }
 
       if (!existing) {
         newGroupsData.push({
