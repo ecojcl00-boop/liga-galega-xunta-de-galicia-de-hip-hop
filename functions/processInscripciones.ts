@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
     // Clave de deduplicación = nd(name)|nd(category)
     const groupMap = new Map(allGroups.map(g => [
-      `${nd(g.name)}|${nd(g.category || "")}`,
+      `${nd(g.name)}|${nd(g.category || "")}|${nd(g.school_name || "")}`,
       g,
     ]));
 
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     const seenGroupKeys = new Set();
 
     for (const row of parsedRows) {
-      const groupKey = `${nd(row.groupName)}|${nd(row.category)}`;
+      const groupKey = `${nd(row.groupName)}|${nd(row.category)}|${nd(row.schoolName)}`;
 
       if (seenGroupKeys.has(groupKey)) {
         log.warnings.push(`Fila ${row.rowNum} (${row.groupName}): Grupo duplicado en Excel — segunda ocurrencia omitida`);
