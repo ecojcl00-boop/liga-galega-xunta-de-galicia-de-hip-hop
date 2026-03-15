@@ -81,6 +81,57 @@ export default function Competitions() {
     ).length;
   };
 
+  const exportCompetitionCSVComplete = (comp) => {
+    const compRegs = registrations.filter(r =>
+      r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)
+    );
+
+    const rows = compRegs.map(reg => {
+      const group = groups.find(g => g.id === reg.group_id)
+        || groups.find(g => nd(g.name) === nd(reg.group_name));
+      return { reg, participants: group?.participants || [] };
+    });
+
+    const maxP = Math.max(0, ...rows.map(r => r.participants.length));
+
+    const baseHeaders = [
+      "competition_name", "group_name", "school_name", "category",
+      "coach_name", "coach_email", "coach_phone", "status", "participants_count",
+    ];
+    const pHeaders = [];
+    for (let i = 1; i <= maxP; i++) pHeaders.push(`nombre_${i}`, `nacimiento_${i}`);
+    const headers = [...baseHeaders, ...pHeaders];
+
+    const csvRows = rows.map(({ reg, participants }) => {
+      const base = [
+        reg.competition_name || "", reg.group_name || "", reg.school_name || "",
+        reg.category || "", reg.coach_name || "", reg.coach_email || "",
+        reg.coach_phone || "", reg.status || "", participants.length,
+      ];
+      const pCells = [];
+      for (let i = 0; i < maxP; i++) {
+        const p = participants[i];
+        pCells.push(p?.name || "", p?.birth_date || "");
+      }
+      return [...base, ...pCells];
+    });
+
+    const esc = (v) => {
+      const s = String(v ?? "");
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const csv = [headers, ...csvRows].map(r => r.map(esc).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Inscripciones_${comp.name.replace(/\s+/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const normalizeBirthDate = (d) => {
     if (!d?.trim()) return "";
     const s = d.trim();
@@ -224,7 +275,7 @@ export default function Competitions() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF participantes" onClick={() => exportCompetitionPDF(comp)}>
                           <Download className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar CSV inscritos" onClick={() => exportCompetitionCSVComplete(comp)}>
                           <ClipboardList className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(comp)}>
