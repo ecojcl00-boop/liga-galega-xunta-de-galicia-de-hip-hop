@@ -9,7 +9,10 @@ export default function SchoolSelectorDialog({ open, onOpenChange, allGroups, on
   const [selected, setSelected] = useState("");
 
   const allSchools = useMemo(() => {
-    return [...new Set(allGroups.map(g => g.school_name).filter(Boolean))].sort();
+    const normalized = allGroups
+      .map(g => g.school_name?.trim())
+      .filter(Boolean);
+    return [...new Set(normalized)].sort((a, b) => a.localeCompare(b, "es"));
   }, [allGroups]);
 
   const handleConfirm = () => {
