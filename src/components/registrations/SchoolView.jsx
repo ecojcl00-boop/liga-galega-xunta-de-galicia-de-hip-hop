@@ -229,11 +229,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
         <div className="space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-base font-semibold">Mis grupos ({myGroups.length})</h2>
-            {openCompetitions.length > 0 && (
-              <Button onClick={() => setShowWizard(true)} size="lg" className="gap-2">
-                <Plus className="w-4 h-4" /> Inscribir a competición
-              </Button>
-            )}
           </div>
           
           {groupedByModality.map(modality => (
