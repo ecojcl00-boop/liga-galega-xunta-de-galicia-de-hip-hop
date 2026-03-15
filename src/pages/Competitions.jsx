@@ -81,6 +81,17 @@ export default function Competitions() {
     ).length;
   };
 
+  const normalizeBirthDate = (d) => {
+    if (!d?.trim()) return "";
+    const s = d.trim();
+    // YYYY-MM-DD → DD/MM/YYYY
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y, m, day] = s.split("-");
+      return `${day}/${m}/${y}`;
+    }
+    return s;
+  };
+
   const exportCompetitionPDF = (comp) => {
     // PASO 1: inscripciones de esta competición por id o nombre normalizado
     const compRegs = registrations.filter(r =>
@@ -123,7 +134,8 @@ export default function Competitions() {
       participantsBySchool[school].forEach(p => {
         const nameParts = nd(p.name).split(" ").filter(Boolean);
         const nameKey = nameParts.slice(0, 2).join(" ");
-        const key = p.birth_date?.trim() ? p.birth_date.trim() : nameKey;
+        const normalizedBirth = normalizeBirthDate(p.birth_date);
+        const key = normalizedBirth ? normalizedBirth : nameKey;
         if (!seen.has(key)) seen.set(key, p);
       });
       const unique = [...seen.values()].sort((a, b) => (a.name || "").localeCompare(b.name || "", "es"));
