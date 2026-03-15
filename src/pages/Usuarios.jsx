@@ -511,7 +511,7 @@ export default function Usuarios() {
                     onChange={(e) => setSchoolSearch(e.target.value)}
                     className="w-full"
                   />
-                  <div className="max-h-32 overflow-y-auto border rounded-md w-full">
+                  <div className="max-h-40 overflow-y-auto border rounded-md w-full">
                     {schools
                       .filter((s) =>
                         s.name.toLowerCase().includes(schoolSearch.toLowerCase())
