@@ -80,80 +80,84 @@ export default function Competitions() {
     ).length;
   };
 
-  const exportCompetitionCSV = (comp) => {
-    const compRegs = registrations.filter(r => r.competition_name === comp.name);
-    
-    // Agrupar participantes por escuela
-    const participantsBySchool = {};
+  const exportCompetitionPDF = (comp) => {
+    // PASO 1: inscripciones de esta competición por id o nombre normalizado
+    const compRegs = registrations.filter(r =>
+      r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)
+    );
 
+    // PASO 2 & 3: agrupar participantes por escuela usando group.participants
+    const participantsBySchool = {};
     compRegs.forEach(reg => {
-      const schoolName = reg.school_name || "SIN ESCUELA";
-      if (!participantsBySchool[schoolName]) {
-        participantsBySchool[schoolName] = [];
-      }
-      (reg.participants || []).forEach(p => {
-        const name = (p?.name || p || "").trim();
+      const schoolName = reg.school_name || "Sin escuela";
+      if (!participantsBySchool[schoolName]) participantsBySchool[schoolName] = [];
+      const group = groups.find(g => g.id === reg.group_id)
+        || groups.find(g => nd(g.name) === nd(reg.group_name));
+      (group?.participants || []).forEach(p => {
+        const name = (p?.name || "").trim();
         if (!name) return;
-        participantsBySchool[schoolName].push({ name, birthDate: p?.birth_date || "" });
+        participantsBySchool[schoolName].push({ name, birth_date: p?.birth_date || "" });
       });
     });
-    
-    // Ordenar escuelas alfabéticamente
+
     const sortedSchools = Object.keys(participantsBySchool).sort((a, b) => a.localeCompare(b, "es"));
-    
-    // Crear PDF con jsPDF
+
+    // PASO 5: generar PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
-    let y = 20;
-    
+
+    // Título
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text(comp.name, 20, 20);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    if (comp.date) { doc.text(comp.date, 20, 28); }
+    let y = comp.date ? 38 : 30;
+
+    let totalGlobal = 0;
+
     sortedSchools.forEach(school => {
-      // Deduplicar participantes por escuela
-      const vistos = new Map();
+      // PASO 4: deduplicar por nd(name); si hay birth_date distinta, son personas distintas
+      const seen = new Map();
       participantsBySchool[school].forEach(p => {
-        const nombreNorm = p.name.trim().toLowerCase()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, ' ');
-        const clave = p.birthDate ? p.birthDate.trim() : nombreNorm;
-        if (!vistos.has(clave)) {
-          vistos.set(clave, p.name.trim());
-        }
+        const key = p.birth_date ? `${nd(p.name)}|${p.birth_date}` : nd(p.name);
+        if (!seen.has(key)) seen.set(key, p);
       });
-      
-      // Ordenar participantes alfabéticamente dentro de la escuela
-      const nombresUnicos = [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
-      const count = nombresUnicos.length;
-      
-      // Nueva página si no hay espacio
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-      
-      // Nombre de escuela en negrita tamaño 14
-      doc.setFontSize(14);
+      const unique = [...seen.values()].sort((a, b) => (a.name || "").localeCompare(b.name || "", "es"));
+      const count = unique.length;
+      totalGlobal += count;
+
+      if (y > 260) { doc.addPage(); y = 20; }
+
+      doc.setFontSize(13);
       doc.setFont(undefined, 'bold');
       doc.text(school, 20, y);
-      y += 8;
-      
-      // Participantes numerados tamaño 10
+      y += 7;
+
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      nombresUnicos.forEach((nombre, i) => {
-        if (y > 280) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(`${i + 1}. ${nombre}`, 25, y);
+      unique.forEach((p, i) => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        const line = p.birth_date ? `${i + 1}. ${p.name}  (${p.birth_date})` : `${i + 1}. ${p.name}`;
+        doc.text(line, 25, y);
         y += 6;
       });
-      
-      // Total
+
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.setFont(undefined, 'italic');
       doc.text(`Total: ${count} participante${count !== 1 ? 's' : ''}`, 25, y);
-      y += 15;
+      doc.setFont(undefined, 'normal');
+      y += 12;
     });
-    
-    doc.save(`Inscripciones_${comp.name.replace(/\s+/g, '_')}.pdf`);
+
+    // Total global
+    if (y > 275) { doc.addPage(); y = 20; }
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text(`TOTAL GENERAL: ${totalGlobal} participantes`, 20, y);
+
+    doc.save(`Participantes_${comp.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
@@ -203,7 +207,7 @@ export default function Competitions() {
                     </div>
                     {isAdmin && (
                       <div className="flex gap-1 shrink-0 self-end md:self-start">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar CSV" onClick={() => exportCompetitionCSV(comp)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF participantes" onClick={() => exportCompetitionPDF(comp)}>
                           <Download className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver inscritos" onClick={() => setViewingRegs(comp)}>
