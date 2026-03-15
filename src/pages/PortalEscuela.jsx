@@ -439,6 +439,9 @@ export default function PortalEscuela() {
           <TabsTrigger value="grupos" className="gap-1.5">
             <Users className="w-3.5 h-3.5" /> Mis Grupos
           </TabsTrigger>
+          <TabsTrigger value="inscripciones" className="gap-1.5">
+            <ClipboardList className="w-3.5 h-3.5" /> Inscripciones
+          </TabsTrigger>
           <TabsTrigger value="documentos" className="gap-1.5">
             <FileText className="w-3.5 h-3.5" /> Documentos
           </TabsTrigger>
@@ -472,7 +475,21 @@ export default function PortalEscuela() {
           />
         </TabsContent>
 
-
+        {/* ── Inscripciones ── */}
+        <TabsContent value="inscripciones" className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-lg font-semibold">Mis Inscripciones</h2>
+            <Button onClick={() => setShowWizard(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Inscribirse a competición
+            </Button>
+          </div>
+          <HistorialCompeticiones
+            competitions={competitions}
+            registrations={registrations}
+            groups={groups}
+            isAdmin={false}
+          />
+        </TabsContent>
 
         {/* ── Documentos ── */}
         <TabsContent value="documentos" className="space-y-4">
