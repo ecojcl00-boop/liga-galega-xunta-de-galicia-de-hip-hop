@@ -26,7 +26,6 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
   const [filterCat, setFilterCat]       = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch]             = useState("");
-  const [csvComp, setCsvComp]           = useState("all");
 
   const [expandedComps, setExpandedComps] = useState(new Set());
   const [expandedCats, setExpandedCats]   = useState(new Set());
