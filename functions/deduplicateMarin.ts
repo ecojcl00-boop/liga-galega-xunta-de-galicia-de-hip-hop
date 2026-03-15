@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
+function normName(str) {
+    return String(str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+
 Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -14,59 +18,57 @@ Deno.serve(async (req) => {
 
     console.log(`Total registros MARÍN 2026: ${allRegs.length}`);
 
-    // Agrupar por group_id si existe, si no por group_name normalizado
-    const byGroupId = new Map();
+    // Agrupar por group_name normalizado
+    const byGroupName = new Map();
 
     for (const reg of allRegs) {
-        const key = reg.group_id
-            ? `id:${reg.group_id}`
-            : `name:${String(reg.group_name || "").trim().toLowerCase()}`;
-        if (!byGroupId.has(key)) {
-            byGroupId.set(key, []);
+        const key = normName(reg.group_name);
+        if (!byGroupName.has(key)) {
+            byGroupName.set(key, []);
         }
-        byGroupId.get(key).push(reg);
+        byGroupName.get(key).push(reg);
     }
 
     const toDelete = [];
     const kept = [];
 
-    for (const [key, regs] of byGroupId.entries()) {
+    for (const [key, regs] of byGroupName.entries()) {
         if (regs.length === 1) {
-            kept.push(regs[0].id);
+            kept.push({ id: regs[0].id, name: regs[0].group_name });
             continue;
         }
-        // Ordenar por created_date ascendente → mantener el primero
-        regs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-        kept.push(regs[0].id);
+        // Ordenar: primero los que tienen group_id (más completos), luego por fecha desc
+        regs.sort((a, b) => {
+            // Prioridad 1: tener group_id
+            const aHasId = a.group_id ? 1 : 0;
+            const bHasId = b.group_id ? 1 : 0;
+            if (bHasId !== aHasId) return bHasId - aHasId;
+            // Prioridad 2: más reciente
+            return new Date(b.created_date) - new Date(a.created_date);
+        });
+        // Mantener el primero (más completo/más reciente)
+        kept.push({ id: regs[0].id, name: regs[0].group_name });
         for (let i = 1; i < regs.length; i++) {
-            toDelete.push(regs[i].id);
+            toDelete.push({ id: regs[i].id, name: regs[i].group_name, created_date: regs[i].created_date });
         }
     }
 
     console.log(`Únicos (a mantener): ${kept.length}`);
     console.log(`Duplicados (a eliminar): ${toDelete.length}`);
 
-    if (req.method === 'GET') {
-        // Solo preview, no eliminar
-        return Response.json({
-            total: allRegs.length,
-            unique: kept.length,
-            duplicates: toDelete.length,
-            idsToDelete: toDelete
-        });
-    }
-
-    // POST → eliminar duplicados
+    // Siempre ejecutar la eliminación
     let deleted = 0;
-    for (const id of toDelete) {
-        await base44.asServiceRole.entities.Registration.delete(id);
+    for (const item of toDelete) {
+        await base44.asServiceRole.entities.Registration.delete(item.id);
         deleted++;
+        console.log(`Deleted: ${item.name} (${item.id}) created ${item.created_date}`);
     }
 
     return Response.json({
         success: true,
         totalBefore: allRegs.length,
-        kept: kept.length,
-        deleted
+        uniqueGroups: kept.length,
+        deleted,
+        totalAfter: allRegs.length - deleted
     });
 });
