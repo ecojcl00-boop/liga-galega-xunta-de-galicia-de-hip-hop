@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     // Clave de deduplicación = nd(name)|nd(category) — sin school_name.
     // Nombre + categoría identifica unívocamente un grupo en esta liga.
     const groupMap = new Map(existingGroups.map(g => [
-      `${nd(g.name)}|${nd(g.category || "")}`,
+      `${nd(g.name)}|${nd(g.category || "")}|${nd(g.school_name || "")}`,
       g,
     ]));
 
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     const seenGroupKeys = new Set();
 
     for (const row of parsedRows) {
-      const groupKey = `${nd(row.groupName)}|${nd(row.category)}`;
+      const groupKey = `${nd(row.groupName)}|${nd(row.category)}|${nd(row.schoolName)}`;
 
       if (seenGroupKeys.has(groupKey)) {
         log.warnings.push(`Fila ${row.rowNum} (${row.groupName}): Grupo duplicado en Excel — segunda ocurrencia omitida`);
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       const created = await base44.entities.Group.bulkCreate(newGroupsData);
       log.groupsCreated = newGroupsData.length;
       (Array.isArray(created) ? created : []).forEach(g => {
-        groupMap.set(`${nd(g.name)}|${nd(g.category || "")}`, g);
+        groupMap.set(`${nd(g.name)}|${nd(g.category || "")}|${nd(g.school_name || "")}`, g);
       });
       console.log(`[INFO] Created ${log.groupsCreated} groups`);
     }
