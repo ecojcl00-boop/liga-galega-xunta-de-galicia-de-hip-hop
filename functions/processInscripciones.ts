@@ -30,13 +30,6 @@ function normalizeCategory(raw) {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-async function sequentialUpdates(entity, updates, delayMs = 350) {
-  for (let i = 0; i < updates.length; i++) {
-    await entity.update(updates[i].id, updates[i].data);
-    if (i + 1 < updates.length) await sleep(delayMs);
-  }
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -45,6 +38,7 @@ Deno.serve(async (req) => {
 
     const { file_url, competition_id, competition_name, is_simulacro } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url required' }, { status: 400 });
+    if (!competition_id) return Response.json({ error: 'competition_id required' }, { status: 400 });
 
     // ── PASO 1: Parsear Excel ─────────────────────────────────────────────────
     const fileRes = await fetch(file_url);
@@ -58,15 +52,13 @@ Deno.serve(async (req) => {
     console.log(`[INFO] Parsed ${rawRows.length} rows from Excel`);
 
     const log = {
-      schoolsCreated: 0, schoolsUpdated: 0,
-      participantsCreated: 0, participantsExisting: 0,
-      groupsCreated: 0, groupsUpdated: 0,
       registrationsCreated: 0,
-      warnings: [], errors: [], debugMisses: [],
+      registrationsSkipped: 0,
+      groupsNotFound: [],
+      warnings: [], errors: [],
     };
 
-    // ── Cargar datos existentes ───────────────────────────────────────────────
-    // Load groups with explicit pagination to ensure all records are fetched
+    // ── PASO 2: Cargar grupos y registraciones existentes ─────────────────────
     const allGroups = [];
     const PAGE_SIZE = 500;
     let offset = 0;
@@ -78,28 +70,19 @@ Deno.serve(async (req) => {
       offset += PAGE_SIZE;
     }
 
-    const [existingSchools, existingRegs] = await Promise.all([
-      base44.entities.School.list("name", 500),
-      competition_id
-        ? base44.entities.Registration.filter({ competition_id }, "-created_date", 500)
-        : Promise.resolve([]),
-    ]);
-    const existingGroups = allGroups;
+    const existingRegs = await base44.entities.Registration.filter({ competition_id }, "-created_date", 500);
 
-    console.log(`[INFO] Loaded: ${existingSchools.length} schools, ${existingGroups.length} groups, ${existingRegs.length} regs`);
+    console.log(`[INFO] Loaded: ${allGroups.length} groups, ${existingRegs.length} regs for this competition`);
 
-    const schoolMap = new Map(existingSchools.map(s => [nd(s.name), s]));
-
-    // PASO 2: clave de deduplicación = nd(name)|nd(category) — sin school_name.
-    // Nombre + categoría identifica unívocamente un grupo en esta liga.
-    const groupMap = new Map(existingGroups.map(g => [
+    // Clave de deduplicación = nd(name)|nd(category)
+    const groupMap = new Map(allGroups.map(g => [
       `${nd(g.name)}|${nd(g.category || "")}`,
       g,
     ]));
 
     const regSet = new Set(existingRegs.map(r => r.group_id));
 
-    // ── Parsear filas ─────────────────────────────────────────────────────────
+    // ── PASO 3: Parsear filas ─────────────────────────────────────────────────
     const parsedRows = [];
     for (let i = 0; i < rawRows.length; i++) {
       const r = rawRows[i];
@@ -108,8 +91,6 @@ Deno.serve(async (req) => {
       const schoolName = String(r["escuela"] || "").trim();
       const categoryRaw = String(r["categoria"] || "").trim();
       const coachName = String(r["nombre_entrenador"] || "").trim();
-      const coachEmail = String(r["email_entrenador"] || "").trim().toLowerCase();
-      const coachPhone = String(r["telefono_entrenador"] || "").trim();
 
       if (!groupName) { log.errors.push(`Fila ${rowNum}: Nombre de grupo vacío — omitida`); continue; }
       const category = normalizeCategory(categoryRaw);
@@ -125,45 +106,11 @@ Deno.serve(async (req) => {
       }
       if (participants.length === 0) log.warnings.push(`Fila ${rowNum} (${groupName}): Sin participantes`);
 
-      parsedRows.push({ rowNum, groupName, schoolName, category, coachName, coachEmail, coachPhone, participants });
+      parsedRows.push({ rowNum, groupName, schoolName, category, coachName, participants });
     }
 
-    // ── SCHOOLS ───────────────────────────────────────────────────────────────
-    const newSchoolsData = [];
-    const schoolUpdates = [];
-    const seenSchoolKeys = new Set();
-
-    for (const row of parsedRows) {
-      const key = nd(row.schoolName);
-      if (seenSchoolKeys.has(key)) continue;
-      seenSchoolKeys.add(key);
-
-      const existing = schoolMap.get(key);
-      if (!existing) {
-        newSchoolsData.push({ name: row.schoolName, email: row.coachEmail, phone: row.coachPhone });
-      } else {
-        const upd = {};
-        if (!existing.email && row.coachEmail) upd.email = row.coachEmail;
-        if (!existing.phone && row.coachPhone) upd.phone = row.coachPhone;
-        if (Object.keys(upd).length > 0) schoolUpdates.push({ id: existing.id, data: upd });
-      }
-    }
-
-    if (newSchoolsData.length > 0) {
-      const created = await base44.entities.School.bulkCreate(newSchoolsData);
-      log.schoolsCreated = newSchoolsData.length;
-      (Array.isArray(created) ? created : []).forEach(s => schoolMap.set(nd(s.name), s));
-      console.log(`[INFO] Created ${log.schoolsCreated} schools`);
-    }
-    if (schoolUpdates.length > 0) {
-      await sequentialUpdates(base44.entities.School, schoolUpdates, 300);
-      log.schoolsUpdated = schoolUpdates.length;
-    }
-    if (newSchoolsData.length + schoolUpdates.length > 0) await sleep(400);
-
-    // ── PASO 3: GROUPS ────────────────────────────────────────────────────────
-    const newGroupsData = [];
-    const groupUpdates = [];
+    // ── PASO 4: REGISTRATIONS ─────────────────────────────────────────────────
+    const regsToCreate = [];
     const seenGroupKeys = new Set();
 
     for (const row of parsedRows) {
@@ -175,107 +122,38 @@ Deno.serve(async (req) => {
       }
       seenGroupKeys.add(groupKey);
 
-      const schoolKey = nd(row.schoolName);
-      const school = schoolMap.get(schoolKey);
-      const schoolId = school?.id || null;
-
-      const existing = groupMap.get(groupKey);
-
-      console.log(`[DEDUP] key="${groupKey}" found=${!!existing}`);
-
-      if (!existing && log.debugMisses.length < 20) {
-        log.debugMisses.push({ key: groupKey, groupName: row.groupName, category: row.category });
+      const group = groupMap.get(groupKey);
+      if (!group) {
+        log.groupsNotFound.push({ groupName: row.groupName, category: row.category, key: groupKey });
+        log.errors.push(`Fila ${row.rowNum} (${row.groupName}): Grupo no encontrado en la BD — ¿importaste primero los grupos?`);
+        continue;
       }
 
-      if (!existing) {
-        // Grupo nuevo
-        newGroupsData.push({
-          name: row.groupName, school_name: row.schoolName, school_id: schoolId,
-          category: row.category, coach_name: row.coachName,
-          coach_email: row.coachEmail, coach_phone: row.coachPhone,
-          participants: row.participants,
-        });
-        log.participantsCreated += row.participants.length;
-      } else {
-        // PASO 3 update: merge participantes y actualizar school_name al valor del Excel
-        const existingNames = new Set((existing.participants || []).map(p => nd(p.name)));
-        const newParticipants = row.participants.filter(p => !existingNames.has(nd(p.name)));
-
-        const updatedExisting = (existing.participants || []).map(ep => {
-          if (!ep.birth_date) {
-            const match = row.participants.find(p => nd(p.name) === nd(ep.name));
-            if (match?.birth_date) return { ...ep, birth_date: match.birth_date };
-          }
-          return ep;
-        });
-
-        const birthChanged = updatedExisting.some((p, i) => p.birth_date !== (existing.participants || [])[i]?.birth_date);
-
-        const fieldUpd: Record<string, any> = {};
-        // Siempre actualizar school_name con el valor canónico del Excel
-        if (row.schoolName && nd(row.schoolName) !== nd(existing.school_name || "")) {
-          fieldUpd.school_name = row.schoolName;
-        }
-        if (schoolId && !existing.school_id) fieldUpd.school_id = schoolId;
-        if (!existing.coach_name && row.coachName) fieldUpd.coach_name = row.coachName;
-        if (!existing.coach_email && row.coachEmail) fieldUpd.coach_email = row.coachEmail;
-        if (!existing.coach_phone && row.coachPhone) fieldUpd.coach_phone = row.coachPhone;
-
-        const needsUpdate = newParticipants.length > 0 || birthChanged || Object.keys(fieldUpd).length > 0;
-
-        log.participantsCreated += newParticipants.length;
-        log.participantsExisting += row.participants.length - newParticipants.length;
-
-        if (needsUpdate) {
-          const mergedParticipants = [...updatedExisting, ...newParticipants];
-          groupUpdates.push({ id: existing.id, data: { participants: mergedParticipants, ...fieldUpd } });
-          Object.assign(existing, { participants: mergedParticipants, ...fieldUpd });
-        }
+      if (regSet.has(group.id)) {
+        log.registrationsSkipped++;
+        continue;
       }
-    }
 
-    console.log(`[INFO] Groups to create: ${newGroupsData.length}, to update: ${groupUpdates.length}`);
-
-    if (newGroupsData.length > 0) {
-      const created = await base44.entities.Group.bulkCreate(newGroupsData);
-      log.groupsCreated = newGroupsData.length;
-      (Array.isArray(created) ? created : []).forEach(g => {
-        groupMap.set(`${nd(g.name)}|${nd(g.category || "")}`, g);
+      regsToCreate.push({
+        competition_id,
+        competition_name: competition_name || "",
+        group_id: group.id,
+        group_name: group.name,
+        school_name: row.schoolName,
+        category: row.category,
+        coach_name: row.coachName,
+        status: "confirmed",
+        payment_status: "pending",
+        participants_count: row.participants.length,
+        is_simulacro: !!is_simulacro,
       });
-      console.log(`[INFO] Created ${log.groupsCreated} groups`);
+      regSet.add(group.id);
     }
-    if (newGroupsData.length > 0) await sleep(500);
 
-    if (groupUpdates.length > 0) {
-      console.log(`[INFO] Applying ${groupUpdates.length} group updates...`);
-      await sequentialUpdates(base44.entities.Group, groupUpdates, 400);
-      log.groupsUpdated = groupUpdates.length;
-    }
-    if (groupUpdates.length > 0) await sleep(500);
-
-    // ── PASO 4: REGISTRATIONS ─────────────────────────────────────────────────
-    if (competition_id) {
-      const regsToCreate = [];
-      for (const row of parsedRows) {
-        const groupKey = `${nd(row.groupName)}|${nd(row.category)}`;
-        const group = groupMap.get(groupKey);
-        if (group && !regSet.has(group.id)) {
-          regsToCreate.push({
-            competition_id, competition_name: competition_name || "",
-            group_id: group.id, group_name: group.name,
-            school_name: row.schoolName, category: row.category, coach_name: row.coachName,
-            status: "confirmed", payment_status: "pending",
-            participants_count: row.participants.length,
-            is_simulacro: !!is_simulacro,
-          });
-          regSet.add(group.id);
-        }
-      }
-      if (regsToCreate.length > 0) {
-        await base44.entities.Registration.bulkCreate(regsToCreate);
-        log.registrationsCreated = regsToCreate.length;
-        console.log(`[INFO] Created ${log.registrationsCreated} registrations`);
-      }
+    if (regsToCreate.length > 0) {
+      await base44.entities.Registration.bulkCreate(regsToCreate);
+      log.registrationsCreated = regsToCreate.length;
+      console.log(`[INFO] Created ${log.registrationsCreated} registrations`);
     }
 
     console.log(`[INFO] Done. Log: ${JSON.stringify({ ...log, warnings: log.warnings.length, errors: log.errors.length })}`);
