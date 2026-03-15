@@ -16,6 +16,10 @@ import ReenrollmentWizard from "@/components/registrations/ReenrollmentWizard";
 import HistorialCompeticiones from "@/components/registrations/HistorialCompeticiones";
 import Dashboard from "@/pages/Dashboard";
 
+function nd(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 // ── Modalidades y orden ──────────────────────────────────────────────────────
 const MODALITY_ORDER = [
   {
@@ -63,7 +67,7 @@ function LockoutScreen() {
 }
 
 // ── Tab: Competiciones ───────────────────────────────────────────────────────
-function TabCompeticiones({ competitions }) {
+function TabCompeticiones({ competitions, registrations, schoolName }) {
   if (competitions.length === 0) {
     return (
       <Card>
@@ -79,12 +83,20 @@ function TabCompeticiones({ competitions }) {
     <div className="grid gap-3">
       {competitions.map(comp => {
         const fecha = formatDate(comp.date);
+        const myCount = registrations.filter(r =>
+          r.competition_id === comp.id && nd(r.school_name) === nd(schoolName)
+        ).length;
         return (
           <Card key={comp.id}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <h3 className="font-semibold">{comp.name}</h3>
+                  <h3 className="font-semibold flex items-center gap-2 flex-wrap">
+                    {comp.name}
+                    {myCount > 0 && (
+                      <Badge variant="secondary" className="text-[10px] font-normal">{myCount} grupos inscritos</Badge>
+                    )}
+                  </h3>
                   {fecha && (
                     <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" /> {fecha}
@@ -444,7 +456,7 @@ export default function PortalEscuela() {
         {/* ── Competiciones ── */}
         <TabsContent value="competiciones" className="space-y-4">
           <h2 className="text-lg font-semibold">Competiciones</h2>
-          <TabCompeticiones competitions={competitions} />
+          <TabCompeticiones competitions={competitions} registrations={registrations} schoolName={schoolName} />
         </TabsContent>
 
         {/* ── Mis Grupos ── */}

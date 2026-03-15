@@ -73,8 +73,8 @@ export default function Competitions() {
     else { createMutation.mutate(form); }
   };
 
-  const getRegistrationCount = (competitionName) => {
-    return registrations.filter(r => r.competition_name === competitionName).length;
+  const getRegistrationCount = (competitionId) => {
+    return registrations.filter(r => r.competition_id === competitionId).length;
   };
 
   const exportCompetitionCSV = (comp) => {
@@ -177,7 +177,7 @@ export default function Competitions() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {competitions.map((comp) => {
-            const regCount = getRegistrationCount(comp.name);
+            const regCount = getRegistrationCount(comp.id);
             return (
               <Card key={comp.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
@@ -187,7 +187,12 @@ export default function Competitions() {
                         <Trophy className="w-5 h-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <CardTitle className="text-base">{comp.name}</CardTitle>
+                        <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+                          {comp.name}
+                          {regCount > 0 && (
+                            <Badge variant="secondary" className="text-[10px] font-normal">{regCount} inscritos</Badge>
+                          )}
+                        </CardTitle>
                         <Badge variant={comp.registration_open ? "default" : "secondary"} className="mt-1 text-[10px]">
                           {comp.registration_open ? "Inscripciones abiertas" : "Inscripciones cerradas"}
                         </Badge>
@@ -223,12 +228,6 @@ export default function Competitions() {
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{comp.location}</span>
-                      </div>
-                    )}
-                    {regCount > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 shrink-0" />
-                        <span>{regCount} inscripciones</span>
                       </div>
                     )}
                   </div>
