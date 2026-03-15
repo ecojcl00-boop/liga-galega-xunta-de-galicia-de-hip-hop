@@ -87,7 +87,16 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
     });
     return unique.sort();
   })();
-  const allCategories  = [...new Set(registrations.map(r => r.category).filter(Boolean))].sort();
+  const allCategories = (() => {
+    const cats = [...new Set(registrations.map(r => r.category).filter(Boolean))];
+    return cats.sort((a, b) => {
+      const aIdx = CATEGORY_ORDER.indexOf(a.toUpperCase());
+      const bIdx = CATEGORY_ORDER.indexOf(b.toUpperCase());
+      if (aIdx === -1) return bIdx === -1 ? 0 : 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
+  })();
   const allCompNames   = [...new Set(registrations.map(r => r.competition_name).filter(Boolean))].sort();
 
   const filtered = registrations.filter(r => {
