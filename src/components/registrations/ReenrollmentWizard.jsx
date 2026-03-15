@@ -486,13 +486,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
     const lastReg = prevRegs[0];
 
-    // Only pre-load from last registration (if it has participants)
-    // Otherwise leave undefined so the edit step falls back to group.participants (same as summary)
     if (groupParticipants[groupId] === undefined) {
-      if (lastReg?.participants?.length > 0) {
-        setGroupParticipants(pp => ({ ...pp, [groupId]: [...lastReg.participants] }));
+      if (group.participants?.length > 0) {
+        setGroupParticipants(pp => ({ ...pp, [groupId]: [...group.participants] }));
       }
-      // If no lastReg, leave undefined → display will fall back to group.participants
     }
 
     if (!groupDocuments[groupId]) {
