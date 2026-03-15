@@ -238,6 +238,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="space-y-1">
             {navItems
               .filter(item => {
+                if (item.hidden) return false;
                 if (item.adminOnly && !isEffectiveAdmin) return false;
                 if (item.schoolOnly && isEffectiveAdmin) return false;
                 return true;
