@@ -584,7 +584,6 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
       <div className="text-center p-8">
         <h2 className="text-2xl font-bold text-green-500 mb-4">✓ Inscripción confirmada</h2>
         <p className="text-foreground">Tu inscripción ha sido registrada correctamente.</p>
-        <Button onClick={onSuccess} className="mt-4">Volver al panel</Button>
       </div>
     );
   }

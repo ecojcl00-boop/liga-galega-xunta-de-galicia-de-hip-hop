@@ -2,10 +2,11 @@ import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock } from "lucide-react";
+import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock, Pencil } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 import CreateGroupDialog from "./CreateGroupDialog";
+import EditGroupDialog from "./EditGroupDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
 const statusColors = {
@@ -32,6 +33,8 @@ function norm(str = "") {
 export default function SchoolView({ user, competitions, allGroups, registrations }) {
   const [showWizard, setShowWizard] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const queryClient = useQueryClient();
 
   // Derive school name via normalized comparison
@@ -150,27 +153,42 @@ export default function SchoolView({ user, competitions, allGroups, registration
               );
               return (
                 <div key={group.id} className="flex items-center justify-between px-4 py-3 rounded-xl border bg-card gap-3 flex-wrap">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Users className="w-4 h-4 text-primary" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <div className="font-semibold text-sm">{group.name}</div>
                       <div className="text-xs text-muted-foreground">{group.category} · {group.participants?.length || 0} participantes</div>
+                      {registeredComps.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {registeredComps.map(c => (
+                            <Badge key={c.id} className="text-[10px] bg-green-100 text-green-700 border-green-300">
+                              Inscrito en {c.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {registeredComps.length > 0 ? (
-                      registeredComps.map(c => (
-                        <span key={c.id} className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="w-3 h-3" /> Inscrito en {c.name}
-                        </span>
-                      ))
-                    ) : openCompetitions.length > 0 ? (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        <Circle className="w-3 h-3" /> Sin inscribir
-                      </span>
-                    ) : null}
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => { setSelectedGroup(group); setShowEditGroup(true); }}
+                      className="gap-2"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Modificar
+                    </Button>
+                    {openCompetitions.length > 0 && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => setShowWizard(true)}
+                        className="gap-2"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Inscribir
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -220,6 +238,18 @@ export default function SchoolView({ user, competitions, allGroups, registration
           queryClient.invalidateQueries({ queryKey: ["groups"] });
           setShowCreateGroup(false);
           setShowWizard(true);
+        }}
+      />
+
+      <EditGroupDialog
+        open={showEditGroup}
+        onOpenChange={setShowEditGroup}
+        group={selectedGroup}
+        schools={[{ id: mySchoolName, name: mySchoolName }]}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["groups"] });
+          setShowEditGroup(false);
+          setSelectedGroup(null);
         }}
       />
     </div>
