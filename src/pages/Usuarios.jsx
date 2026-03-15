@@ -477,20 +477,21 @@ export default function Usuarios() {
             <DialogTitle>＋ Añadir usuario</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full">
               <label className="text-sm font-medium">Email</label>
               <Input
                 type="email"
                 placeholder="usuario@email.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
+                className="w-full"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full">
               <label className="text-sm font-medium">Rol</label>
               <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -501,15 +502,16 @@ export default function Usuarios() {
             </div>
 
             {inviteRole === "user" && (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 w-full">
                 <label className="text-sm font-medium">Escuela asignada</label>
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   <Input
                     placeholder="Buscar escuela..."
                     value={schoolSearch}
                     onChange={(e) => setSchoolSearch(e.target.value)}
+                    className="w-full"
                   />
-                  <div className="max-h-32 overflow-y-auto border rounded-md">
+                  <div className="max-h-32 overflow-y-auto border rounded-md w-full">
                     {schools
                       .filter((s) =>
                         s.name.toLowerCase().includes(schoolSearch.toLowerCase())
