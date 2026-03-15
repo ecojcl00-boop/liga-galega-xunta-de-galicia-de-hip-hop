@@ -79,6 +79,8 @@ function TabCompeticiones({ competitions, registrations, schoolName }) {
     );
   }
 
+  console.log("TabCompeticiones debug:", { schoolName, registrationsCount: registrations.length, firstReg: registrations[0]?.school_name });
+
   return (
     <div className="grid gap-3">
       {competitions.map(comp => {
