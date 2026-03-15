@@ -194,13 +194,17 @@ export default function Registrations() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Competición</Label>
-              <Select value={selectedCompetition?.id || ""} onValueChange={(id) => setSelectedCompetition(competitions.find(c => c.id === id))}>
+              <Label>Competición (con inscripción abierta)</Label>
+              <Select value={selectedCompetition?.id || ""} onValueChange={(id) => setSelectedCompetition(openCompetitions.find(c => c.id === id))}>
                 <SelectTrigger><SelectValue placeholder="Selecciona una competición" /></SelectTrigger>
                 <SelectContent>
-                  {competitions.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
+                  {openCompetitions.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">No hay competiciones con inscripción abierta</div>
+                  ) : (
+                    openCompetitions.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
