@@ -108,15 +108,16 @@ export default function Layout({ children, currentPageName }) {
         // Load school list for simulator
         if (u?.role === "admin") {
           base44.entities.Group.list().then(groups => {
+            const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
             const normalized = new Map();
             groups.forEach(g => {
               if (!g.school_name) return;
-              const key = g.school_name.toLowerCase().trim();
+              const key = nd(g.school_name);
               if (!normalized.has(key)) {
                 normalized.set(key, g.school_name.trim());
               }
             });
-            const names = [...normalized.values()].sort();
+            const names = [...normalized.values()].sort((a, b) => nd(a).localeCompare(nd(b)));
             setSchoolList(names);
           });
         }
