@@ -76,9 +76,14 @@ export default function Competitions() {
 
   const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
   const getRegistrationCount = (comp) => {
-    return registrations.filter(r =>
+    const compRegs = registrations.filter(r =>
       r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)
-    ).length;
+    );
+    // Si no es admin, contar solo los inscritos de su escuela
+    if (!isAdmin && user?.school_name) {
+      return compRegs.filter(r => nd(r.school_name) === nd(user.school_name)).length;
+    }
+    return compRegs.length;
   };
 
   const exportCompetitionCSVComplete = (comp) => {
