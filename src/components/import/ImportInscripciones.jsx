@@ -72,6 +72,21 @@ function ResultSummary({ result, showRegistrations }) {
           <CheckCircle2 className="w-4 h-4" /> Importación completada sin errores
         </div>
       )}
+
+      {result.log.debugMisses?.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1">
+          <div className="font-medium text-xs text-blue-800">
+            Debug — primeros {result.log.debugMisses.length} grupos no encontrados en BD:
+          </div>
+          <div className="max-h-48 overflow-y-auto space-y-0.5">
+            {result.log.debugMisses.map((m, i) => (
+              <div key={i} className="text-xs text-blue-700 font-mono">
+                <span className="font-semibold">{m.groupName}</span> — <span className="opacity-70">{m.key}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
