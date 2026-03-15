@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
       schoolsCreated: 0, schoolsUpdated: 0,
       participantsCreated: 0, participantsExisting: 0,
       groupsCreated: 0, groupsUpdated: 0,
+      registrationsReconnected: 0,
       warnings: [], errors: [],
     };
 
@@ -221,6 +222,37 @@ Deno.serve(async (req) => {
       console.log(`[INFO] Applying ${groupUpdates.length} group updates...`);
       await sequentialUpdates(base44.entities.Group, groupUpdates, 400);
       log.groupsUpdated = groupUpdates.length;
+    }
+    if (groupUpdates.length > 0) await sleep(500);
+
+    // ── RECONECTAR INSCRIPCIONES HUÉRFANAS ───────────────────────────────────
+    // Build a lookup: nd(group.name) → group, from the final groupMap state
+    const groupByName = new Map();
+    for (const [, g] of groupMap) {
+      const nameKey = nd(g.name);
+      if (!groupByName.has(nameKey)) groupByName.set(nameKey, g);
+    }
+
+    // Load all existing group IDs for fast orphan detection
+    const validGroupIds = new Set([...groupMap.values()].map(g => g.id));
+
+    const allRegistrations = await base44.asServiceRole.entities.Registration.list("-created_date", 2000);
+    console.log(`[INFO] Loaded ${allRegistrations.length} registrations for reconnect pass`);
+
+    const regReconnects = [];
+    for (const reg of allRegistrations) {
+      if (reg.group_id && validGroupIds.has(reg.group_id)) continue; // already connected
+      if (!reg.group_name) continue; // nothing to match on
+      const match = groupByName.get(nd(reg.group_name));
+      if (match && match.id !== reg.group_id) {
+        regReconnects.push({ id: reg.id, data: { group_id: match.id } });
+      }
+    }
+
+    console.log(`[INFO] Registrations to reconnect: ${regReconnects.length}`);
+    if (regReconnects.length > 0) {
+      await sequentialUpdates(base44.asServiceRole.entities.Registration, regReconnects, 350);
+      log.registrationsReconnected = regReconnects.length;
     }
 
     console.log(`[INFO] Done. Log: ${JSON.stringify({ ...log, warnings: log.warnings.length, errors: log.errors.length })}`);
