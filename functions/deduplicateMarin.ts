@@ -56,12 +56,14 @@ Deno.serve(async (req) => {
     console.log(`Únicos (a mantener): ${kept.length}`);
     console.log(`Duplicados (a eliminar): ${toDelete.length}`);
 
-    // Siempre ejecutar la eliminación
+    // Siempre ejecutar la eliminación con delay para evitar rate limit
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
     let deleted = 0;
     for (const item of toDelete) {
         await base44.asServiceRole.entities.Registration.delete(item.id);
         deleted++;
-        console.log(`Deleted: ${item.name} (${item.id}) created ${item.created_date}`);
+        console.log(`Deleted: ${item.name} (${item.id})`);
+        await delay(350);
     }
 
     return Response.json({
