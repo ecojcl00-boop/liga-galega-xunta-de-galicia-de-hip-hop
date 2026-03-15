@@ -20,7 +20,7 @@ const CATEGORY_MAP = {
 };
 
 function nd(str = "") {
-  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function normalizeCategory(raw) {
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     // ── Load existing data ────────────────────────────────────────────────────
     const [existingSchools, existingGroups, existingRegs] = await Promise.all([
       base44.entities.School.list("name", 500),
-      base44.entities.Group.list("name", 500),
+      base44.asServiceRole.entities.Group.list("name", 2000),
       competition_id
         ? base44.entities.Registration.filter({ competition_id }, "-created_date", 500)
         : Promise.resolve([]),
