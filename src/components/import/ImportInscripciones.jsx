@@ -126,7 +126,7 @@ export default function ImportInscripciones() {
   const fileRefG = useRef(null);
 
   useEffect(() => {
-    base44.entities.Competition.list("-date", 50).then(setCompetitions).catch(() => {});
+    base44.entities.LigaCompeticion.list("-date", 50).then(setCompetitions).catch(() => {});
   }, []);
 
   const handleImport = async () => {
