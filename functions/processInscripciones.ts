@@ -66,13 +66,25 @@ Deno.serve(async (req) => {
     };
 
     // ── Cargar datos existentes ───────────────────────────────────────────────
-    const [existingSchools, existingGroups, existingRegs] = await Promise.all([
+    // Load groups with explicit pagination to ensure all records are fetched
+    const allGroups = [];
+    const PAGE_SIZE = 500;
+    let offset = 0;
+    while (true) {
+      const page = await base44.asServiceRole.entities.Group.list("name", PAGE_SIZE, offset);
+      allGroups.push(...page);
+      console.log(`[INFO] Groups page offset=${offset}: got ${page.length}`);
+      if (page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    const [existingSchools, existingRegs] = await Promise.all([
       base44.entities.School.list("name", 500),
-      base44.asServiceRole.entities.Group.list("name", 2000),
       competition_id
         ? base44.entities.Registration.filter({ competition_id }, "-created_date", 500)
         : Promise.resolve([]),
     ]);
+    const existingGroups = allGroups;
 
     console.log(`[INFO] Loaded: ${existingSchools.length} schools, ${existingGroups.length} groups, ${existingRegs.length} regs`);
 
