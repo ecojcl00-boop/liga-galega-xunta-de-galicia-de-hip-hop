@@ -560,6 +560,7 @@ export default function Usuarios() {
                 onClick={async () => {
                   await base44.entities.User.create({
                     email: inviteEmail,
+                    full_name: inviteEmail.split('@')[0],
                     role: inviteRole,
                     school_name: inviteRole === "user" ? inviteSchool : ""
                   });
