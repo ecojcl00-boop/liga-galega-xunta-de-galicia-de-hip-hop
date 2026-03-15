@@ -118,10 +118,12 @@ export default function Competitions() {
     let totalGlobal = 0;
 
     sortedSchools.forEach(school => {
-      // PASO 4: deduplicar por nd(name); si hay birth_date distinta, son personas distintas
+      // PASO 4: deduplicar — clave es birth_date si existe, si no nombre+primer apellido
       const seen = new Map();
       participantsBySchool[school].forEach(p => {
-        const key = p.birth_date ? `${nd(p.name)}|${p.birth_date}` : nd(p.name);
+        const nameParts = nd(p.name).split(" ").filter(Boolean);
+        const nameKey = nameParts.slice(0, 2).join(" ");
+        const key = p.birth_date?.trim() ? p.birth_date.trim() : nameKey;
         if (!seen.has(key)) seen.set(key, p);
       });
       const unique = [...seen.values()].sort((a, b) => (a.name || "").localeCompare(b.name || "", "es"));
