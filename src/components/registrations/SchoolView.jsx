@@ -250,7 +250,11 @@ export default function SchoolView({ user, competitions, allGroups, registration
                         registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.name]?.has(group.id)
                       );
                       const isExpanded = expandedGroups.has(group.id);
-                      const participants = group.participants || [];
+                      const regsForGroup = myRegistrations
+                        .filter(r => r.group_id === group.id)
+                        .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+                      const lastReg = regsForGroup[0];
+                      const participants = (lastReg?.participants?.length > 0 ? lastReg.participants : null) ?? group.participants ?? [];
                       
                       return (
                         <Card key={group.id} className="overflow-hidden">
