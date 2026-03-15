@@ -89,6 +89,10 @@ function SchoolSection({ schoolName, regs, groups }) {
 // registrations: all (admin) OR school's regs only (school view)
 // groups: all groups for participant lookup
 // isAdmin: boolean — if false, groups by school are NOT shown
+function nd(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin }) {
   console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
@@ -111,7 +115,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
     <div className="space-y-4">
       {sortedComps.map(comp => {
         const compRegs = registrations.filter(r =>
-          r.competition_name === comp.name
+          nd(r.competition_name) === nd(comp.name)
         );
 
         // School view: skip competitions where this school has no registrations

@@ -481,13 +481,14 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     const group = availableGroups.find(g => g.id === groupId);
     if (!group) return;
 
+    const prevRegs = registrations
+      .filter(r => r.group_id === groupId)
+      .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+    const lastReg = prevRegs[0];
+
     // Only pre-load from last registration (if it has participants)
     // Otherwise leave undefined so the edit step falls back to group.participants (same as summary)
     if (groupParticipants[groupId] === undefined) {
-      const prevRegs = registrations
-        .filter(r => r.group_id === groupId)
-        .sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
-      const lastReg = prevRegs[0];
       if (lastReg?.participants?.length > 0) {
         setGroupParticipants(pp => ({ ...pp, [groupId]: [...lastReg.participants] }));
       }
@@ -495,7 +496,10 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     }
 
     if (!groupDocuments[groupId]) {
-      setGroupDocuments(dd => ({ ...dd, [groupId]: [] }));
+      setGroupDocuments(dd => ({
+        ...dd,
+        [groupId]: lastReg?.documents?.length > 0 ? [...lastReg.documents] : [],
+      }));
     }
     setEditingGroupId(groupId);
     setCurrentStep("editing");
