@@ -5,6 +5,15 @@ import { Trophy, Calendar, MapPin, Users, ChevronDown, ChevronRight, User } from
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
+function nd(s) {
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function resolveGroup(groups, reg) {
+  return groups.find(g => g.id === reg.group_id)
+    || groups.find(g => nd(g.name) === nd(reg.group_name));
+}
+
 function ParticipantList({ group }) {
   const participants = group?.participants || [];
   if (!participants.length) {
@@ -40,7 +49,7 @@ function GroupRow({ reg, group }) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-2">
           <Users className="w-3 h-3" />
-          <span>{reg.participants_count || group?.participants?.length || 0}</span>
+          <span>{group?.participants?.length ?? reg.participants_count ?? 0}</span>
         </div>
       </button>
       {open && (
@@ -76,7 +85,7 @@ function SchoolSection({ schoolName, regs, groups }) {
       {open && (
         <div className="px-4 pb-4 space-y-2">
           {regs.map(reg => {
-            const group = groups.find(g => g.id === reg.group_id);
+            const group = resolveGroup(groups, reg);
             return <GroupRow key={reg.id} reg={reg} group={group} />;
           })}
         </div>
@@ -89,10 +98,6 @@ function SchoolSection({ schoolName, regs, groups }) {
 // registrations: all (admin) OR school's regs only (school view)
 // groups: all groups for participant lookup
 // isAdmin: boolean — if false, groups by school are NOT shown
-function nd(s) {
-  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-}
-
 export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin }) {
   console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
@@ -201,7 +206,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                 ) : (
                   <div className="space-y-2">
                     {compRegs.map(reg => {
-                      const group = groups.find(g => g.id === reg.group_id);
+                      const group = resolveGroup(groups, reg);
                       return <GroupRow key={reg.id} reg={reg} group={group} />;
                     })}
                   </div>
