@@ -25,12 +25,11 @@ function nd(str = "") {
 
 function normalizeCategory(raw) {
   if (!raw) return null;
-  return CATEGORY_MAP[nd(raw).replace(/\s+/g, " ")] || null;
+  return CATEGORY_MAP[nd(raw)] || null;
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// Run updates one at a time with delay to avoid rate limits
 async function sequentialUpdates(entity, updates, delayMs = 350) {
   for (let i = 0; i < updates.length; i++) {
     await entity.update(updates[i].id, updates[i].data);
@@ -47,7 +46,7 @@ Deno.serve(async (req) => {
     const { file_url, competition_id, competition_name, is_simulacro } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url required' }, { status: 400 });
 
-    // ── Parse Excel ───────────────────────────────────────────────────────────
+    // ── PASO 1: Parsear Excel ─────────────────────────────────────────────────
     const fileRes = await fetch(file_url);
     if (!fileRes.ok) return Response.json({ error: `No se pudo descargar el archivo: ${fileRes.status}` }, { status: 400 });
 
@@ -66,7 +65,7 @@ Deno.serve(async (req) => {
       warnings: [], errors: [],
     };
 
-    // ── Load existing data ────────────────────────────────────────────────────
+    // ── Cargar datos existentes ───────────────────────────────────────────────
     const [existingSchools, existingGroups, existingRegs] = await Promise.all([
       base44.entities.School.list("name", 500),
       base44.asServiceRole.entities.Group.list("name", 2000),
@@ -79,27 +78,16 @@ Deno.serve(async (req) => {
 
     const schoolMap = new Map(existingSchools.map(s => [nd(s.name), s]));
 
-    // Reverse lookup: school email → school name, to resolve groups with missing school_name
-    const emailToSchoolName = new Map(
-      existingSchools.filter(s => s.email).map(s => [nd(s.email), s.name])
-    );
+    // PASO 2: clave de deduplicación = nd(name)|nd(category) — sin school_name.
+    // Nombre + categoría identifica unívocamente un grupo en esta liga.
+    const groupMap = new Map(existingGroups.map(g => [
+      `${nd(g.name)}|${nd(g.category || "")}`,
+      g,
+    ]));
 
-    // Fix Bug 1: resolve school_name for existing groups that have it empty/null so that
-    // reimporting the same Excel never creates duplicates due to a missing school_name in the DB.
-    for (const g of existingGroups) {
-      if (!g.school_name?.trim()) {
-        const resolved = g.coach_email ? emailToSchoolName.get(nd(g.coach_email)) : null;
-        g.school_name = resolved || "";
-      }
-    }
-
-    const groupMap = new Map(existingGroups.map(g => {
-      const catKey = nd(normalizeCategory(g.category) || g.category || "");
-      return [`${nd(g.name)}|${nd(g.school_name || "")}|${catKey}`, g];
-    }));
     const regSet = new Set(existingRegs.map(r => r.group_id));
 
-    // ── Parse all rows in memory first ────────────────────────────────────────
+    // ── Parsear filas ─────────────────────────────────────────────────────────
     const parsedRows = [];
     for (let i = 0; i < rawRows.length; i++) {
       const r = rawRows[i];
@@ -158,26 +146,16 @@ Deno.serve(async (req) => {
     if (schoolUpdates.length > 0) {
       await sequentialUpdates(base44.entities.School, schoolUpdates, 300);
       log.schoolsUpdated = schoolUpdates.length;
-      schoolUpdates.forEach(u => { const s = existingSchools.find(s => s.id === u.id); if (s) Object.assign(s, u.data); });
     }
     if (newSchoolsData.length + schoolUpdates.length > 0) await sleep(400);
 
-    // ── DEBUG: dump first 5 groupMap keys to diagnose deduplication misses ─────
-    const groupMapKeys = [...groupMap.keys()];
-    console.log(`[DEBUG] groupMap size: ${groupMapKeys.length}`);
-    console.log(`[DEBUG] First 5 groupMap keys: ${JSON.stringify(groupMapKeys.slice(0, 5))}`);
-
-    // ── GROUPS ────────────────────────────────────────────────────────────────
+    // ── PASO 3: GROUPS ────────────────────────────────────────────────────────
     const newGroupsData = [];
     const groupUpdates = [];
     const seenGroupKeys = new Set();
-    let debugMissCount = 0;
 
     for (const row of parsedRows) {
-      const schoolKey = nd(row.schoolName);
-      const school = schoolMap.get(schoolKey);
-      const schoolId = school?.id || null;
-      const groupKey = `${nd(row.groupName)}|${schoolKey}|${nd(row.category)}`;
+      const groupKey = `${nd(row.groupName)}|${nd(row.category)}`;
 
       if (seenGroupKeys.has(groupKey)) {
         log.warnings.push(`Fila ${row.rowNum} (${row.groupName}): Grupo duplicado en Excel — segunda ocurrencia omitida`);
@@ -185,20 +163,14 @@ Deno.serve(async (req) => {
       }
       seenGroupKeys.add(groupKey);
 
+      const schoolKey = nd(row.schoolName);
+      const school = schoolMap.get(schoolKey);
+      const schoolId = school?.id || null;
+
       const existing = groupMap.get(groupKey);
 
-      // DEBUG: for the first 5 misses, print both keys to spot the mismatch
-      if (!existing && debugMissCount < 5) {
-        debugMissCount++;
-        // Find the closest key in the map by group name to compare
-        const nameKey = nd(row.groupName);
-        const candidateKey = groupMapKeys.find(k => k.startsWith(nameKey + "|"));
-        console.log(`[DEBUG MISS ${debugMissCount}] Excel key : "${groupKey}"`);
-        console.log(`[DEBUG MISS ${debugMissCount}] Map candid: "${candidateKey ?? "(no match by name)"}"`);
-        console.log(`[DEBUG MISS ${debugMissCount}] Raw values — name:"${row.groupName}" school:"${row.schoolName}" category:"${row.category}"`);
-      }
-
       if (!existing) {
+        // Grupo nuevo
         newGroupsData.push({
           name: row.groupName, school_name: row.schoolName, school_id: schoolId,
           category: row.category, coach_name: row.coachName,
@@ -207,7 +179,7 @@ Deno.serve(async (req) => {
         });
         log.participantsCreated += row.participants.length;
       } else {
-        // Smart diff: only update if something actually changed
+        // PASO 3 update: merge participantes y actualizar school_name al valor del Excel
         const existingNames = new Set((existing.participants || []).map(p => nd(p.name)));
         const newParticipants = row.participants.filter(p => !existingNames.has(nd(p.name)));
 
@@ -220,11 +192,16 @@ Deno.serve(async (req) => {
         });
 
         const birthChanged = updatedExisting.some((p, i) => p.birth_date !== (existing.participants || [])[i]?.birth_date);
-        const fieldUpd = {};
+
+        const fieldUpd: Record<string, any> = {};
+        // Siempre actualizar school_name con el valor canónico del Excel
+        if (row.schoolName && nd(row.schoolName) !== nd(existing.school_name || "")) {
+          fieldUpd.school_name = row.schoolName;
+        }
+        if (schoolId && !existing.school_id) fieldUpd.school_id = schoolId;
         if (!existing.coach_name && row.coachName) fieldUpd.coach_name = row.coachName;
         if (!existing.coach_email && row.coachEmail) fieldUpd.coach_email = row.coachEmail;
         if (!existing.coach_phone && row.coachPhone) fieldUpd.coach_phone = row.coachPhone;
-        if (!existing.school_id && schoolId) fieldUpd.school_id = schoolId;
 
         const needsUpdate = newParticipants.length > 0 || birthChanged || Object.keys(fieldUpd).length > 0;
 
@@ -245,8 +222,7 @@ Deno.serve(async (req) => {
       const created = await base44.entities.Group.bulkCreate(newGroupsData);
       log.groupsCreated = newGroupsData.length;
       (Array.isArray(created) ? created : []).forEach(g => {
-        const catKey = nd(normalizeCategory(g.category) || g.category || "");
-        groupMap.set(`${nd(g.name)}|${nd(g.school_name || "")}|${catKey}`, g);
+        groupMap.set(`${nd(g.name)}|${nd(g.category || "")}`, g);
       });
       console.log(`[INFO] Created ${log.groupsCreated} groups`);
     }
@@ -259,12 +235,11 @@ Deno.serve(async (req) => {
     }
     if (groupUpdates.length > 0) await sleep(500);
 
-    // ── REGISTRATIONS ─────────────────────────────────────────────────────────
+    // ── PASO 4: REGISTRATIONS ─────────────────────────────────────────────────
     if (competition_id) {
       const regsToCreate = [];
       for (const row of parsedRows) {
-        const schoolKey = nd(row.schoolName);
-        const groupKey = `${nd(row.groupName)}|${schoolKey}|${nd(row.category)}`;
+        const groupKey = `${nd(row.groupName)}|${nd(row.category)}`;
         const group = groupMap.get(groupKey);
         if (group && !regSet.has(group.id)) {
           regsToCreate.push({
