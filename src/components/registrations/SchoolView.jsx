@@ -289,15 +289,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
                               >
                                 <Pencil className="w-3.5 h-3.5" /> Modificar
                               </Button>
-                              {openCompetitions.length > 0 && (
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => setShowWizard(true)}
-                                  className="gap-2"
-                                >
-                                  <Plus className="w-3.5 h-3.5" /> Inscribir
-                                </Button>
-                              )}
                             </div>
                           </div>
 
