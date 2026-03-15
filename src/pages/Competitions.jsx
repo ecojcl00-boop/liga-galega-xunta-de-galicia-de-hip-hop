@@ -73,8 +73,11 @@ export default function Competitions() {
     else { createMutation.mutate(form); }
   };
 
-  const getRegistrationCount = (competitionId) => {
-    return registrations.filter(r => r.competition_id === competitionId).length;
+  const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  const getRegistrationCount = (comp) => {
+    return registrations.filter(r =>
+      r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)
+    ).length;
   };
 
   const exportCompetitionCSV = (comp) => {
@@ -177,7 +180,7 @@ export default function Competitions() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {competitions.map((comp) => {
-            const regCount = getRegistrationCount(comp.id);
+            const regCount = getRegistrationCount(comp);
             return (
               <Card key={comp.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
