@@ -169,6 +169,8 @@ Deno.serve(async (req) => {
 
       const existing = groupMap.get(groupKey);
 
+      console.log(`[DEDUP] key="${groupKey}" found=${!!existing}`);
+
       if (!existing) {
         // Grupo nuevo
         newGroupsData.push({
