@@ -189,16 +189,9 @@ export default function AdminInscripcionesPanel({ registrations, competitions })
 
       {/* CSV Download */}
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-        <Select value={csvComp} onValueChange={setCsvComp}>
-          <SelectTrigger className="w-full sm:w-60"><SelectValue placeholder="Competición para CSV" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las competiciones</SelectItem>
-            {allCompNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
         <Button variant="outline" onClick={() => exportCSV()} className="gap-2 shrink-0 w-full sm:w-auto">
           <Download className="w-4 h-4" />
-          Descargar CSV — {csvComp === "all" ? "Todas las competiciones" : csvComp} ({csvComp === "all" ? filtered.length : filtered.filter(r => r.competition_name === csvComp).length})
+          Descargar CSV — {filterComp === "all" ? "Todas las competiciones" : filterComp} ({filterComp === "all" ? filtered.length : filtered.filter(r => r.competition_name === filterComp).length})
         </Button>
       </div>
 
