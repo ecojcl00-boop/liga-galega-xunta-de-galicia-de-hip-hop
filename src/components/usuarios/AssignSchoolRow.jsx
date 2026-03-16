@@ -10,6 +10,7 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
   const [selected, setSelected] = useState("");
   const [role, setRole] = useState(inv.role || "user");
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
   const [open, setOpen] = useState(false);
 
   const filtered = schools.filter(s =>
@@ -19,15 +20,22 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
   const canConfirm = role === "admin" || !!selected;
 
   const handleConfirm = async () => {
-    if (!canConfirm) return;
+    if (!canConfirm || saving) return;
     setSaving(true);
-    await base44.entities.InvitacionPendiente.update(inv.id, {
-      school_name: role === "admin" ? "" : selected,
-      role,
-      status: "pending"
-    });
+    // Find the real user by email and update their role/school
+    const users = await base44.entities.User.list();
+    const matchedUser = users.find(u => u.email === inv.email);
+    if (matchedUser) {
+      await base44.entities.User.update(matchedUser.id, {
+        role,
+        school_name: role === "admin" ? (matchedUser.school_name || "") : selected,
+      });
+    }
+    // Delete the pending invitation
+    await base44.entities.InvitacionPendiente.delete(inv.id);
     setSaving(false);
-    onAssigned();
+    setDone(true);
+    setTimeout(() => onAssigned(), 1200);
   };
 
   return (
