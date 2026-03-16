@@ -24,6 +24,15 @@ const CATEGORY_ORDER = [
   "BABY", "INFANTIL", "JUNIOR", "YOUTH", "ABSOLUTA", "PREMIUM", "MEGACREW"
 ];
 
+const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+const resolveGroupParticipants = (reg, groups) => {
+  const group = groups.find(g => g.id === reg.group_id) || groups.find(g => nd(g.name) === nd(reg.group_name));
+  const groupParts = group?.participants || [];
+  const regParts = reg.participants || [];
+  return groupParts.length >= regParts.length ? groupParts : regParts;
+};
+
 const normalizeSchoolName = (name) => {
   return String(name || "")
     .normalize("NFD")
