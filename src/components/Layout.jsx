@@ -100,11 +100,25 @@ export default function Layout({ children, currentPageName }) {
             const assignedInv = invitations.find(i => i.school_name?.trim());
             if (assignedInv) {
               // Admin already assigned role/school → apply it now
-              const updateData = { role: assignedInv.role };
+              const updateData = {};
+              if (assignedInv.role) updateData.role = assignedInv.role;
               // "__admin__" is a placeholder meaning admin role with no school
-              if (assignedInv.school_name && assignedInv.school_name !== "__admin__") updateData.school_name = assignedInv.school_name;
+              if (assignedInv.school_name && assignedInv.school_name !== "__admin__") {
+                updateData.school_name = assignedInv.school_name;
+              }
+              
+              // Update user and delete invitation
               await base44.auth.updateMe(updateData);
-              await base44.entities.InvitacionPendiente.delete(assignedInv.id);
+              
+              // Delete ALL matching invitations (by email) to avoid duplicates
+              for (const inv of invitations) {
+                try {
+                  await base44.entities.InvitacionPendiente.delete(inv.id);
+                } catch (e) {
+                  console.warn("Could not delete invitation:", inv.id);
+                }
+              }
+              
               const updatedUser = await base44.auth.me();
               setUser(updatedUser);
               // fall through to setAuthChecked below
