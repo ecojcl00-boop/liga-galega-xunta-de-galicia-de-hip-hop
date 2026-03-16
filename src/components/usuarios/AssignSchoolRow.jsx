@@ -33,7 +33,9 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
       });
       await base44.entities.InvitacionPendiente.delete(inv.id);
     } else {
-      // User not registered yet → keep invitation with assigned data so it stays visible
+      // User not registered yet → update invitation with assigned data
+      // It will appear in "Usuarios registrados" as pending invitation, and
+      // Layout will auto-apply it when they first log in
       await base44.entities.InvitacionPendiente.update(inv.id, {
         role,
         school_name: role === "admin" ? "" : selected,
