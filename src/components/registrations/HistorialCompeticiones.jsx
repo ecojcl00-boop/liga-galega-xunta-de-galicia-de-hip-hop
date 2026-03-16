@@ -131,11 +131,15 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
 
         const isExpanded = expandedComp === comp.id;
 
+        // Merge schools with same normalized name (case/accent insensitive)
         const bySchool = isAdmin
           ? compRegs.reduce((acc, r) => {
-              const s = r.school_name || "Sin escuela";
-              if (!acc[s]) acc[s] = [];
-              acc[s].push(r);
+              const raw = r.school_name || "Sin escuela";
+              // Find existing key that normalizes to the same value
+              const existingKey = Object.keys(acc).find(k => nd(k) === nd(raw));
+              const key = existingKey || raw;
+              if (!acc[key]) acc[key] = [];
+              acc[key].push(r);
               return acc;
             }, {})
           : null;
