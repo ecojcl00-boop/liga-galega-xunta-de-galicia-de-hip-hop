@@ -94,7 +94,9 @@ export default function Layout({ children, currentPageName }) {
           try {
             // 1. Check for pending invitation with school or admin role assigned by admin
             const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
-            const assignedInv = invitations.find(i => i.school_name || i.role === "admin");
+            // Only treat as "assigned by admin" if it has a school_name set (or is an admin role with explicit admin assignment)
+            // Invitations with empty school_name are pending requests waiting for admin review
+            const assignedInv = invitations.find(i => i.school_name?.trim());
             if (assignedInv) {
               // Admin already assigned role/school → apply it now using updateMe (user can update themselves)
               const updateData = { role: assignedInv.role };
