@@ -434,8 +434,9 @@ export default function PortalEscuela() {
           allGroups={groups}
           registrations={registrations}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["portal_registrations", schoolName] });
-            queryClient.invalidateQueries({ queryKey: ["portal_groups", schoolName] });
+            queryClient.invalidateQueries({ queryKey: ["portal_registrations_all"] });
+            queryClient.invalidateQueries({ queryKey: ["portal_groups_all"] });
+            queryClient.invalidateQueries({ queryKey: ["portal_competitions"] });
             setShowWizard(false);
           }}
         />
