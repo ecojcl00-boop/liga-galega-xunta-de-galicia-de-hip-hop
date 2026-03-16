@@ -127,13 +127,16 @@ export default function Layout({ children, currentPageName }) {
                 const updatedUser = await base44.auth.me();
                 setUser(updatedUser);
               } else {
-                // Unknown email → create pending request for admin to review
-                await base44.entities.InvitacionPendiente.create({
-                  email: u.email,
-                  role: "user",
-                  status: "pending",
-                  fecha_invitacion: new Date().toISOString()
-                });
+                // Unknown email → create pending request for admin to review (avoid duplicates)
+                const existing = await base44.entities.InvitacionPendiente.filter({ email: u.email });
+                if (existing.length === 0) {
+                  await base44.entities.InvitacionPendiente.create({
+                    email: u.email,
+                    role: "user",
+                    status: "pending",
+                    fecha_invitacion: new Date().toISOString()
+                  });
+                }
               }
             }
           } catch (err) {
