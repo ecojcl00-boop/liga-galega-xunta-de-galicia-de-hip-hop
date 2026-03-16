@@ -397,7 +397,7 @@ export default function PortalEscuela() {
 
   const { data: competitions = [] } = useQuery({
     queryKey: ["portal_competitions"],
-    queryFn: () => base44.entities.Competition.list("-date"),
+    queryFn: () => base44.entities.LigaCompeticion.list("-date"),
     staleTime: 0,
   });
 
