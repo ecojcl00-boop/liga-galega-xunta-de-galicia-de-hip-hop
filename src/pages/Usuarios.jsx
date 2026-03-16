@@ -209,7 +209,7 @@ export default function Usuarios() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-600" />
-                Solicitudes de acceso pendientes ({usersNoSchool.length + invNoSchool.length})
+                Solicitudes de acceso pendientes ({usersNoSchoolFiltered.length + invNoSchool.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
