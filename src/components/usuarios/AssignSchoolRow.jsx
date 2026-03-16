@@ -23,13 +23,22 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
     if (!canConfirm || saving) return;
     setSaving(true);
     
-    // Update invitation with assigned role/school so Layout can process it on next login
-    // Use "__admin__" as placeholder school_name for admin role
-    await base44.entities.InvitacionPendiente.update(inv.id, {
-      role,
-      school_name: role === "admin" ? "__admin__" : selected,
-      status: "pending",
-    });
+    try {
+      // 1. Try to update existing user with new role/school
+      const existingUser = await base44.entities.User.filter({ email: inv.email });
+      if (existingUser && existingUser.length > 0) {
+        // User exists → update their role and school
+        await base44.entities.User.update(existingUser[0].id, {
+          role,
+          school_name: role === "admin" ? "" : selected,
+        });
+      }
+      
+      // 2. Delete the pending invitation (user now has full access)
+      await base44.entities.InvitacionPendiente.delete(inv.id);
+    } catch (err) {
+      console.error("Error assigning access:", err);
+    }
     
     setSaving(false);
     setDone(true);
