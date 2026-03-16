@@ -199,8 +199,7 @@ export default function Usuarios() {
       {/* Pending access requests: users without school + InvitacionPendiente without school */}
       {(() => {
         const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === ""));
-        const activeEmails = users.map(u => u.email);
-        const invNoSchool = pendingInvitations.filter(inv => !inv.school_name && !activeEmails.includes(inv.email));
+        const invNoSchool = pendingInvitations.filter(inv => !inv.school_name);
         if (usersNoSchool.length === 0 && invNoSchool.length === 0) return null;
         return (
           <Card className="border-orange-500/30 bg-orange-500/5">
