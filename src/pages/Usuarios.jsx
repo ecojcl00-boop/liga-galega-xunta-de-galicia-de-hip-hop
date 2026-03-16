@@ -60,18 +60,7 @@ export default function Usuarios() {
     queryFn: () => base44.entities.School.list(),
   });
 
-  // Cleanup: Remove pending invitations when user becomes active
-  React.useEffect(() => {
-    const activeEmails = users.map(u => u.email);
-    const toCleanup = pendingInvitations.filter(inv => activeEmails.includes(inv.email));
-    
-    if (toCleanup.length > 0) {
-      toCleanup.forEach(inv => {
-        base44.entities.InvitacionPendiente.delete(inv.id);
-      });
-      qc.invalidateQueries({ queryKey: ["pending-invitations"] });
-    }
-  }, [users, pendingInvitations]);
+  // No auto-cleanup: invitations are deleted explicitly when confirmed or dismissed
 
   const updateUser = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
