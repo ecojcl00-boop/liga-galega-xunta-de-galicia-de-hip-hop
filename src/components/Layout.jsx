@@ -89,25 +89,23 @@ export default function Layout({ children, currentPageName }) {
         setUser(u);
         
         // Auto-assign from pending invitation or matching school email
-        if (!u.school_name || u.school_name === "" || u.role !== "admin") {
+        // Only run for non-admin users who don't yet have a school assigned
+        if (u.role !== "admin" && (!u.school_name || u.school_name === "")) {
           try {
-            // 1. Check for pending invitation first
+            // 1. Check for pending invitation with school or admin role assigned by admin
             const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
-            if (invitations.length > 0) {
-              const inv = invitations[0];
-              // Apply if invitation has a school OR promotes to admin
-              if (inv.school_name || inv.role === "admin") {
-                const updateData = { role: inv.role };
-                if (inv.school_name) updateData.school_name = inv.school_name;
-                await base44.entities.User.update(u.id, updateData);
-                await base44.entities.InvitacionPendiente.delete(inv.id);
-                const updatedUser = await base44.auth.me();
-                setUser(updatedUser);
-                return; // done
-              }
-              // Invitation exists but no school assigned yet → wait for admin
-            } else if (u?.role === "user" && (!u.school_name || u.school_name === "")) {
-              // No invitation → check if email matches a School record
+            const assignedInv = invitations.find(i => i.school_name || i.role === "admin");
+            if (assignedInv) {
+              // Admin already assigned role/school → apply it now
+              const updateData = { role: assignedInv.role };
+              if (assignedInv.school_name) updateData.school_name = assignedInv.school_name;
+              await base44.entities.User.update(u.id, updateData);
+              await base44.entities.InvitacionPendiente.delete(assignedInv.id);
+              const updatedUser = await base44.auth.me();
+              setUser(updatedUser);
+              // fall through to setAuthChecked below
+            } else {
+              // 2. No assigned invitation → check if email matches a School record directly
               const matchingSchools = await base44.entities.School.filter({ email: u.email });
               let schoolName = null;
               if (matchingSchools.length > 0) {
@@ -121,6 +119,7 @@ export default function Layout({ children, currentPageName }) {
                 });
                 if (found) schoolName = found.name;
               }
+
               if (schoolName) {
                 // Email matches a school → grant access immediately
                 await base44.entities.User.update(u.id, { school_name: schoolName, role: "user" });
@@ -128,9 +127,7 @@ export default function Layout({ children, currentPageName }) {
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                // Check ALL existing invitations for this email (regardless of status) to avoid duplicates
-                const allExisting = await base44.entities.InvitacionPendiente.filter({ email: u.email });
-                const hasPendingNoSchool = allExisting.some(i => !i.school_name && i.role !== "admin");
+                const hasPendingNoSchool = invitations.some(i => !i.school_name && i.role !== "admin");
                 if (!hasPendingNoSchool) {
                   await base44.entities.InvitacionPendiente.create({
                     email: u.email,
