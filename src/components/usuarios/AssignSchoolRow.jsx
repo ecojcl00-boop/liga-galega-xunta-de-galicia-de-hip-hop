@@ -24,24 +24,13 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
     setSaving(true);
     
     try {
-      // 1. Check if user already exists
-      const existingUser = await base44.entities.User.filter({ email: inv.email });
-      if (existingUser && existingUser.length > 0) {
-        // User exists → update their role and school
-        await base44.entities.User.update(existingUser[0].id, {
-          role,
-          school_name: role === "admin" ? "" : selected,
-        });
-        // Delete the invitation since user already registered
-        await base44.entities.InvitacionPendiente.delete(inv.id);
-      } else {
-        // User doesn't exist → mark invitation as "accepted" and store role/school for first login
-        await base44.entities.InvitacionPendiente.update(inv.id, {
-          role,
-          school_name: role === "admin" ? "__admin__" : selected,
-          status: "accepted",
-        });
-      }
+      // Always mark as "accepted" with the assigned role/school
+      // Layout will handle the transition to registered user on first login
+      await base44.entities.InvitacionPendiente.update(inv.id, {
+        role,
+        school_name: role === "admin" ? "__admin__" : selected,
+        status: "accepted",
+      });
     } catch (err) {
       console.error("Error assigning access:", err);
     }
