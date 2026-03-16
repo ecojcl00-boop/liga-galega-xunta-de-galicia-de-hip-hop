@@ -129,8 +129,16 @@ export default function Usuarios() {
         fecha_invitacion: new Date().toISOString()
       });
       
-      // Send invitation
-      await base44.users.inviteUser(inviteEmail, inviteRole);
+      // Send invitation (fallback to direct email if already registered)
+      try {
+        await base44.users.inviteUser(inviteEmail, inviteRole);
+      } catch {
+        await base44.integrations.Core.SendEmail({
+          to: inviteEmail,
+          subject: "Acceso a HIPHOPGDT — tu cuenta está lista",
+          body: `Hola,\n\nTu acceso a la plataforma HipHop Galician Dance Tour ha sido configurado.\n\n${inviteRole === "user" && inviteSchool ? `Escuela asignada: ${inviteSchool}\n\n` : ""}Puedes entrar en: ${window.location.origin}\n\nSi ya tienes cuenta, inicia sesión con este email.\n\nSaludos,\nEquipo HIPHOPGDT`,
+        });
+      }
       
       // Refresh lists
       await qc.invalidateQueries({ queryKey: ["pending-invitations"] });
