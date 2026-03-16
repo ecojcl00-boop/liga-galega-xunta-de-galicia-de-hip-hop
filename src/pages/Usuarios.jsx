@@ -200,7 +200,10 @@ export default function Usuarios() {
       {(() => {
         const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === ""));
         const invNoSchool = pendingInvitations.filter(inv => !inv.school_name);
-        if (usersNoSchool.length === 0 && invNoSchool.length === 0) return null;
+        // Avoid showing the same email in both sections
+        const invEmails = invNoSchool.map(i => i.email);
+        const usersNoSchoolFiltered = usersNoSchool.filter(u => !invEmails.includes(u.email));
+        if (usersNoSchoolFiltered.length === 0 && invNoSchool.length === 0) return null;
         return (
           <Card className="border-orange-500/30 bg-orange-500/5">
             <CardHeader className="pb-3">
