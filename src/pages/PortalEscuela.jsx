@@ -418,7 +418,7 @@ export default function PortalEscuela() {
   if (!user) return null;
   if (user.role !== "admin" && !schoolName) return <LockoutScreen userEmail={user.email} />;
 
-  const openCompetitions = competitions.filter(c => c.registration_open);
+  const openCompetitions = useMemo(() => competitions.filter(c => c.registration_open), [competitions]);
   const resultadosSinSimulacro = useMemo(
     () => ligaResultados.filter(r => !r.is_simulacro),
     [ligaResultados]
