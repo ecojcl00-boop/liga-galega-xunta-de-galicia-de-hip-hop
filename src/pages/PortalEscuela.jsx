@@ -50,16 +50,30 @@ function formatDate(dateStr) {
 }
 
 // ── Pantalla de bloqueo ──────────────────────────────────────────────────────
-function LockoutScreen() {
+function LockoutScreen({ userEmail }) {
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-4">
       <Card className="max-w-sm w-full">
         <CardContent className="pt-8 pb-8 text-center space-y-3">
           <Lock className="w-12 h-12 mx-auto text-muted-foreground/30" />
-          <h2 className="text-xl font-bold">Cuenta sin escuela asignada</h2>
+          <h2 className="text-xl font-bold">Solicitud enviada</h2>
           <p className="text-sm text-muted-foreground">
-            Tu cuenta no está vinculada a ninguna escuela. Contacta con el administrador.
+            Tu solicitud de acceso ha sido enviada al administrador.
+            En cuanto te asigne una escuela podrás acceder al portal.
           </p>
+          {userEmail && (
+            <p className="text-xs text-muted-foreground bg-muted rounded px-3 py-2">
+              Email: <strong>{userEmail}</strong>
+            </p>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => base44.auth.logout()}
+            className="gap-2 mt-2"
+          >
+            Cerrar sesión
+          </Button>
         </CardContent>
       </Card>
     </div>
