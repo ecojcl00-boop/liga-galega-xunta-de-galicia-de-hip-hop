@@ -89,14 +89,14 @@ export default function Layout({ children, currentPageName }) {
         setUser(u);
         
         // Auto-assign from pending invitation or matching school email
-        // Only run for users who don't yet have a school assigned (and are not already admin)
+        // Only run for NON-ADMIN users who don't yet have a school assigned
         if (u.role !== "admin" && (!u.school_name || u.school_name === "")) {
           try {
             // 1. Check for pending invitation assigned by admin (with school or admin placeholder)
             const allInvitations = await base44.entities.InvitacionPendiente.list();
             const invitations = allInvitations.filter(i => i.email?.toLowerCase() === u.email?.toLowerCase());
             
-            const assignedInv = invitations.find(i => i.status === "accepted" || i.school_name?.trim());
+            const assignedInv = invitations.find(i => i.status === "accepted");
             if (assignedInv) {
               // Admin already assigned role/school → apply it now
               const updateData = {};
