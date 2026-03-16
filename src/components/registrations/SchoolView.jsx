@@ -117,15 +117,16 @@ export default function SchoolView({ user, competitions, allGroups, registration
   const registeredGroupIds = useMemo(() => {
     const map = {};
     myRegistrations.forEach(r => {
-      // Index by competition_id
       if (r.competition_id) {
         if (!map[r.competition_id]) map[r.competition_id] = new Set();
         map[r.competition_id].add(r.group_id);
+        // Also by group_name fallback
+        map[r.competition_id].add(r.group_name);
       }
-      // Also index by competition_name
       if (r.competition_name) {
         if (!map[r.competition_name]) map[r.competition_name] = new Set();
         map[r.competition_name].add(r.group_id);
+        map[r.competition_name].add(r.group_name);
       }
     });
     return map;
