@@ -24,7 +24,7 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
     setSaving(true);
     
     try {
-      // 1. Try to update existing user with new role/school
+      // 1. Check if user already exists
       const existingUser = await base44.entities.User.filter({ email: inv.email });
       if (existingUser && existingUser.length > 0) {
         // User exists → update their role and school
@@ -32,10 +32,10 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
           role,
           school_name: role === "admin" ? "" : selected,
         });
-        // If user already exists, delete the invitation
+        // Delete the invitation since user already registered
         await base44.entities.InvitacionPendiente.delete(inv.id);
       } else {
-        // User doesn't exist yet → mark invitation as "accepted" (will be processed on first login)
+        // User doesn't exist → mark invitation as "accepted" and store role/school for first login
         await base44.entities.InvitacionPendiente.update(inv.id, {
           role,
           school_name: role === "admin" ? "__admin__" : selected,
