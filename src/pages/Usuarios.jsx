@@ -150,7 +150,17 @@ export default function Usuarios() {
 
   const resendInvite = useMutation({
     mutationFn: async (invitation) => {
-      await base44.users.inviteUser(invitation.email, invitation.role);
+      // Try platform invite first; if it fails (e.g. already registered), fall back to direct email
+      try {
+        await base44.users.inviteUser(invitation.email, invitation.role);
+      } catch {
+        // User may already be registered — send a direct email reminder instead
+        await base44.integrations.Core.SendEmail({
+          to: invitation.email,
+          subject: "Acceso a HIPHOPGDT — tu cuenta está lista",
+          body: `Hola,\n\nTu acceso a la plataforma HipHop Galician Dance Tour ha sido configurado.\n\n${invitation.school_name ? `Escuela asignada: ${invitation.school_name}\n\n` : ""}Puedes entrar en: ${window.location.origin}\n\nSi ya tienes cuenta, inicia sesión con este email.\n\nSaludos,\nEquipo HIPHOPGDT`,
+        });
+      }
       await base44.entities.InvitacionPendiente.update(invitation.id, {
         fecha_invitacion: new Date().toISOString()
       });
