@@ -227,8 +227,10 @@ export default function Usuarios() {
 
       {/* Pending access requests */}
        {(() => {
-         // TODAS las invitaciones con status pending = solicitudes de acceso (pueden tener o no escuela asignada)
-         const solicitudesInv = pendingInvitations.filter(inv => inv.status === "pending");
+         // TODAS las invitaciones con status pending, PERO excluir las que coinciden con usuarios que YA tienen escuela
+         const usersEmails = new Set(users.map(u => u.email?.toLowerCase()));
+         const usersWithSchoolEmails = new Set(users.filter(u => u.school_name?.trim()).map(u => u.email?.toLowerCase()));
+         const solicitudesInv = pendingInvitations.filter(inv => inv.status === "pending" && !usersWithSchoolEmails.has(inv.email?.toLowerCase()));
          // Users ya registrados sin escuela (y cuyo email no tiene ya una InvitacionPendiente)
          const invEmails = new Set(pendingInvitations.map(i => i.email?.toLowerCase()));
          const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "") && !invEmails.has(u.email?.toLowerCase()));
