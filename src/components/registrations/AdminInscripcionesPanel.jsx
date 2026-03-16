@@ -113,7 +113,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
 
   const filtered = registrations.filter(r => {
     if (filterComp !== "all" && r.competition_name !== filterComp) return false;
-    if (filterSchool !== "all" && r.school_name !== filterSchool) return false;
+    if (filterSchool !== "all" && schoolNormMap.get(r.school_name) !== filterSchool) return false;
     if (filterCat !== "all" && r.category !== filterCat) return false;
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
     if (search) {
