@@ -3,12 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Lock, Plus, Calendar, Download, FileText,
-  Users, CheckCircle2, Home, Trophy, ClipboardList
+  Users, CheckCircle2, Home, Trophy, ClipboardList, MapPin
 } from "lucide-react";
 import { downloadFile } from "@/components/utils/downloadFile";
 import LigaRankingView from "@/components/rankings/LigaRankingView";
@@ -93,38 +93,47 @@ function TabCompeticiones({ competitions, registrations, schoolName }) {
     );
   }
 
-  console.log("TabCompeticiones debug:", { schoolName, registrationsCount: registrations.length, firstReg: registrations[0]?.school_name });
-
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4 md:grid-cols-2">
       {competitions.map(comp => {
         const fecha = formatDate(comp.date);
         const myCount = registrations.filter(r =>
           (r.competition_id === comp.id || nd(r.competition_name) === nd(comp.name)) && nd(r.school_name) === nd(schoolName)
         ).length;
         return (
-          <Card key={comp.id}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <h3 className="font-semibold flex items-center gap-2 flex-wrap">
+          <Card key={comp.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Trophy className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                     {comp.name}
                     {myCount > 0 && (
                       <Badge variant="secondary" className="text-[10px] font-normal">{myCount} grupos inscritos</Badge>
                     )}
-                  </h3>
-                  {fecha && (
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> {fecha}
-                    </p>
-                  )}
-                  {comp.location && (
-                    <p className="text-sm text-muted-foreground">{comp.location}</p>
-                  )}
+                  </CardTitle>
+                  <Badge variant={comp.registration_open ? "default" : "secondary"} className="mt-1 text-[10px]">
+                    {comp.registration_open ? "Inscripciones abiertas" : "Inscripciones cerradas"}
+                  </Badge>
                 </div>
-                <Badge variant={comp.registration_open ? "default" : "outline"} className="shrink-0">
-                  {comp.registration_open ? "Inscripciones abiertas" : "Inscripciones cerradas"}
-                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                {fecha && (
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{fecha}</span>
+                  </div>
+                )}
+                {comp.location && (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{comp.location}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
