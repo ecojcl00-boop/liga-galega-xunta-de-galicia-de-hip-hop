@@ -30,8 +30,8 @@ export default function Competitions() {
   const queryClient = useQueryClient();
 
   const { data: competitions = [], isLoading } = useQuery({
-    queryKey: ["competitions"],
-    queryFn: () => base44.entities.Competition.list("date"),
+    queryKey: ["ligacompeticions"],
+    queryFn: () => base44.entities.LigaCompeticion.list("date"),
   });
 
   const { data: registrations = [] } = useQuery({
@@ -45,32 +45,23 @@ export default function Competitions() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Competition.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["competitions"] }); closeForm(); },
+    mutationFn: (data) => base44.entities.LigaCompeticion.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["ligacompeticions"] }); closeForm(); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Competition.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["competitions"] }); closeForm(); },
+    mutationFn: ({ id, data }) => base44.entities.LigaCompeticion.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["ligacompeticions"] }); closeForm(); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Competition.delete(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["competitions"] }); setDeleteId(null); },
+    mutationFn: (id) => base44.entities.LigaCompeticion.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["ligacompeticions"] }); setDeleteId(null); },
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, registration_open, name }) => {
-      // Actualizar Competition
-      await base44.entities.Competition.update(id, { registration_open });
-      // Actualizar LigaCompeticion si existe
-      const ligaComps = await base44.entities.LigaCompeticion.list();
-      const ligaComp = ligaComps.find(lc => nd(lc.name) === nd(name));
-      if (ligaComp) {
-        await base44.entities.LigaCompeticion.update(ligaComp.id, { registration_open });
-      }
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["competitions"] }),
+    mutationFn: ({ id, registration_open }) => base44.entities.LigaCompeticion.update(id, { registration_open }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ligacompeticions"] }),
   });
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
