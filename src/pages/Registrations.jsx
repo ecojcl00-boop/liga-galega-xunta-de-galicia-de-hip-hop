@@ -49,14 +49,25 @@ export default function Registrations() {
     enabled: !!user,
   });
 
+  function norm(s) {
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
   const { data: registrations = [] } = useQuery({
     queryKey: ["registrations", user?.role, user?.school_name, isSimulacro],
     queryFn: () => {
       if (user?.role === "admin") return base44.entities.Registration.list("-created_date");
       if (!user?.school_name) return [];
-      return base44.entities.Registration.filter({ school_name: user.school_name }, "-created_date");
+      // Load all and filter client-side to handle case/accent mismatches in school_name
+      return base44.entities.Registration.list("-created_date");
     },
-    select: (data) => isSimulacro ? data : data.filter(r => !r.is_simulacro),
+    select: (data) => {
+      let filtered = isSimulacro ? data : data.filter(r => !r.is_simulacro);
+      if (user?.role !== "admin" && user?.school_name) {
+        filtered = filtered.filter(r => norm(r.school_name) === norm(user.school_name));
+      }
+      return filtered;
+    },
     enabled: !!user,
   });
 
@@ -65,7 +76,14 @@ export default function Registrations() {
     queryFn: () => {
       if (user?.role === "admin") return base44.entities.Group.list("name");
       if (!user?.school_name) return [];
-      return base44.entities.Group.filter({ school_name: user.school_name }, "name");
+      // Load all and filter client-side to handle case/accent mismatches in school_name
+      return base44.entities.Group.list("name");
+    },
+    select: (data) => {
+      if (user?.role !== "admin" && user?.school_name) {
+        return data.filter(g => norm(g.school_name) === norm(user.school_name));
+      }
+      return data;
     },
     enabled: !!user,
   });
