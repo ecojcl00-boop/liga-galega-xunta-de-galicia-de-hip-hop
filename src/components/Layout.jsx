@@ -156,6 +156,13 @@ export default function Layout({ children, currentPageName }) {
             }
           } catch (err) {
             console.error("Auto-assign error:", err);
+            try {
+              await base44.entities.LogSolicitudes.create({
+                email: "ERROR",
+                status: err.message || String(err),
+                school_name: "auto-assign-error"
+              });
+            } catch(e2) {}
             setAssignError(err.message || "Error al asignar acceso automático");
           }
         }
