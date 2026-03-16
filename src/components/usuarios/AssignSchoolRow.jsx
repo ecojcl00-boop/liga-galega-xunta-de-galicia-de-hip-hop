@@ -100,16 +100,24 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
           {/* Confirm button */}
           {canConfirm && (
             <div className="flex items-center gap-2 pt-1">
-              {role === "user" && selected && (
-                <span className="text-xs text-muted-foreground">Escuela: <strong>{selected}</strong></span>
+              {done ? (
+                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" /> Acceso confirmado
+                </span>
+              ) : (
+                <>
+                  {role === "user" && selected && (
+                    <span className="text-xs text-muted-foreground">Escuela: <strong>{selected}</strong></span>
+                  )}
+                  {role === "admin" && (
+                    <span className="text-xs text-muted-foreground">Se asignará rol <strong>administrador</strong></span>
+                  )}
+                  <Button size="sm" className="h-7 gap-1 ml-auto" onClick={handleConfirm} disabled={saving}>
+                    <Check className="w-3.5 h-3.5" />
+                    {saving ? "Guardando..." : "Confirmar"}
+                  </Button>
+                </>
               )}
-              {role === "admin" && (
-                <span className="text-xs text-muted-foreground">Se asignará rol <strong>administrador</strong></span>
-              )}
-              <Button size="sm" className="h-7 gap-1 ml-auto" onClick={handleConfirm} disabled={saving}>
-                <Check className="w-3.5 h-3.5" />
-                {saving ? "Guardando..." : "Confirmar"}
-              </Button>
             </div>
           )}
         </div>
