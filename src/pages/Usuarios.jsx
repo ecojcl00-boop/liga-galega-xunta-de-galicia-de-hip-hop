@@ -288,16 +288,22 @@ export default function Usuarios() {
                       <Mail className="w-3 h-3" />
                       Pendiente
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => resendInvite.mutate(inv)}
-                      disabled={resendInvite.isPending}
-                    >
-                      <Mail className="w-3 h-3" />
-                      Reenviar
-                    </Button>
+                    {resendSuccessId === inv.id ? (
+                      <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                        ✓ Enviada
+                      </span>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => resendInvite.mutate(inv)}
+                        disabled={resendInvite.isPending}
+                      >
+                        <Mail className="w-3 h-3" />
+                        Reenviar
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
