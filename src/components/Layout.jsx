@@ -100,7 +100,8 @@ export default function Layout({ children, currentPageName }) {
             if (assignedInv) {
               // Admin already assigned role/school → apply it now using updateMe (user can update themselves)
               const updateData = { role: assignedInv.role };
-              if (assignedInv.school_name) updateData.school_name = assignedInv.school_name;
+              // "__admin__" is a placeholder meaning admin role with no school
+              if (assignedInv.school_name && assignedInv.school_name !== "__admin__") updateData.school_name = assignedInv.school_name;
               await base44.auth.updateMe(updateData);
               await base44.entities.InvitacionPendiente.delete(assignedInv.id);
               const updatedUser = await base44.auth.me();
