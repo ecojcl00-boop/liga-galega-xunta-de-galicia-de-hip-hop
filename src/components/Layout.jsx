@@ -106,9 +106,18 @@ export default function Layout({ children, currentPageName }) {
                 updateData.school_name = assignedInv.school_name;
               }
               await base44.auth.updateMe(updateData);
+              
+              // Delete all matching invitations (user now has access)
+              for (const inv of invitations) {
+                try {
+                  await base44.entities.InvitacionPendiente.delete(inv.id);
+                } catch (e) {
+                  console.warn("Could not delete invitation:", inv.id);
+                }
+              }
+              
               const updatedUser = await base44.auth.me();
               setUser(updatedUser);
-              // Admin will delete invitation from Usuarios page
             } else {
               // 2. No assigned invitation → check if email matches a School record directly
               const allSchools = await base44.entities.School.list();
