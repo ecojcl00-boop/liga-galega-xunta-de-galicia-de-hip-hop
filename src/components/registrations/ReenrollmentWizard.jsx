@@ -11,11 +11,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music, Loader2, Trash2 } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, X, Plus, Pencil, FileText, Music, Loader2, Trash2, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useSimulacro } from "@/components/SimulacroContext";
 import { downloadFile } from "@/components/utils/downloadFile";
+import { useToast } from "@/components/ui/use-toast";
 
 const CATEGORIES = [
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew",
@@ -345,6 +346,7 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
 export default function ReenrollmentWizard({ user, mySchoolName, myGroups, competitions, allGroups, registrations, onSuccess }) {
   const queryClient = useQueryClient();
   const { isSimulacro } = useSimulacro();
+  const { toast } = useToast();
 
   // ── STATE ──
   const [currentStep, setCurrentStep] = useState("selectComp");
@@ -360,6 +362,7 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmationProcessed, setConfirmationProcessed] = useState(false);
   const isSubmittingRef = useRef(false);
 
   // ── DERIVED STATE ──
@@ -462,6 +465,12 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       queryClient.invalidateQueries({ queryKey: ["groups"] });
+      toast({
+        title: "¡Inscripción realizada!",
+        description: "Tu inscripción se ha procesado correctamente.",
+        duration: 3000,
+      });
+      setConfirmationProcessed(true);
       setCurrentStep("success");
     },
     onError: (error) => {
@@ -898,6 +907,22 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
           );
         })}
 
+        {confirmationProcessed && (
+          <Card className="bg-green-50/50 border-green-200">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-green-900">Inscripción realizada correctamente</p>
+                  <p className="text-xs text-green-800">Tu inscripción ha sido procesada y registrada en el sistema.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-between pt-2">
           <Button
             variant="outline"
@@ -905,14 +930,14 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               setEditingGroupId(selectedGroups[selectedGroups.length - 1].id);
               setCurrentStep("editing");
             }}
-            disabled={isSubmitting}
+            disabled={isSubmitting || confirmationProcessed}
             className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" /> Volver a editar
           </Button>
           <Button 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleConfirm(); }} 
-            disabled={isSubmitting} 
+            disabled={isSubmitting || confirmationProcessed} 
             className="gap-2"
             style={{ touchAction: 'manipulation' }}
           >
@@ -920,6 +945,11 @@ export default function ReenrollmentWizard({ user, mySchoolName, myGroups, compe
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Procesando inscripción...
+              </>
+            ) : confirmationProcessed ? (
+              <>
+                <Check className="w-4 h-4" />
+                Inscripción procesada
               </>
             ) : (
               <>
