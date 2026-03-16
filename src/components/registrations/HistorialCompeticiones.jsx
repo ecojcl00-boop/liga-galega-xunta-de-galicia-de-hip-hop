@@ -62,7 +62,7 @@ function GroupRow({ reg, group }) {
               Entrenador/a: <span className="font-medium text-foreground">{reg.coach_name}</span>
             </p>
           )}
-          <ParticipantList group={group} />
+          <ParticipantList group={group} reg={reg} />
         </div>
       )}
     </div>
