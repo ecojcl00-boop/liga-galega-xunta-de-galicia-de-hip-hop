@@ -292,8 +292,8 @@ export default function Usuarios() {
             <p className="text-sm text-muted-foreground p-6">Cargando...</p>
           ) : (
             <div className="divide-y">
-              {/* Pending invitations - only those with school already assigned (awaiting first login) */}
-              {pendingInvitations.filter(inv => inv.school_name?.trim()).map((inv) => (
+              {/* Pending invitations - those with status "accepted" (awaiting first login) */}
+              {pendingInvitations.filter(inv => inv.status === "accepted").map((inv) => (
                 <div
                   key={`pending-${inv.id}`}
                   className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-blue-500/5"
