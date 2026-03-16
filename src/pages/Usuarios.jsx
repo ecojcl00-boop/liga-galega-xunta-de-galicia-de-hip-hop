@@ -426,6 +426,7 @@ export default function Usuarios() {
                   )}
                 </div>
               </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium flex items-center gap-1.5">
