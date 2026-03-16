@@ -110,10 +110,12 @@ export default function Layout({ children, currentPageName }) {
               
               // Delete all matching invitations (user now has access)
               for (const inv of invitations) {
-                try {
-                  await base44.entities.InvitacionPendiente.delete(inv.id);
-                } catch (e) {
-                  console.warn("Could not delete invitation:", inv.id);
+                if (inv.status === "accepted") {
+                  try {
+                    await base44.entities.InvitacionPendiente.delete(inv.id);
+                  } catch (e) {
+                    console.warn("Could not delete invitation:", inv.id);
+                  }
                 }
               }
               
