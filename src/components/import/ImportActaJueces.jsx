@@ -23,7 +23,7 @@ export default function ImportActaJueces({ onSuccess }) {
   useEffect(() => {
     Promise.all([
       base44.entities.School.list("name", 500),
-      base44.entities.Competition.list("-date", 50),
+      base44.entities.LigaCompeticion.list("-date", 50),
     ]).then(([allSchools, comps]) => {
       const activeSchools = allSchools
         .filter(s => s.is_active !== false)
