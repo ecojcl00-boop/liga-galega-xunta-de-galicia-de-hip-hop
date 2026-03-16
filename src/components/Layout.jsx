@@ -242,6 +242,7 @@ export default function Layout({ children, currentPageName }) {
                 if (item.hidden) return false;
                 if (item.adminOnly && !isEffectiveAdmin) return false;
                 if (item.schoolOnly && isEffectiveAdmin) return false;
+                if (item.ownerOnly && user?.email !== OWNER_EMAIL) return false;
                 return true;
               })
               .map((item) => {
