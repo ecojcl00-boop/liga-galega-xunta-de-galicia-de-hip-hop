@@ -309,7 +309,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
                                       <span className="text-xs text-muted-foreground truncate hidden sm:block">{reg.school_name}</span>
                                     </button>
                                     <span className="text-xs text-muted-foreground shrink-0">
-                                     <Users className="w-3 h-3 inline mr-0.5" />{(reg.participants || []).length || reg.participants_count || 0}
+                                     <Users className="w-3 h-3 inline mr-0.5" />{resolveGroupParticipants(reg, groups).length || reg.participants_count || 0}
                                     </span>
                                     {(reg.documents || []).length > 0 && (
                                       <span className="text-xs text-muted-foreground shrink-0">
