@@ -362,7 +362,7 @@ export default function PortalEscuela() {
   const schoolName = user?.school_name?.trim() || "";
 
   function nd(str) {
-    return String(str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    return String(str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
   }
 
   // Todos los hooks incondicionalmente
