@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, Pencil, Shield, School, Trash2, RefreshCw, Mail, AlertTriangle } from "lucide-react";
+import { UserPlus, Pencil, Shield, School, Trash2, RefreshCw, Mail, AlertTriangle, CheckCircle2 } from "lucide-react";
 import AssignSchoolRow from "@/components/usuarios/AssignSchoolRow";
 import {
   AlertDialog,
