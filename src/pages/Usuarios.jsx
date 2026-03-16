@@ -156,15 +156,20 @@ export default function Usuarios() {
     }
   };
 
+  const [resendSuccessId, setResendSuccessId] = useState(null);
+
   const resendInvite = useMutation({
     mutationFn: async (invitation) => {
       await base44.users.inviteUser(invitation.email, invitation.role);
       await base44.entities.InvitacionPendiente.update(invitation.id, {
         fecha_invitacion: new Date().toISOString()
       });
+      return invitation.id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+      setResendSuccessId(id);
+      setTimeout(() => setResendSuccessId(null), 3000);
     }
   });
 
