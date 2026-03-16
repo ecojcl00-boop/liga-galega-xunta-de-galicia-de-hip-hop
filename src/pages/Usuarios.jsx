@@ -274,7 +274,7 @@ export default function Usuarios() {
 
                 // Add pending invitations (no school assigned yet)
                 pendingInvitations
-                  .filter(inv => inv.status === "pending" && !users.find(u => u.email?.toLowerCase() === inv.email?.toLowerCase() && u.school_name))
+                  .filter(inv => inv.status === "pending" && !inv.school_name)
                   .forEach(inv => {
                     pendingUsers.push({
                       type: "invitation_pending",
