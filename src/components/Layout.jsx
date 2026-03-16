@@ -124,10 +124,19 @@ export default function Layout({ children, currentPageName }) {
                 await base44.auth.updateMe({ school_name: found.name, role: "user" });
                 const updatedUser = await base44.auth.me();
                 setUser(updatedUser);
+              } else {
+                // Unknown email → create pending request for admin to review (avoid duplicates)
+                const hasPending = invitations.some(i => !i.school_name?.trim());
+                if (!hasPending) {
+                  await base44.entities.InvitacionPendiente.create({
+                    email: u.email,
+                    role: "user",
+                    school_name: "",
+                    status: "pending",
+                    fecha_invitacion: new Date().toISOString()
+                  });
+                }
               }
-              // If unknown email: just let user stay pending without auto-creating invitation
-              // The user will see "Solicitud pendiente de aprobación" screen
-              // Admin manages invitations from Usuarios page
             }
           } catch (err) {
             console.error("Auto-assign error:", err);
