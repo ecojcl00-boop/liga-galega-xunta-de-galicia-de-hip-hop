@@ -411,7 +411,7 @@ export default function PortalEscuela() {
 
   // Returns condicionales DESPUÉS de todos los hooks
   if (!user) return null;
-  if (user.role !== "admin" && !schoolName) return <LockoutScreen />;
+  if (user.role !== "admin" && !schoolName) return <LockoutScreen userEmail={user.email} />;
 
   const openCompetitions = competitions.filter(c => c.registration_open);
   const resultadosSinSimulacro = useMemo(
