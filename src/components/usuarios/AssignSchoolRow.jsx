@@ -52,7 +52,9 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm truncate">{inv.email}</p>
-          <p className="text-xs text-muted-foreground">Solicitud de acceso — sin escuela asignada</p>
+          <p className="text-xs text-muted-foreground">
+            Solicitud de acceso · {inv.fecha_invitacion ? new Date(inv.fecha_invitacion).toLocaleDateString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "Sin fecha"}
+          </p>
         </div>
         <div className="flex items-center gap-2 ml-4 shrink-0">
           <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setOpen(o => !o)}>
