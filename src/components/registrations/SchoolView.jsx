@@ -113,23 +113,20 @@ export default function SchoolView({ user, competitions, allGroups, registration
     [registrations, mySchoolName]
   );
 
-  // Which group IDs are already registered per competition (by ID and by name)
-  const registeredGroupIds = useMemo(() => {
-    const map = {};
+  // Map: competition_id → Set of registered group IDs
+  // Map: competition_id → Set of normalized registered group names (fallback)
+  const { regByCompId, regNamesByCompId } = useMemo(() => {
+    const byId = {};   // competitionId → Set<groupId>
+    const byName = {}; // competitionId → Set<norm(groupName)>
     myRegistrations.forEach(r => {
-      if (r.competition_id) {
-        if (!map[r.competition_id]) map[r.competition_id] = new Set();
-        map[r.competition_id].add(r.group_id);
-        // Also by group_name fallback
-        map[r.competition_id].add(r.group_name);
-      }
-      if (r.competition_name) {
-        if (!map[r.competition_name]) map[r.competition_name] = new Set();
-        map[r.competition_name].add(r.group_id);
-        map[r.competition_name].add(r.group_name);
-      }
+      const compId = r.competition_id || r.competition_name;
+      if (!compId) return;
+      if (!byId[compId]) byId[compId] = new Set();
+      if (!byName[compId]) byName[compId] = new Set();
+      if (r.group_id) byId[compId].add(r.group_id);
+      if (r.group_name) byName[compId].add(norm(r.group_name));
     });
-    return map;
+    return { regByCompId: byId, regNamesByCompId: byName };
   }, [myRegistrations]);
 
   // Past registrations grouped by competition (for history)
