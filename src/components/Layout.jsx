@@ -129,7 +129,7 @@ export default function Layout({ children, currentPageName }) {
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                const hasPendingNoSchool = invitations.some(i => !i.school_name && i.role !== "admin");
+                const hasPendingNoSchool = invitations.some(i => !i.school_name?.trim());
                 if (!hasPendingNoSchool) {
                   await base44.entities.InvitacionPendiente.create({
                     email: u.email,
