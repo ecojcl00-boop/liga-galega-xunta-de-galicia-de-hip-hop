@@ -45,6 +45,7 @@ const navItems = [
 ];
 
 // Only Landing is public
+const OWNER_EMAIL = "ecojcl00@gmail.com";
 const PUBLIC_PAGES = ["Landing"];
 
 // Pages that non-admin users (and simulated schools) can also access
