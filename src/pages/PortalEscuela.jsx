@@ -509,11 +509,11 @@ export default function PortalEscuela() {
             </Button>
           </div>
           <HistorialCompeticiones
-            competitions={competitions}
+            competitions={openCompetitions}
             registrations={registrations}
             groups={groups}
             isAdmin={false}
-            showClosedStatus={true}
+            showClosedStatus={false}
           />
         </TabsContent>
 
