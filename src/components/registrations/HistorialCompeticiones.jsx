@@ -139,7 +139,8 @@ function SchoolSection({ schoolName, regs, groups, onEditDocs }) {
 // registrations: all (admin) OR school's regs only (school view)
 // groups: all groups for participant lookup
 // isAdmin: boolean — if false, groups by school are NOT shown
-export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin }) {
+// showClosedStatus: boolean — if true, show status even for closed competitions in school view
+export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin, showClosedStatus = false }) {
   console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
   const [selectedReg, setSelectedReg] = useState(null);
@@ -222,17 +223,17 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {compRegs.length > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {compRegs.length} grupos
-                        {isAdmin && schoolCount ? ` · ${schoolCount} escuelas` : ""}
-                      </Badge>
-                    )}
-                    {comp.registration_open !== undefined && comp.registration_open !== null && (
-                      <Badge variant={comp.registration_open ? "default" : "outline"} className="text-[10px]">
-                        {comp.registration_open ? "Abierta" : "Cerrada"}
-                      </Badge>
-                    )}
+                  {compRegs.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {compRegs.length} grupos
+                    {isAdmin && schoolCount ? ` · ${schoolCount} escuelas` : ""}
+                  </Badge>
+                  )}
+                  {(comp.registration_open !== undefined && comp.registration_open !== null) && (isAdmin || showClosedStatus) && (
+                  <Badge variant={comp.registration_open ? "default" : "outline"} className="text-[10px]">
+                    {comp.registration_open ? "Abierta" : "Cerrada"}
+                  </Badge>
+                  )}
                   </div>
                 </div>
               </CardHeader>

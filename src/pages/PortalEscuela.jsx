@@ -505,6 +505,7 @@ export default function PortalEscuela() {
             registrations={registrations}
             groups={groups}
             isAdmin={false}
+            showClosedStatus={true}
           />
         </TabsContent>
 
