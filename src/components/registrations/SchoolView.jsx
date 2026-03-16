@@ -239,10 +239,12 @@ export default function SchoolView({ user, competitions, allGroups, registration
                   
                   <div className="grid gap-2">
                     {groups.map(group => {
-                      const registeredComps = competitions.filter(c =>
-                        registeredGroupIds[c.id]?.has(group.id) || registeredGroupIds[c.id]?.has(group.name) ||
-                        registeredGroupIds[c.name]?.has(group.id) || registeredGroupIds[c.name]?.has(group.name)
-                      );
+                      const registeredComps = competitions.filter(c => {
+                        if (!c.registration_open) return false;
+                        const compKey = c.id || c.name;
+                        return regByCompId[compKey]?.has(group.id) ||
+                               regNamesByCompId[compKey]?.has(norm(group.name));
+                      });
                       const isExpanded = expandedGroups.has(group.id);
                       const participants = group.participants ?? [];
                       
