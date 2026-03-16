@@ -128,12 +128,13 @@ export default function Layout({ children, currentPageName }) {
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                const existing = await base44.entities.InvitacionPendiente.filter({ email: u.email });
+                const existing = await base44.entities.InvitacionPendiente.filter({ email: u.email, status: "pendiente" });
                 if (existing.length === 0) {
                   await base44.entities.InvitacionPendiente.create({
                     email: u.email,
                     role: "user",
-                    status: "pending",
+                    school_name: "",
+                    status: "pendiente",
                     fecha_invitacion: new Date().toISOString()
                   });
                 }
