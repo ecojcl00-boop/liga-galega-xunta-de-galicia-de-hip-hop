@@ -96,7 +96,7 @@ export default function Layout({ children, currentPageName }) {
             const allInvitations = await base44.entities.InvitacionPendiente.list();
             const invitations = allInvitations.filter(i => i.email?.toLowerCase() === u.email?.toLowerCase());
             
-            const assignedInv = invitations.find(i => i.school_name?.trim());
+            const assignedInv = invitations.find(i => i.status === "accepted" || i.school_name?.trim());
             if (assignedInv) {
               // Admin already assigned role/school → apply it now
               const updateData = {};
