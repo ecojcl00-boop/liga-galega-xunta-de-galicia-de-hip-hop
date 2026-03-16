@@ -88,35 +88,32 @@ export default function Layout({ children, currentPageName }) {
       .then(async (u) => {
         setUser(u);
         
-        // Auto-assign school from pending invitation
-        if (u?.role === "user" && (!u.school_name || u.school_name === "")) {
-          try {
-            const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
-            if (invitations.length > 0) {
-              const inv = invitations[0];
-              if (inv.school_name) {
-                // Has a school assigned → apply it
-                await base44.entities.User.update(u.id, {
-                  school_name: inv.school_name,
-                  role: inv.role
-                });
-                await base44.entities.InvitacionPendiente.delete(inv.id);
-                const updatedUser = await base44.auth.me();
-                setUser(updatedUser);
-              }
-              // else: already has a pending request with no school, do nothing
-            } else {
-              // No pending invitation exists → create one so admin can see and assign school
-              await base44.entities.InvitacionPendiente.create({
-                email: u.email,
-                role: "user",
-                status: "pending",
-                fecha_invitacion: new Date().toISOString()
-              });
+        // Auto-assign from pending invitation (any role)
+        try {
+          const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
+          if (invitations.length > 0) {
+            const inv = invitations[0];
+            // Apply if invitation has a school assigned OR promotes to admin
+            if (inv.school_name || inv.role === "admin") {
+              const updateData = { role: inv.role };
+              if (inv.school_name) updateData.school_name = inv.school_name;
+              await base44.entities.User.update(u.id, updateData);
+              await base44.entities.InvitacionPendiente.delete(inv.id);
+              const updatedUser = await base44.auth.me();
+              setUser(updatedUser);
             }
-          } catch (err) {
-            console.error("Auto-assign error:", err);
+            // else: pending request with no school assigned yet, do nothing
+          } else if (u?.role === "user" && (!u.school_name || u.school_name === "")) {
+            // No invitation and no school → create request so admin can assign
+            await base44.entities.InvitacionPendiente.create({
+              email: u.email,
+              role: "user",
+              status: "pending",
+              fecha_invitacion: new Date().toISOString()
+            });
           }
+        } catch (err) {
+          console.error("Auto-assign error:", err);
         }
         
         setAuthChecked(true);
