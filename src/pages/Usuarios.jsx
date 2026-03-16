@@ -215,7 +215,7 @@ export default function Usuarios() {
             <CardContent className="p-0">
               <div className="divide-y">
                 {/* Active users without school */}
-                {usersNoSchool.map((u) => (
+                {usersNoSchoolFiltered.map((u) => (
                   <div key={`req-user-${u.id}`} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{u.email}</p>
