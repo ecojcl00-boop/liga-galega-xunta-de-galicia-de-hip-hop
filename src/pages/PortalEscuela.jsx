@@ -498,7 +498,13 @@ export default function PortalEscuela() {
         <TabsContent value="inscripciones" className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold">Mis Inscripciones</h2>
-            <Button onClick={() => setShowWizard(true)} className="gap-2">
+            <Button 
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["portal_competitions"] });
+                setShowWizard(true);
+              }} 
+              className="gap-2"
+            >
               <Plus className="w-4 h-4" /> Inscribirse a competición
             </Button>
           </div>
