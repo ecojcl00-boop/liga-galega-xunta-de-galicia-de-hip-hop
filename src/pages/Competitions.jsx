@@ -60,7 +60,16 @@ export default function Competitions() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, registration_open }) => base44.entities.Competition.update(id, { registration_open }),
+    mutationFn: async ({ id, registration_open, name }) => {
+      // Actualizar Competition
+      await base44.entities.Competition.update(id, { registration_open });
+      // Actualizar LigaCompeticion si existe
+      const ligaComps = await base44.entities.LigaCompeticion.list();
+      const ligaComp = ligaComps.find(lc => nd(lc.name) === nd(name));
+      if (ligaComp) {
+        await base44.entities.LigaCompeticion.update(ligaComp.id, { registration_open });
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["competitions"] }),
   });
 
@@ -314,7 +323,7 @@ export default function Competitions() {
                       <span className="text-xs text-muted-foreground">Inscripciones</span>
                       <Switch
                         checked={comp.registration_open ?? false}
-                        onCheckedChange={(val) => toggleMutation.mutate({ id: comp.id, registration_open: val })}
+                        onCheckedChange={(val) => toggleMutation.mutate({ id: comp.id, registration_open: val, name: comp.name })}
                       />
                     </div>
                   )}
