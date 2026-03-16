@@ -94,13 +94,25 @@ export default function Layout({ children, currentPageName }) {
             const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
             if (invitations.length > 0) {
               const inv = invitations[0];
-              await base44.entities.User.update(u.id, {
-                school_name: inv.school_name,
-                role: inv.role
+              if (inv.school_name) {
+                // Has a school assigned → apply it
+                await base44.entities.User.update(u.id, {
+                  school_name: inv.school_name,
+                  role: inv.role
+                });
+                await base44.entities.InvitacionPendiente.delete(inv.id);
+                const updatedUser = await base44.auth.me();
+                setUser(updatedUser);
+              }
+              // else: already has a pending request with no school, do nothing
+            } else {
+              // No pending invitation exists → create one so admin can see and assign school
+              await base44.entities.InvitacionPendiente.create({
+                email: u.email,
+                role: "user",
+                status: "pending",
+                fecha_invitacion: new Date().toISOString()
               });
-              await base44.entities.InvitacionPendiente.delete(inv.id);
-              const updatedUser = await base44.auth.me();
-              setUser(updatedUser);
             }
           } catch (err) {
             console.error("Auto-assign error:", err);
