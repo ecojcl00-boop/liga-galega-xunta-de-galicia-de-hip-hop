@@ -82,19 +82,22 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["registrations"] }); setDeleteId(null); },
   });
 
-  const allSchools = (() => {
-    const seen = new Set();
-    const unique = [];
+  // Build canonical school names (first occurrence wins) merging duplicates by normalized name
+  const { allSchools, schoolNormMap } = (() => {
+    const normToCanonical = new Map(); // normalized → canonical display name
     registrations.forEach(r => {
       if (r.school_name) {
-        const normalized = normalizeSchoolName(r.school_name);
-        if (!seen.has(normalized)) {
-          seen.add(normalized);
-          unique.push(r.school_name);
-        }
+        const norm = normalizeSchoolName(r.school_name);
+        if (!normToCanonical.has(norm)) normToCanonical.set(norm, r.school_name);
       }
     });
-    return unique.sort();
+    const canonical = [...normToCanonical.values()].sort();
+    // Map every raw school_name → its canonical name for filtering
+    const normMap = new Map();
+    registrations.forEach(r => {
+      if (r.school_name) normMap.set(r.school_name, normToCanonical.get(normalizeSchoolName(r.school_name)));
+    });
+    return { allSchools: canonical, schoolNormMap: normMap };
   })();
   const allCategories = (() => {
     const cats = [...new Set(registrations.map(r => r.category).filter(Boolean))];
