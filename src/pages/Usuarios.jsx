@@ -386,46 +386,46 @@ export default function Usuarios() {
               </div>
 
               {editRole !== "admin" && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Escuela asignada</label>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Buscar escuela..."
-                    value={schoolSearch}
-                    onChange={(e) => setSchoolSearch(e.target.value)}
-                  />
-                  <div className="max-h-48 overflow-y-auto border rounded-md">
-                    <button
-                      onClick={() => { setEditSchool("__none__"); setSchoolSearch(""); }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
-                        editSchool === "__none__" ? "bg-primary/10 font-medium" : ""
-                      }`}
-                    >
-                      Sin escuela
-                    </button>
-                    {schools
-                      .filter((s) =>
-                        s.name.toLowerCase().includes(schoolSearch.toLowerCase())
-                      )
-                      .map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => { setEditSchool(s.name); setSchoolSearch(""); }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
-                            editSchool === s.name ? "bg-primary/10 font-medium" : ""
-                          }`}
-                        >
-                          {s.name}
-                        </button>
-                      ))}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Escuela asignada</label>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Buscar escuela..."
+                      value={schoolSearch}
+                      onChange={(e) => setSchoolSearch(e.target.value)}
+                    />
+                    <div className="max-h-48 overflow-y-auto border rounded-md">
+                      <button
+                        onClick={() => { setEditSchool("__none__"); setSchoolSearch(""); }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                          editSchool === "__none__" ? "bg-primary/10 font-medium" : ""
+                        }`}
+                      >
+                        Sin escuela
+                      </button>
+                      {schools
+                        .filter((s) =>
+                          s.name.toLowerCase().includes(schoolSearch.toLowerCase())
+                        )
+                        .map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => { setEditSchool(s.name); setSchoolSearch(""); }}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                              editSchool === s.name ? "bg-primary/10 font-medium" : ""
+                            }`}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                    </div>
+                    {editSchool !== "__none__" && (
+                      <p className="text-xs text-muted-foreground">
+                        Seleccionada: <strong>{editSchool}</strong>
+                      </p>
+                    )}
                   </div>
-                  {editSchool !== "__none__" && (
-                    <p className="text-xs text-muted-foreground">
-                      Seleccionada: <strong>{editSchool}</strong>
-                    </p>
-                  )}
                 </div>
-              </div>
               )}
 
               <div className="space-y-1.5">
