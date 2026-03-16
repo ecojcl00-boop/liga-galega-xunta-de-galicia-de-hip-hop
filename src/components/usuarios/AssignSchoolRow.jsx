@@ -32,10 +32,16 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
           role,
           school_name: role === "admin" ? "" : selected,
         });
+        // If user already exists, delete the invitation
+        await base44.entities.InvitacionPendiente.delete(inv.id);
+      } else {
+        // User doesn't exist yet → mark invitation as "accepted" (will be processed on first login)
+        await base44.entities.InvitacionPendiente.update(inv.id, {
+          role,
+          school_name: role === "admin" ? "__admin__" : selected,
+          status: "accepted",
+        });
       }
-      
-      // 2. Delete the pending invitation (user now has full access)
-      await base44.entities.InvitacionPendiente.delete(inv.id);
     } catch (err) {
       console.error("Error assigning access:", err);
     }
