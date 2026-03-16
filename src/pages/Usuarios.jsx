@@ -50,10 +50,18 @@ export default function Usuarios() {
     queryFn: () => base44.entities.User.list(),
   });
 
-  const { data: pendingInvitations = [], isLoading: loadingPending } = useQuery({
+  const { data: pendingInvitations = [], isLoading: loadingPending, refetch: refetchPending } = useQuery({
     queryKey: ["pending-invitations"],
     queryFn: () => base44.entities.InvitacionPendiente.list(),
   });
+
+  // Subscribe to real-time updates
+  React.useEffect(() => {
+    const unsubscribe = base44.entities.InvitacionPendiente.subscribe((event) => {
+      refetchPending();
+    });
+    return unsubscribe;
+  }, [refetchPending]);
 
   const { data: schools = [] } = useQuery({
     queryKey: ["schools-list"],
