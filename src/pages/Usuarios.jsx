@@ -257,30 +257,33 @@ export default function Usuarios() {
             <p className="text-sm text-muted-foreground p-6">Cargando...</p>
           ) : (
             <div className="divide-y">
-              {/* Pending invitations */}
-              {pendingInvitations.map((inv) => (
+              {/* Pending invitations - only those with school or admin role already assigned */}
+              {pendingInvitations.filter(inv => inv.school_name || inv.role === "admin").map((inv) => (
                 <div
                   key={`pending-${inv.id}`}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-orange-500/5"
+                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-blue-500/5"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{inv.email}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      Invitado el {new Date(inv.fecha_invitacion).toLocaleDateString('es-ES')}
+                      Pendiente de primer login · {inv.role === "admin" ? "Administrador" : inv.school_name}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 ml-4 shrink-0">
-                    {inv.school_name ? (
+                    {inv.role === "admin" ? (
+                      <Badge variant="default" className="gap-1">
+                        <Shield className="w-3 h-3" />
+                        Admin
+                      </Badge>
+                    ) : (
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <School className="w-3 h-3" />
                         {inv.school_name}
                       </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/50">Sin escuela</span>
                     )}
-                    <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600">
+                    <Badge variant="outline" className="gap-1 border-blue-500 text-blue-600">
                       <Mail className="w-3 h-3" />
-                      Pendiente
+                      Primer login pendiente
                     </Badge>
                     {resendSuccessId === inv.id ? (
                       <span className="text-xs text-green-600 font-medium flex items-center gap-1">
