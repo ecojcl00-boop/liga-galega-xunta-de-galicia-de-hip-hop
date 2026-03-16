@@ -93,7 +93,6 @@ export default function Layout({ children, currentPageName }) {
         if (u.role !== "admin" && (!u.school_name || u.school_name === "")) {
           try {
             // 1. Check for pending invitation assigned by admin (with school or admin placeholder)
-            // Fetch all invitations and filter case-insensitively
             const allInvitations = await base44.entities.InvitacionPendiente.list();
             const invitations = allInvitations.filter(i => i.email?.toLowerCase() === u.email?.toLowerCase());
             
@@ -106,22 +105,10 @@ export default function Layout({ children, currentPageName }) {
               if (assignedInv.school_name && assignedInv.school_name !== "__admin__") {
                 updateData.school_name = assignedInv.school_name;
               }
-              
-              // Update user and delete invitation
               await base44.auth.updateMe(updateData);
-              
-              // Delete ALL matching invitations (by email) to avoid duplicates
-              for (const inv of invitations) {
-                try {
-                  await base44.entities.InvitacionPendiente.delete(inv.id);
-                } catch (e) {
-                  console.warn("Could not delete invitation:", inv.id);
-                }
-              }
-              
               const updatedUser = await base44.auth.me();
               setUser(updatedUser);
-              // fall through to setAuthChecked below
+              // Admin will delete invitation from Usuarios page
             } else {
               // 2. No assigned invitation → check if email matches a School record directly
               const allSchools = await base44.entities.School.list();
@@ -137,19 +124,10 @@ export default function Layout({ children, currentPageName }) {
                 await base44.auth.updateMe({ school_name: found.name, role: "user" });
                 const updatedUser = await base44.auth.me();
                 setUser(updatedUser);
-              } else {
-                // Unknown email → create pending request for admin to review (avoid duplicates)
-                const hasPending = invitations.some(i => !i.school_name?.trim());
-                if (!hasPending) {
-                  await base44.entities.InvitacionPendiente.create({
-                    email: u.email,
-                    role: "user",
-                    school_name: "",
-                    status: "pending",
-                    fecha_invitacion: new Date().toISOString()
-                  });
-                }
               }
+              // If unknown email: just let user stay pending without auto-creating invitation
+              // The user will see "Solicitud pendiente de aprobación" screen
+              // Admin manages invitations from Usuarios page
             }
           } catch (err) {
             console.error("Auto-assign error:", err);
