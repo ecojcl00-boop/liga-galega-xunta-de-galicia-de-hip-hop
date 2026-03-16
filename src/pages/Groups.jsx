@@ -95,10 +95,13 @@ export default function Groups() {
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["groups", user?.role, user?.school_name],
-    queryFn: () => {
+    queryFn: async () => {
       if (isAdmin) return base44.entities.Group.list("-created_date");
       if (!user?.school_name) return [];
-      return base44.entities.Group.filter({ school_name: user.school_name }, "-created_date");
+      // Fetch all and filter client-side to handle case/accent differences
+      const all = await base44.entities.Group.list("-created_date", 500);
+      const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+      return all.filter(g => nd(g.school_name) === nd(user.school_name));
     },
     enabled: !!user,
   });
