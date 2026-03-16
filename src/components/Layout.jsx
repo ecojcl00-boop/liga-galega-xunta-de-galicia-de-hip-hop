@@ -140,15 +140,17 @@ export default function Layout({ children, currentPageName }) {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
                 const hasPending = invitations.some(i => !i.school_name?.trim());
                 if (!hasPending) {
-                  console.log("CREATING PENDING REQUEST for " + u.email);
                   const result = await base44.entities.InvitacionPendiente.create({
                     email: u.email,
                     role: "user",
                     school_name: "",
-                    status: "pending",
-                    fecha_invitacion: new Date().toISOString()
+                    status: "pending"
                   });
-                  console.log("CREATED: " + JSON.stringify(result));
+                  if (!result || !result.id) {
+                    setAssignError("No se pudo registrar la solicitud. Contacta con el administrador.");
+                  } else {
+                    console.log("CREATED pending request:", result.id);
+                  }
                 } else {
                   console.log("Pending invitation already exists for:", u.email);
                 }
