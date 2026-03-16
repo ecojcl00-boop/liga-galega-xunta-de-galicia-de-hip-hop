@@ -89,16 +89,17 @@ export default function Layout({ children, currentPageName }) {
         setUser(u);
         
         // Auto-assign from pending invitation or matching school email
-        // Only run for non-admin users who don't yet have a school assigned
+        // Only run for users who don't yet have a school assigned (and are not already admin)
         if (u.role !== "admin" && (!u.school_name || u.school_name === "")) {
           try {
-            // 1. Check for pending invitation with school or admin role assigned by admin
-            const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
-            // Only treat as "assigned by admin" if it has a school_name set (or is an admin role with explicit admin assignment)
-            // Invitations with empty school_name are pending requests waiting for admin review
+            // 1. Check for pending invitation assigned by admin (with school or admin placeholder)
+            // Fetch all invitations and filter case-insensitively
+            const allInvitations = await base44.entities.InvitacionPendiente.list();
+            const invitations = allInvitations.filter(i => i.email?.toLowerCase() === u.email?.toLowerCase());
+            
             const assignedInv = invitations.find(i => i.school_name?.trim());
             if (assignedInv) {
-              // Admin already assigned role/school → apply it now using updateMe (user can update themselves)
+              // Admin already assigned role/school → apply it now
               const updateData = { role: assignedInv.role };
               // "__admin__" is a placeholder meaning admin role with no school
               if (assignedInv.school_name && assignedInv.school_name !== "__admin__") updateData.school_name = assignedInv.school_name;
@@ -109,29 +110,23 @@ export default function Layout({ children, currentPageName }) {
               // fall through to setAuthChecked below
             } else {
               // 2. No assigned invitation → check if email matches a School record directly
-              const matchingSchools = await base44.entities.School.filter({ email: u.email });
-              let schoolName = null;
-              if (matchingSchools.length > 0) {
-                schoolName = matchingSchools[0].name;
-              } else {
-                // Check emails_adicionales
-                const allSchools = await base44.entities.School.list();
-                const found = allSchools.find(s => {
-                  if (!s.emails_adicionales) return false;
-                  return s.emails_adicionales.split(",").map(e => e.trim().toLowerCase()).includes(u.email.toLowerCase());
-                });
-                if (found) schoolName = found.name;
-              }
+              const allSchools = await base44.entities.School.list();
+              const emailLower = u.email.toLowerCase();
+              const found = allSchools.find(s => {
+                if (s.email?.toLowerCase() === emailLower) return true;
+                if (!s.emails_adicionales) return false;
+                return s.emails_adicionales.split(",").map(e => e.trim().toLowerCase()).includes(emailLower);
+              });
 
-              if (schoolName) {
-                // Email matches a school → grant access immediately using updateMe
-                await base44.auth.updateMe({ school_name: schoolName, role: "user" });
+              if (found) {
+                // Email matches a school → grant access immediately
+                await base44.auth.updateMe({ school_name: found.name, role: "user" });
                 const updatedUser = await base44.auth.me();
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                const hasPendingNoSchool = invitations.some(i => !i.school_name?.trim());
-                if (!hasPendingNoSchool) {
+                const hasPending = invitations.some(i => !i.school_name?.trim());
+                if (!hasPending) {
                   await base44.entities.InvitacionPendiente.create({
                     email: u.email,
                     role: "user",
