@@ -65,6 +65,7 @@ export default function Layout({ children, currentPageName }) {
     try { return localStorage.getItem("simulacro_mode") === "true"; } catch { return false; }
   });
   const [cleaningSimulacro, setCleaningSimulacro] = useState(false);
+  const [assignError, setAssignError] = useState(null);
 
   const activateSimulacro = () => {
     try { localStorage.setItem("simulacro_mode", "true"); } catch {}
@@ -153,6 +154,7 @@ export default function Layout({ children, currentPageName }) {
             }
           } catch (err) {
             console.error("Auto-assign error:", err);
+            setAssignError(err.message || "Error al asignar acceso automático");
           }
         }
         
@@ -440,6 +442,22 @@ export default function Layout({ children, currentPageName }) {
             </Button>
           </div>
         </header>
+
+        {/* Error banner */}
+        {assignError && (
+          <div className="bg-destructive/10 border-b border-destructive/20 text-destructive px-4 py-3 flex items-center justify-between gap-4 shrink-0">
+            <span className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {assignError}
+            </span>
+            <button
+              onClick={() => setAssignError(null)}
+              className="text-xs font-medium hover:opacity-70 transition-opacity"
+            >
+              Descartar
+            </button>
+          </div>
+        )}
 
         {/* Simulacro banner */}
         {isSimulacro && (
