@@ -40,7 +40,7 @@ const navItems = [
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
   { name: "Importar Datos", icon: ClipboardList, page: "ImportarDatos", adminOnly: true },
   { name: "Importar Grupos", icon: Users, page: "ImportarGrupos", adminOnly: true, hidden: true },
-  { name: "Usuarios", icon: UserCog, page: "Usuarios", adminOnly: true },
+  { name: "Usuarios", icon: UserCog, page: "Usuarios", adminOnly: true, ownerOnly: true },
   { name: "Gestión Escuelas", icon: School, page: "GestionEscuelas", adminOnly: true },
 ];
 
