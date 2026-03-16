@@ -385,6 +385,7 @@ export default function Usuarios() {
                 />
               </div>
 
+              {editRole !== "admin" && (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Escuela asignada</label>
                 <div className="space-y-2">
