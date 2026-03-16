@@ -23,8 +23,8 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
     if (!canConfirm || saving) return;
     setSaving(true);
     // Find the real user by email and update their role/school
-    const users = await base44.entities.User.list();
-    const matchedUser = users.find(u => u.email === inv.email);
+    const allUsers = await base44.entities.User.list();
+    const matchedUser = allUsers.find(u => u.email?.toLowerCase() === inv.email?.toLowerCase());
     if (matchedUser) {
       // User already registered → update directly and delete invitation
       await base44.entities.User.update(matchedUser.id, {
@@ -33,12 +33,11 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
       });
       await base44.entities.InvitacionPendiente.delete(inv.id);
     } else {
-      // User not registered yet → update invitation with assigned data
-      // It will appear in "Usuarios registrados" as pending invitation, and
-      // Layout will auto-apply it when they first log in
+      // User not registered yet → update invitation so it appears in "pending first login"
+      // Use "__admin__" as placeholder school_name for admin role (passes the school_name?.trim() filter)
       await base44.entities.InvitacionPendiente.update(inv.id, {
         role,
-        school_name: role === "admin" ? "" : selected,
+        school_name: role === "admin" ? "__admin__" : selected,
         status: "pending",
       });
     }
