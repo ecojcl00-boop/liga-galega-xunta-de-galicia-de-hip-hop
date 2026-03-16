@@ -383,15 +383,17 @@ export default function PortalEscuela() {
   const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ["portal_groups_all"],
     queryFn: () => base44.entities.Group.list("name"),
+    enabled: !!schoolName,
   });
 
   const { data: allRegistrations = [] } = useQuery({
     queryKey: ["portal_registrations_all"],
     queryFn: () => base44.entities.Registration.list("-created_date"),
+    enabled: !!schoolName,
   });
 
-  const groups = allGroups.filter(g => nd(g.school_name) === nd(schoolName));
-  const registrations = allRegistrations.filter(r => nd(r.school_name) === nd(schoolName));
+  const groups = useMemo(() => allGroups.filter(g => nd(g.school_name) === nd(schoolName)), [allGroups, schoolName]);
+  const registrations = useMemo(() => allRegistrations.filter(r => nd(r.school_name) === nd(schoolName)), [allRegistrations, schoolName]);
 
   const { data: competitions = [] } = useQuery({
     queryKey: ["portal_competitions"],
