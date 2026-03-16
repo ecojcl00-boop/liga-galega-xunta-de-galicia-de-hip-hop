@@ -138,8 +138,8 @@ export default function Layout({ children, currentPageName }) {
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                const hasPending = invitations.some(i => !i.school_name?.trim());
-                if (!hasPending) {
+                const hasAnyRequest = invitations.length > 0;
+                if (!hasAnyRequest) {
                   const result = await base44.entities.InvitacionPendiente.create({
                     email: u.email,
                     role: "user",
@@ -152,7 +152,7 @@ export default function Layout({ children, currentPageName }) {
                     console.log("CREATED pending request:", result.id);
                   }
                 } else {
-                  console.log("Pending invitation already exists for:", u.email);
+                  console.log("Invitation already exists for:", u.email);
                 }
               }
             }
