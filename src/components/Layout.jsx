@@ -139,6 +139,12 @@ export default function Layout({ children, currentPageName }) {
       navigate(createPageUrl("Dashboard"), { replace: true });
       return;
     }
+
+    if (currentPageName === "Usuarios" && user && user.email !== OWNER_EMAIL) {
+      redirectedRef.current = true;
+      navigate(createPageUrl("Dashboard"), { replace: true });
+      return;
+    }
     
     if (!user && !isPublicPage) {
       const next = window.location.pathname + window.location.search;
