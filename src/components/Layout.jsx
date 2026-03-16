@@ -231,7 +231,7 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
-  // User is logged in but has no school assigned yet → show waiting screen
+  // Non-admin user is logged in but has no school assigned yet → show waiting screen
   if (user && user.role !== "admin" && (!user.school_name || user.school_name === "")) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-6">
@@ -252,6 +252,12 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </div>
     );
+  }
+  
+  // Admin without school can still use the app (for management purposes)
+  // Non-admin without school should not see school-only pages
+  if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
+    return null;
   }
 
   if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
