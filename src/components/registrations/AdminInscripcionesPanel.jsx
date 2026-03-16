@@ -33,7 +33,7 @@ const normalizeSchoolName = (name) => {
     .trim();
 };
 
-export default function AdminInscripcionesPanel({ registrations, competitions }) {
+export default function AdminInscripcionesPanel({ registrations, competitions, groups = [] }) {
   const queryClient = useQueryClient();
 
   const [filterComp, setFilterComp]     = useState("all");
