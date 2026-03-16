@@ -398,11 +398,12 @@ export default function PortalEscuela() {
     queryFn: () => base44.entities.LigaCompeticion.list("-date"),
   });
 
-  const { data: actas = [] } = useQuery({
-    queryKey: ["portal_actas", schoolName],
-    queryFn: () => base44.entities.ActaJueces.filter({ school_name: schoolName }, "-fecha"),
-    enabled: !!schoolName,
+  const { data: allActas = [] } = useQuery({
+    queryKey: ["portal_actas"],
+    queryFn: () => base44.entities.ActaJueces.list("-fecha"),
   });
+  
+  const actas = allActas.filter(a => nd(a.school_name) === nd(schoolName));
 
   const { data: ligaResultados = [] } = useQuery({
     queryKey: ["portal_liga"],
