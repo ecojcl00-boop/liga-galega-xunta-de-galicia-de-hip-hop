@@ -206,52 +206,54 @@ export default function Usuarios() {
         </div>
       </div>
 
-      {/* Pending access requests */}
-      {users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "")).length > 0 && (
-        <Card className="border-orange-500/30 bg-orange-500/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-orange-600" />
-              Solicitudes de acceso pendientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "")).map((u) => (
-                <div
-                  key={`pending-${u.id}`}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{u.email}</p>
-                    <p className="text-xs text-muted-foreground">Usuario sin escuela asignada</p>
+      {/* Pending access requests: users without school + InvitacionPendiente without school */}
+      {(() => {
+        const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === ""));
+        const activeEmails = users.map(u => u.email);
+        const invNoSchool = pendingInvitations.filter(inv => !inv.school_name && !activeEmails.includes(inv.email));
+        if (usersNoSchool.length === 0 && invNoSchool.length === 0) return null;
+        return (
+          <Card className="border-orange-500/30 bg-orange-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                Solicitudes de acceso pendientes ({usersNoSchool.length + invNoSchool.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {/* Active users without school */}
+                {usersNoSchool.map((u) => (
+                  <div key={`req-user-${u.id}`} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{u.email}</p>
+                      <p className="text-xs text-muted-foreground">Usuario registrado sin escuela asignada</p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => openEdit(u)} className="h-8 gap-1.5">
+                        <Pencil className="w-3.5 h-3.5" /> Asignar escuela
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)}>
+                        <Trash2 className="w-3.5 h-3.5" /> Ignorar
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEdit(u)}
-                      className="h-8 gap-1.5"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Asignar escuela
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive"
-                      onClick={() => setUserToDelete(u)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Ignorar
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+                {/* InvitacionPendiente without school (auto-created on lockout) */}
+                {invNoSchool.map((inv) => (
+                  <AssignSchoolRow
+                    key={`req-inv-${inv.id}`}
+                    inv={inv}
+                    schools={schools}
+                    onAssigned={() => qc.invalidateQueries({ queryKey: ["pending-invitations"] })}
+                    onDismiss={() => deletePendingInvitation.mutate(inv.id)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Users table */}
       <Card>
