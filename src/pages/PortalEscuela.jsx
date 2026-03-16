@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/UserContext";
@@ -402,6 +402,15 @@ export default function PortalEscuela() {
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    const unsubscribe = base44.entities.LigaCompeticion.subscribe((event) => {
+      if (event.type === 'update' && event.data?.registration_open !== undefined) {
+        queryClient.invalidateQueries({ queryKey: ["portal_competitions"] });
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   const { data: allActas = [] } = useQuery({
     queryKey: ["portal_actas"],
