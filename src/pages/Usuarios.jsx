@@ -202,7 +202,10 @@ export default function Usuarios() {
           <Button 
             variant="outline" 
             size="icon"
-            onClick={() => qc.invalidateQueries({ queryKey: ["users-list"] })}
+            onClick={() => {
+              qc.invalidateQueries({ queryKey: ["users-list"] });
+              qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+            }}
             title="Recargar lista de usuarios"
           >
             <RefreshCw className="w-4 h-4" />
