@@ -348,21 +348,26 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
                                       )}
 
                                       {/* Participants */}
-                                      <div>
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">Participantes ({(reg.participants || []).length})</p>
-                                        {(reg.participants || []).length === 0 ? (
-                                          <p className="text-xs text-muted-foreground italic">Sin lista de participantes registrada.</p>
-                                        ) : (
-                                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1">
-                                            {(reg.participants || []).map((p, i) => (
-                                              <span key={i} className="text-xs text-muted-foreground">
-                                                {i + 1}. {p.name || p}
-                                                {p.birth_date && <span className="opacity-60"> ({p.birth_date})</span>}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
+                                      {(() => {
+                                       const parts = resolveGroupParticipants(reg, groups);
+                                       return (
+                                         <div>
+                                           <p className="text-xs font-medium text-muted-foreground mb-2">Participantes ({parts.length})</p>
+                                           {parts.length === 0 ? (
+                                             <p className="text-xs text-muted-foreground italic">Sin lista de participantes registrada.</p>
+                                           ) : (
+                                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1">
+                                               {parts.map((p, i) => (
+                                                 <span key={i} className="text-xs text-muted-foreground">
+                                                   {i + 1}. {p.name || p}
+                                                   {p.birth_date && <span className="opacity-60"> ({p.birth_date})</span>}
+                                                 </span>
+                                               ))}
+                                             </div>
+                                           )}
+                                         </div>
+                                       );
+                                      })()}
 
                                       {/* Documents */}
                                       {(reg.documents || []).length > 0 && (
