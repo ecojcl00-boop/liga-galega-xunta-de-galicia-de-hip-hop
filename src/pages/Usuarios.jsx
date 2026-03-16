@@ -237,25 +237,34 @@ export default function Usuarios() {
             <div className="divide-y">
               {(() => {
                 // Combine all users and pending invitations
-                const allManaged = [];
+                const admins = [];
+                const activeUsers = [];
+                const pendingUsers = [];
 
-                // Add pending invitations (no school assigned yet)
-                pendingInvitations
-                  .filter(inv => inv.status === "pending" && !users.find(u => u.email?.toLowerCase() === inv.email?.toLowerCase()))
-                  .forEach(inv => {
-                    allManaged.push({
-                      type: "invitation_pending",
-                      id: inv.id,
-                      email: inv.email,
-                      data: inv
+                // Separate registered users into admins and active
+                users.forEach(u => {
+                  if (u.role === "admin") {
+                    admins.push({
+                      type: "user_registered",
+                      id: u.id,
+                      email: u.email,
+                      data: u
                     });
-                  });
+                  } else {
+                    activeUsers.push({
+                      type: "user_registered",
+                      id: u.id,
+                      email: u.email,
+                      data: u
+                    });
+                  }
+                });
 
                 // Add accepted invitations (assigned but not logged in yet)
                 pendingInvitations
                   .filter(inv => inv.status === "accepted")
                   .forEach(inv => {
-                    allManaged.push({
+                    pendingUsers.push({
                       type: "invitation_accepted",
                       id: inv.id,
                       email: inv.email,
@@ -263,18 +272,25 @@ export default function Usuarios() {
                     });
                   });
 
-                // Add registered users
-                users.forEach(u => {
-                  allManaged.push({
-                    type: "user_registered",
-                    id: u.id,
-                    email: u.email,
-                    data: u
+                // Add pending invitations (no school assigned yet)
+                pendingInvitations
+                  .filter(inv => inv.status === "pending" && !users.find(u => u.email?.toLowerCase() === inv.email?.toLowerCase()))
+                  .forEach(inv => {
+                    pendingUsers.push({
+                      type: "invitation_pending",
+                      id: inv.id,
+                      email: inv.email,
+                      data: inv
+                    });
                   });
-                });
 
-                // Sort by email
-                allManaged.sort((a, b) => a.email.localeCompare(b.email));
+                // Sort each group alphabetically
+                admins.sort((a, b) => a.email.localeCompare(b.email));
+                activeUsers.sort((a, b) => a.email.localeCompare(b.email));
+                pendingUsers.sort((a, b) => a.email.localeCompare(b.email));
+
+                // Combine in order: admins, active users, pending users
+                const allManaged = [...admins, ...activeUsers, ...pendingUsers];
 
                 if (allManaged.length === 0) {
                   return <p className="text-sm text-muted-foreground p-6">No hay usuarios gestionados.</p>;
