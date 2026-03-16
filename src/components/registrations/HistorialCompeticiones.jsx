@@ -223,22 +223,28 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                     {Object.entries(bySchool)
                       .sort(([a], [b]) => a.localeCompare(b))
                       .map(([schoolName, regs]) => (
-                        <SchoolSection key={schoolName} schoolName={schoolName} regs={regs} groups={groups} />
+                        <SchoolSection key={schoolName} schoolName={schoolName} regs={regs} groups={groups} onEditDocs={(reg) => { setSelectedReg(reg); setDocDialogOpen(true); }} />
                       ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+                    </div>
+                    ) : (
+                    <div className="space-y-2">
                     {compRegs.map(reg => {
                       const group = resolveGroup(groups, reg);
-                      return <GroupRow key={reg.id} reg={reg} group={group} />;
+                      return <GroupRow key={reg.id} reg={reg} group={group} isAdmin={false} onEditDocs={(r) => { setSelectedReg(r); setDocDialogOpen(true); }} />;
                     })}
-                  </div>
-                )}
+                    </div>
+                    )}
               </CardContent>
             )}
           </Card>
-        );
-      })}
-    </div>
-  );
-}
+          );
+          })}
+          <EditRegistrationDocsDialog
+          open={docDialogOpen}
+          onOpenChange={setDocDialogOpen}
+          registration={selectedReg}
+          onSuccess={() => setSelectedReg(null)}
+          />
+          </div>
+          );
+          }
