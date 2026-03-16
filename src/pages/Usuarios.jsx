@@ -218,12 +218,12 @@ export default function Usuarios() {
       </div>
 
       {/* Pending access requests */}
-      {(() => {
-        // InvitacionPendiente sin escuela asignada = solicitudes de acceso de usuarios nuevos (cualquier rol)
-        const solicitudesInv = pendingInvitations.filter(inv => !inv.school_name);
-        // Users ya registrados sin escuela (y cuyo email no tiene ya una InvitacionPendiente)
-        const invEmails = new Set(pendingInvitations.map(i => i.email));
-        const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "") && !invEmails.has(u.email));
+       {(() => {
+         // InvitacionPendiente sin escuela asignada = solicitudes de acceso de usuarios nuevos (cualquier rol)
+         const solicitudesInv = pendingInvitations.filter(inv => !inv.school_name?.trim());
+         // Users ya registrados sin escuela (y cuyo email no tiene ya una InvitacionPendiente)
+         const invEmails = new Set(pendingInvitations.map(i => i.email?.toLowerCase()));
+         const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "") && !invEmails.has(u.email?.toLowerCase()));
         const total = solicitudesInv.length + usersNoSchool.length;
         if (total === 0) return null;
         return (
