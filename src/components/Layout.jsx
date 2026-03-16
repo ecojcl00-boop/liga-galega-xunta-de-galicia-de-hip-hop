@@ -221,6 +221,29 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
+  // User is logged in but has no school assigned yet → show waiting screen
+  if (user && user.role !== "admin" && (!user.school_name || user.school_name === "")) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-7 h-7 text-primary" />
+          </div>
+          <h2 className="text-lg font-semibold mb-2">Solicitud pendiente de aprobación</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Tu solicitud de acceso ha sido registrada. El administrador revisará y aprobará tu acceso en breve.
+          </p>
+          <button
+            onClick={() => base44.auth.logout(createPageUrl("Landing"))}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (user && user.role !== "admin" && !SCHOOL_ALLOWED_PAGES.includes(currentPageName)) {
     return null;
   }
