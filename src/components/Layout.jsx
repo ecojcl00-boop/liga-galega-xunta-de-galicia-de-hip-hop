@@ -128,13 +128,15 @@ export default function Layout({ children, currentPageName }) {
                 setUser(updatedUser);
               } else {
                 // Unknown email → create pending request for admin to review (avoid duplicates)
-                const existing = await base44.entities.InvitacionPendiente.filter({ email: u.email, status: "pendiente" });
-                if (existing.length === 0) {
+                // Check ALL existing invitations for this email (regardless of status) to avoid duplicates
+                const allExisting = await base44.entities.InvitacionPendiente.filter({ email: u.email });
+                const hasPendingNoSchool = allExisting.some(i => !i.school_name && i.role !== "admin");
+                if (!hasPendingNoSchool) {
                   await base44.entities.InvitacionPendiente.create({
                     email: u.email,
                     role: "user",
                     school_name: "",
-                    status: "pendiente",
+                    status: "pending",
                     fecha_invitacion: new Date().toISOString()
                   });
                 }
