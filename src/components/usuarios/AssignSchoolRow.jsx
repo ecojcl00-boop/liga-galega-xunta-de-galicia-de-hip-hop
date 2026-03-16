@@ -26,13 +26,20 @@ export default function AssignSchoolRow({ inv, schools, onAssigned, onDismiss })
     const users = await base44.entities.User.list();
     const matchedUser = users.find(u => u.email === inv.email);
     if (matchedUser) {
+      // User already registered → update directly and delete invitation
       await base44.entities.User.update(matchedUser.id, {
         role,
         school_name: role === "admin" ? (matchedUser.school_name || "") : selected,
       });
+      await base44.entities.InvitacionPendiente.delete(inv.id);
+    } else {
+      // User not registered yet → keep invitation with assigned data so it stays visible
+      await base44.entities.InvitacionPendiente.update(inv.id, {
+        role,
+        school_name: role === "admin" ? "" : selected,
+        status: "pending",
+      });
     }
-    // Delete the pending invitation
-    await base44.entities.InvitacionPendiente.delete(inv.id);
     setSaving(false);
     setDone(true);
     setTimeout(() => onAssigned(), 1200);
