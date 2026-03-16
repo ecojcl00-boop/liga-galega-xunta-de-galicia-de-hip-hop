@@ -225,172 +225,184 @@ export default function Usuarios() {
         </div>
       </div>
 
-      {/* Pending access requests */}
-       {(() => {
-         // TODAS las invitaciones con status pending, PERO excluir las que coinciden con usuarios que YA tienen escuela
-         const usersEmails = new Set(users.map(u => u.email?.toLowerCase()));
-         const usersWithSchoolEmails = new Set(users.filter(u => u.school_name?.trim()).map(u => u.email?.toLowerCase()));
-         const solicitudesInv = pendingInvitations.filter(inv => inv.status === "pending" && !usersWithSchoolEmails.has(inv.email?.toLowerCase()));
-         // Users ya registrados sin escuela (y cuyo email no tiene ya una InvitacionPendiente)
-         const invEmails = new Set(pendingInvitations.map(i => i.email?.toLowerCase()));
-         const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === "") && !invEmails.has(u.email?.toLowerCase()));
-        const total = solicitudesInv.length + usersNoSchool.length;
-        if (total === 0) return null;
-        return (
-          <Card className="border-orange-500/30 bg-orange-500/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-orange-600" />
-                Solicitudes de acceso pendientes ({total})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {/* InvitacionPendiente sin escuela = solicitudes nuevas */}
-                {solicitudesInv.map((inv) => (
-                  <AssignSchoolRow
-                    key={`req-inv-${inv.id}`}
-                    inv={inv}
-                    schools={schools}
-                    onAssigned={() => {
-                      qc.invalidateQueries({ queryKey: ["pending-invitations"] });
-                      qc.invalidateQueries({ queryKey: ["users-list"] });
-                    }}
-                    onDismiss={() => deletePendingInvitation.mutate(inv.id)}
-                  />
-                ))}
-                {/* Users registrados sin escuela */}
-                {usersNoSchool.map((u) => (
-                  <div key={`req-user-${u.id}`} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{u.email}</p>
-                      <p className="text-xs text-muted-foreground">Usuario registrado sin escuela asignada</p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(u)} className="h-8 gap-1.5">
-                        <Pencil className="w-3.5 h-3.5" /> Asignar escuela
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)}>
-                        <Trash2 className="w-3.5 h-3.5" /> Ignorar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* Users table */}
+      {/* All managed users - unified view */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Usuarios registrados</CardTitle>
+          <CardTitle className="text-base">Todos los usuarios gestionados</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {(loadingUsers || loadingPending) ? (
             <p className="text-sm text-muted-foreground p-6">Cargando...</p>
           ) : (
             <div className="divide-y">
-              {/* Pending invitations - those with status "accepted" (awaiting first login) */}
-              {pendingInvitations.filter(inv => inv.status === "accepted").map((inv) => (
-                <div
-                  key={`pending-${inv.id}`}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-blue-500/5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{inv.email}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      Pendiente de primer login · {inv.role === "admin" || inv.school_name === "__admin__" ? "Administrador" : inv.school_name}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 ml-4 shrink-0">
-                    {inv.role === "admin" ? (
-                      <Badge variant="default" className="gap-1">
-                        <Shield className="w-3 h-3" />
-                        Admin
-                      </Badge>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <School className="w-3 h-3" />
-                        {inv.school_name}
-                      </span>
-                    )}
-                    <Badge variant="outline" className="gap-1 border-blue-500 text-blue-600">
-                      <Mail className="w-3 h-3" />
-                      Primer login pendiente
-                    </Badge>
-                    {resendSuccessId === inv.id ? (
-                      <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                        ✓ Enviada
-                      </span>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs gap-1"
-                        onClick={() => resendInvite.mutate(inv)}
-                        disabled={resendInvite.isPending}
+              {(() => {
+                // Combine all users and pending invitations
+                const allManaged = [];
+
+                // Add pending invitations (no school assigned yet)
+                pendingInvitations
+                  .filter(inv => inv.status === "pending" && !users.find(u => u.email?.toLowerCase() === inv.email?.toLowerCase()))
+                  .forEach(inv => {
+                    allManaged.push({
+                      type: "invitation_pending",
+                      id: inv.id,
+                      email: inv.email,
+                      data: inv
+                    });
+                  });
+
+                // Add accepted invitations (assigned but not logged in yet)
+                pendingInvitations
+                  .filter(inv => inv.status === "accepted")
+                  .forEach(inv => {
+                    allManaged.push({
+                      type: "invitation_accepted",
+                      id: inv.id,
+                      email: inv.email,
+                      data: inv
+                    });
+                  });
+
+                // Add registered users
+                users.forEach(u => {
+                  allManaged.push({
+                    type: "user_registered",
+                    id: u.id,
+                    email: u.email,
+                    data: u
+                  });
+                });
+
+                // Sort by email
+                allManaged.sort((a, b) => a.email.localeCompare(b.email));
+
+                if (allManaged.length === 0) {
+                  return <p className="text-sm text-muted-foreground p-6">No hay usuarios gestionados.</p>;
+                }
+
+                return allManaged.map((item) => {
+                  if (item.type === "invitation_pending") {
+                    const inv = item.data;
+                    return (
+                      <AssignSchoolRow
+                        key={`inv-pending-${inv.id}`}
+                        inv={inv}
+                        schools={schools}
+                        onAssigned={() => {
+                          qc.invalidateQueries({ queryKey: ["pending-invitations"] });
+                          qc.invalidateQueries({ queryKey: ["users-list"] });
+                        }}
+                        onDismiss={() => deletePendingInvitation.mutate(inv.id)}
+                      />
+                    );
+                  }
+
+                  if (item.type === "invitation_accepted") {
+                    const inv = item.data;
+                    return (
+                      <div
+                        key={`inv-accepted-${inv.id}`}
+                        className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors bg-blue-500/5"
                       >
-                        <Mail className="w-3 h-3" />
-                        Reenviar
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setUserToDelete({ ...inv, isPending: true })}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{inv.email}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {inv.role === "admin" || inv.school_name === "__admin__" ? "Administrador" : inv.school_name}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 ml-4 shrink-0">
+                          {inv.role === "admin" ? (
+                            <Badge variant="default" className="gap-1">
+                              <Shield className="w-3 h-3" />
+                              Admin
+                            </Badge>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <School className="w-3 h-3" />
+                              {inv.school_name}
+                            </span>
+                          )}
+                          <Badge variant="outline" className="gap-1 border-blue-500 text-blue-600">
+                            <Mail className="w-3 h-3" />
+                            Pendiente login
+                          </Badge>
+                          {resendSuccessId === inv.id ? (
+                            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                              ✓ Enviada
+                            </span>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => resendInvite.mutate(inv)}
+                              disabled={resendInvite.isPending}
+                            >
+                              <Mail className="w-3 h-3" />
+                              Reenviar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setUserToDelete({ ...inv, isPending: true })}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Registered user
+                  const u = item.data;
+                  return (
+                    <div
+                      key={`user-${u.id}`}
+                      className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {/* Active users */}
-              {users.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{u.full_name || u.email}</p>
-                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                  </div>
-                  <div className="flex items-center gap-3 ml-4 shrink-0">
-                    {u.school_name ? (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <School className="w-3 h-3" />
-                        {u.school_name}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/50">Sin escuela</span>
-                    )}
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                      {u.role === "admin" ? "Admin" : "Escuela"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEdit(u)}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setUserToDelete(u)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {users.length === 0 && pendingInvitations.length === 0 && (
-                <p className="text-sm text-muted-foreground p-6">No hay usuarios.</p>
-              )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{u.full_name || u.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4 shrink-0">
+                        {u.school_name ? (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <School className="w-3 h-3" />
+                            {u.school_name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">Sin escuela</span>
+                        )}
+                        <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                          {u.role === "admin" ? "Admin" : "Escuela"}
+                        </Badge>
+                        <Badge variant="outline" className="gap-1 border-green-500 text-green-600">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Activo
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => openEdit(u)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setUserToDelete(u)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </CardContent>
