@@ -199,7 +199,7 @@ export default function Usuarios() {
       {/* Pending access requests: users without school + InvitacionPendiente without school */}
       {(() => {
         const usersNoSchool = users.filter(u => u.role !== "admin" && (!u.school_name || u.school_name === ""));
-        const invNoSchool = pendingInvitations.filter(inv => !inv.school_name);
+        const invNoSchool = pendingInvitations.filter(inv => !inv.school_name && inv.role !== "admin");
         // Avoid showing the same email in both sections
         const invEmails = invNoSchool.map(i => i.email);
         const usersNoSchoolFiltered = usersNoSchool.filter(u => !invEmails.includes(u.email));
