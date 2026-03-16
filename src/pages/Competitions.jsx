@@ -60,7 +60,7 @@ export default function Competitions() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, registration_open }) => base44.entities.LigaCompeticion.update(id, { registration_open }),
+    mutationFn: ({ id, registration_open }) => base44.entities.Competition.update(id, { registration_open }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["competitions"] }),
   });
 
