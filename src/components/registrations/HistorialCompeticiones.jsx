@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, MapPin, Users, ChevronDown, ChevronRight, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Calendar, MapPin, Users, ChevronDown, ChevronRight, User, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import EditRegistrationDocsDialog from "./EditRegistrationDocsDialog";
 
 function nd(s) {
   return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -35,7 +37,7 @@ function ParticipantList({ group, reg }) {
   );
 }
 
-function GroupRow({ reg, group }) {
+function GroupRow({ reg, group, isAdmin, onEditDocs }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg border bg-card">
@@ -56,20 +58,32 @@ function GroupRow({ reg, group }) {
         </div>
       </button>
       {open && (
-        <div className="px-8 pb-3">
+        <div className="px-4 pb-3 space-y-3">
           {reg.coach_name && (
-            <p className="text-xs text-muted-foreground mb-1">
+            <p className="text-xs text-muted-foreground">
               Entrenador/a: <span className="font-medium text-foreground">{reg.coach_name}</span>
             </p>
           )}
-          <ParticipantList group={group} reg={reg} />
+          <div className="pl-4">
+            <ParticipantList group={group} reg={reg} />
+          </div>
+          {!isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEditDocs?.(reg)}
+              className="w-full gap-2"
+            >
+              <FileText className="w-3.5 h-3.5" /> Actualizar documentos
+            </Button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function SchoolSection({ schoolName, regs, groups }) {
+function SchoolSection({ schoolName, regs, groups, onEditDocs }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl border">
@@ -89,7 +103,7 @@ function SchoolSection({ schoolName, regs, groups }) {
         <div className="px-4 pb-4 space-y-2">
           {regs.map(reg => {
             const group = resolveGroup(groups, reg);
-            return <GroupRow key={reg.id} reg={reg} group={group} />;
+            return <GroupRow key={reg.id} reg={reg} group={group} isAdmin onEditDocs={onEditDocs} />;
           })}
         </div>
       )}
@@ -104,6 +118,8 @@ function SchoolSection({ schoolName, regs, groups }) {
 export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin }) {
   console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
+  const [selectedReg, setSelectedReg] = useState(null);
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   const sortedComps = useMemo(() =>
     [...competitions].sort((a, b) => new Date(b.date) - new Date(a.date)),
