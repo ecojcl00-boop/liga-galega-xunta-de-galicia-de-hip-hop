@@ -96,10 +96,10 @@ export default function Layout({ children, currentPageName }) {
             const invitations = await base44.entities.InvitacionPendiente.filter({ email: u.email });
             const assignedInv = invitations.find(i => i.school_name || i.role === "admin");
             if (assignedInv) {
-              // Admin already assigned role/school → apply it now
+              // Admin already assigned role/school → apply it now using updateMe (user can update themselves)
               const updateData = { role: assignedInv.role };
               if (assignedInv.school_name) updateData.school_name = assignedInv.school_name;
-              await base44.entities.User.update(u.id, updateData);
+              await base44.auth.updateMe(updateData);
               await base44.entities.InvitacionPendiente.delete(assignedInv.id);
               const updatedUser = await base44.auth.me();
               setUser(updatedUser);
@@ -121,8 +121,8 @@ export default function Layout({ children, currentPageName }) {
               }
 
               if (schoolName) {
-                // Email matches a school → grant access immediately
-                await base44.entities.User.update(u.id, { school_name: schoolName, role: "user" });
+                // Email matches a school → grant access immediately using updateMe
+                await base44.auth.updateMe({ school_name: schoolName, role: "user" });
                 const updatedUser = await base44.auth.me();
                 setUser(updatedUser);
               } else {
