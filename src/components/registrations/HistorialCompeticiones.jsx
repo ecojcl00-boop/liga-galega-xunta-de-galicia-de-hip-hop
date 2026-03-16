@@ -14,8 +14,11 @@ function resolveGroup(groups, reg) {
     || groups.find(g => nd(g.name) === nd(reg.group_name));
 }
 
-function ParticipantList({ group }) {
-  const participants = group?.participants || [];
+function ParticipantList({ group, reg }) {
+  // Use whichever list has more participants (reg participants may be a subset for competition)
+  const groupParticipants = group?.participants || [];
+  const regParticipants = reg?.participants || [];
+  const participants = groupParticipants.length >= regParticipants.length ? groupParticipants : regParticipants;
   if (!participants.length) {
     return <p className="text-xs text-muted-foreground italic py-1">Sin lista de participantes registrada</p>;
   }
@@ -49,7 +52,7 @@ function GroupRow({ reg, group }) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-2">
           <Users className="w-3 h-3" />
-          <span>{group?.participants?.length ?? reg.participants_count ?? 0}</span>
+          <span>{Math.max(group?.participants?.length ?? 0, reg?.participants?.length ?? 0) || reg.participants_count || 0}</span>
         </div>
       </button>
       {open && (
