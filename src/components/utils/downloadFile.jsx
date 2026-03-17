@@ -4,6 +4,16 @@ import { base44 } from "@/api/base44Client";
  * Downloads a file through the backend proxy to avoid Chrome Safe Browsing warnings.
  * The backend fetches the file and returns it as base64; we decode to a local Blob URL.
  */
+function getFilenameWithExt(displayName, url) {
+  if (!url) return displayName;
+  const urlFilename = url.split("/").pop()?.split("?")[0] || "";
+  const urlExt = urlFilename.includes(".") ? "." + urlFilename.split(".").pop() : "";
+  if (!urlExt) return displayName;
+  // If displayName already has the right extension, keep it; otherwise append
+  if (displayName.toLowerCase().endsWith(urlExt.toLowerCase())) return displayName;
+  return displayName + urlExt;
+}
+
 export async function downloadFile(url, filename = "archivo") {
   if (!url || typeof url !== "string" || url.trim() === "") {
     alert("Este archivo no tiene URL disponible. Es posible que no se subió correctamente.");
