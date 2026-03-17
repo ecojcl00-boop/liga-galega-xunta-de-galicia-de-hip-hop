@@ -233,7 +233,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                     {Object.entries(bySchool)
                       .sort(([a], [b]) => a.localeCompare(b))
                       .map(([schoolName, regs]) => (
-                        <SchoolSection key={schoolName} schoolName={schoolName} regs={regs} groups={groups} onEditDocs={(reg) => { setSelectedReg(reg); setDocDialogOpen(true); }} />
+                        <SchoolSection key={schoolName} schoolName={schoolName} regs={regs} groups={groups} onEditDocs={(reg) => { setSelectedReg(reg); setDocReadOnly(false); setDocDialogOpen(true); }} />
                       ))}
                     </div>
                     ) : (
