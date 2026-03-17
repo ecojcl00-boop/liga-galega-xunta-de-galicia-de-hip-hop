@@ -19,7 +19,8 @@ export async function downloadFile(url, filename = "archivo") {
     alert("Este archivo no tiene URL disponible. Es posible que no se subió correctamente.");
     return;
   }
-  const res = await base44.functions.invoke('proxyDownload', { url, filename });
+  const resolvedFilename = getFilenameWithExt(filename, url);
+  const res = await base44.functions.invoke('proxyDownload', { url, filename: resolvedFilename });
   const { data: base64, contentType } = res.data;
 
   // Decode base64 → Uint8Array → Blob
