@@ -34,7 +34,7 @@ export async function downloadFile(url, filename = "archivo") {
   const localUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = localUrl;
-  a.download = filename;
+  a.download = resolvedFilename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
