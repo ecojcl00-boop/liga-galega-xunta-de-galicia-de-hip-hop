@@ -124,7 +124,6 @@ function SchoolSection({ schoolName, regs, groups, onEditDocs }) {
 // isAdmin: boolean — if false, groups by school are NOT shown
 // showClosedStatus: boolean — if true, show status even for closed competitions in school view
 export default function HistorialCompeticiones({ competitions, registrations, groups, isAdmin, showClosedStatus = false }) {
-  console.log('HistorialCompeticiones props:', { competitions, registrations });
   const [expandedComp, setExpandedComp] = useState(null);
   const [selectedReg, setSelectedReg] = useState(null);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
