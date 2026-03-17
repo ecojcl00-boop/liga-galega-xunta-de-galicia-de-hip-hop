@@ -22,13 +22,16 @@ function DocRow({ doc, onRemove }) {
       </div>
       <div className="flex items-center gap-1 ml-2 shrink-0">
         {doc.url && (
-          <button
-            onClick={() => downloadFile(doc.url, doc.name || "documento")}
+          <a
+            href={doc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
             className="text-muted-foreground hover:text-primary transition-colors p-1"
             title="Descargar"
           >
             <Download className="w-4 h-4" />
-          </button>
+          </a>
         )}
         <button onClick={() => onRemove()} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Eliminar">
           <X className="w-4 h-4" />
