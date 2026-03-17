@@ -97,7 +97,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{readOnly ? "Documentos de inscripción" : "Actualizar documentos de inscripción"}</DialogTitle>
+          <DialogTitle>Documentos de inscripción</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -136,9 +136,9 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                 </p>
               )}
               {documents.map((d, i) => (
-                <DocRow key={i} doc={d} onRemove={() => removeDocument(i)} readOnly={readOnly} />
+                <DocRow key={i} doc={d} onRemove={() => removeDocument(i)} />
               ))}
-              {!readOnly && addingDoc ? (
+              {addingDoc ? (
                 <div className="border rounded-xl p-3 space-y-2 bg-muted/10">
                   <div className="space-y-2">
                     <Label htmlFor="docName" className="text-xs">Nombre del documento</Label>
@@ -180,7 +180,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                     </Button>
                   </div>
                 </div>
-              ) : !readOnly ? (
+              ) : (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -189,18 +189,16 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                 >
                   <Plus className="w-4 h-4" /> Añadir documento
                 </Button>
-              ) : null}
+              )}
             </CardContent>
           </Card>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
-          {!readOnly && (
-            <Button onClick={handleSave} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          )}
+          <Button onClick={handleSave} disabled={updateMutation.isPending}>
+            {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
