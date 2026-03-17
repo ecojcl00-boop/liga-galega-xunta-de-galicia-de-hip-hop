@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { downloadFile } from "@/components/utils/downloadFile";
 
-function DocRow({ doc, onRemove }) {
+function DocRow({ doc, onRemove, readOnly }) {
   return (
     <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
       <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -20,9 +20,22 @@ function DocRow({ doc, onRemove }) {
           {doc.url && <div className="text-xs text-muted-foreground truncate">{doc.url.split("/").pop()}</div>}
         </div>
       </div>
-      <button onClick={() => onRemove()} className="text-muted-foreground hover:text-destructive transition-colors ml-2">
-        <X className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1 ml-2 shrink-0">
+        {doc.url && (
+          <button
+            onClick={() => downloadFile(doc.url, doc.name || "documento")}
+            className="text-muted-foreground hover:text-primary transition-colors p-1"
+            title="Descargar"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        )}
+        {!readOnly && (
+          <button onClick={() => onRemove()} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Eliminar">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
