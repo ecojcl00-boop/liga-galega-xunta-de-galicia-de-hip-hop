@@ -58,6 +58,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
     mutationFn: async (data) => base44.entities.Registration.update(registration.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portal_registrations_all"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations"] });
       onSuccess?.();
       onOpenChange(false);
     },
