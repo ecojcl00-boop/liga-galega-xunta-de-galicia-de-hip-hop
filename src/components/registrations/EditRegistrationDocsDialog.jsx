@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, FileText, CheckCircle2, AlertCircle, Download } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { downloadFile } from "@/components/utils/downloadFile";
 
 function DocRow({ doc, onRemove }) {
   return (
