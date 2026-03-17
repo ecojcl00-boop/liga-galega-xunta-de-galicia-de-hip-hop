@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, FileText, Music, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, X, FileText, CheckCircle2, AlertCircle, Download } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { downloadFile } from "@/components/utils/downloadFile";
 
 function DocRow({ doc, onRemove }) {
   return (
