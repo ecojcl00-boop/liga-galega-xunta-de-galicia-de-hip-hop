@@ -253,6 +253,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
           open={docDialogOpen}
           onOpenChange={setDocDialogOpen}
           registration={selectedReg}
+          readOnly={docReadOnly}
           onSuccess={() => setSelectedReg(null)}
           />
           </div>
