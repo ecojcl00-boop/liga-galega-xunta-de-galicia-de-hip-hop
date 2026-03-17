@@ -40,7 +40,7 @@ function DocRow({ doc, onRemove, readOnly }) {
   );
 }
 
-export default function EditRegistrationDocsDialog({ open, onOpenChange, registration, onSuccess }) {
+export default function EditRegistrationDocsDialog({ open, onOpenChange, registration, onSuccess, readOnly = false }) {
   const queryClient = useQueryClient();
   const [documents, setDocuments] = useState([]);
   const [addingDoc, setAddingDoc] = useState(false);
