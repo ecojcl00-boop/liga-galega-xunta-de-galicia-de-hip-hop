@@ -99,7 +99,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Actualizar documentos de inscripción</DialogTitle>
+          <DialogTitle>{readOnly ? "Documentos de inscripción" : "Actualizar documentos de inscripción"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
