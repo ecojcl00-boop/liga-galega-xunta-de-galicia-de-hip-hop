@@ -2,7 +2,9 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import LigaRankingView from "../components/rankings/LigaRankingView";
+import ImportarResultados from "../components/rankings/ImportarResultados";
 import { useSimulacro } from "../components/SimulacroContext";
+import { useUser } from "../components/UserContext";
 
 export default function Rankings() {
   const { isSimulacro } = useSimulacro();
