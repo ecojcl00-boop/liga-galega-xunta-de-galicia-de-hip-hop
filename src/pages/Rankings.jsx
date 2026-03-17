@@ -8,6 +8,8 @@ import { useUser } from "../components/UserContext";
 
 export default function Rankings() {
   const { isSimulacro } = useSimulacro();
+  const user = useUser();
+  const isAdmin = user?.role === "admin";
 
   const { data: resultados = [], isLoading } = useQuery({
     queryKey: ["ligaResultados", isSimulacro],
