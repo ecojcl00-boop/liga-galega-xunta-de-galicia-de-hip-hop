@@ -129,6 +129,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
   const [expandedComp, setExpandedComp] = useState(null);
   const [selectedReg, setSelectedReg] = useState(null);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [docReadOnly, setDocReadOnly] = useState(false);
 
   const sortedComps = useMemo(() =>
     [...competitions].sort((a, b) => new Date(b.date) - new Date(a.date)),
