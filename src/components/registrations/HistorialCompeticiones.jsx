@@ -240,7 +240,7 @@ export default function HistorialCompeticiones({ competitions, registrations, gr
                     <div className="space-y-2">
                     {compRegs.map(reg => {
                       const group = resolveGroup(groups, reg);
-                      return <GroupRow key={reg.id} reg={reg} group={group} isAdmin={false} onEditDocs={(r) => { setSelectedReg(r); setDocDialogOpen(true); }} />;
+                      return <GroupRow key={reg.id} reg={reg} group={group} isAdmin={false} onEditDocs={(r) => { setSelectedReg(r); setDocReadOnly(false); setDocDialogOpen(true); }} />;
                     })}
                     </div>
                     )}
