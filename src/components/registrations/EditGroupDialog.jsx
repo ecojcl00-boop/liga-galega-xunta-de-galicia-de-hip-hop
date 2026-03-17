@@ -47,10 +47,37 @@ export default function EditGroupDialog({ open, onOpenChange, group, onSuccess }
     }
   }, [group]);
 
+  // Fetch all registrations linked to this group to sync them on save
+  const { data: allRegistrations = [] } = useQuery({
+    queryKey: ["registrations"],
+    queryFn: () => base44.entities.Registration.list(),
+    enabled: !!group,
+  });
+
   const updateMutation = useMutation({
-    mutationFn: async (data) => base44.entities.Group.update(group.id, data),
+    mutationFn: async (data) => {
+      // 1. Update the Group itself
+      await base44.entities.Group.update(group.id, data);
+
+      // 2. Find all registrations linked to this group (by id or normalized name)
+      const nd = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+      const linkedRegs = allRegistrations.filter(r =>
+        r.group_id === group.id || nd(r.group_name) === nd(group.name)
+      );
+
+      // 3. Sync each registration with the new group data
+      await Promise.all(linkedRegs.map(r =>
+        base44.entities.Registration.update(r.id, {
+          group_name: data.name,
+          category: data.category,
+          participants: data.participants,
+          participants_count: data.participants.length,
+        })
+      ));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
+      queryClient.invalidateQueries({ queryKey: ["registrations"] });
       onSuccess?.();
       onOpenChange(false);
     },
