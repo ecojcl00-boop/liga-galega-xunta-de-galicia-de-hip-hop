@@ -138,7 +138,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                 </p>
               )}
               {documents.map((d, i) => (
-                <DocRow key={i} doc={d} onRemove={() => removeDocument(i)} />
+                <DocRow key={i} doc={d} onRemove={() => removeDocument(i)} readOnly={readOnly} />
               ))}
               {addingDoc ? (
                 <div className="border rounded-xl p-3 space-y-2 bg-muted/10">
