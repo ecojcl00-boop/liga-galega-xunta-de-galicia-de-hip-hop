@@ -197,10 +197,12 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
-            {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+          {!readOnly && (
+            <Button onClick={handleSave} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
