@@ -40,6 +40,7 @@ function ParticipantList({ group, reg }) {
 
 function GroupRow({ reg, group, isAdmin, onEditDocs }) {
   const [open, setOpen] = useState(false);
+  const docCount = reg.documents?.length || 0;
   return (
     <div className="rounded-lg border bg-card">
       <button
@@ -52,6 +53,11 @@ function GroupRow({ reg, group, isAdmin, onEditDocs }) {
             : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
           <span className="font-medium text-sm truncate">{reg.group_name}</span>
           <Badge variant="outline" className="text-[10px] shrink-0">{reg.category}</Badge>
+          {docCount > 0 && (
+            <Badge variant="secondary" className="text-[10px] shrink-0 gap-1">
+              <FileText className="w-2.5 h-2.5" />{docCount}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-2">
           <Users className="w-3 h-3" />
@@ -68,38 +74,16 @@ function GroupRow({ reg, group, isAdmin, onEditDocs }) {
           <div className="pl-4">
             <ParticipantList group={group} reg={reg} />
           </div>
-          {reg.documents && reg.documents.length > 0 && (
-            <div className="space-y-1.5 pl-4">
-              <p className="text-xs font-medium text-muted-foreground">Documentos ({reg.documents.length}):</p>
-              <div className="space-y-1">
-                {reg.documents.map((doc, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded bg-muted/30">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-xs truncate">{doc.name}</span>
-                    </div>
-                    {doc.url && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => downloadFile(doc.url, doc.name || "documento")}
-                        className="h-6 w-6 p-0 shrink-0"
-                      >
-                        <Download className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEditDocs?.(reg)}
             className="w-full gap-2"
           >
-            <FileText className="w-3.5 h-3.5" /> {isAdmin ? "Editar documentos" : "Actualizar documentos"}
+            <FileText className="w-3.5 h-3.5" />
+            {isAdmin
+              ? docCount > 0 ? `Ver/gestionar documentos (${docCount})` : "Ver documentos"
+              : docCount > 0 ? `Actualizar documentos (${docCount})` : "Subir documentos"}
           </Button>
         </div>
       )}
