@@ -36,6 +36,10 @@ export default function Rankings() {
         <p className="text-muted-foreground mt-1">Clasificación general por categorías</p>
       </div>
 
+      {isAdmin && !isSimulacro && (
+        <ImportarResultados />
+      )}
+
       <LigaRankingView resultados={resultados} />
     </div>
   );
