@@ -2,11 +2,10 @@ import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Calendar, MapPin, Users, ChevronDown, ChevronRight, User, FileText, Download } from "lucide-react";
+import { Trophy, Calendar, MapPin, Users, ChevronDown, ChevronRight, User, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import EditRegistrationDocsDialog from "./EditRegistrationDocsDialog";
-import { downloadFile } from "@/components/utils/downloadFile";
 
 function nd(s) {
   return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
