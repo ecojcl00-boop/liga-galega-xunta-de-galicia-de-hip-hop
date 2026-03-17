@@ -38,7 +38,7 @@ const navItems = [
   { name: "Grupos", icon: Users, page: "Groups" },
   { name: "Rankings", icon: Trophy, page: "Rankings" },
   { name: "Panel de Jueces", icon: Gavel, page: "JudgePanel" },
-  { name: "Importar Datos", icon: ClipboardList, page: "ImportarDatos", adminOnly: true },
+  { name: "Importar Datos", icon: ClipboardList, page: "ImportarDatos", adminOnly: true, hidden: true },
   { name: "Importar Grupos", icon: Users, page: "ImportarGrupos", adminOnly: true, hidden: true },
   { name: "Usuarios", icon: UserCog, page: "Usuarios", adminOnly: true, ownerOnly: true },
   { name: "Gestión Escuelas", icon: School, page: "GestionEscuelas", adminOnly: true },
