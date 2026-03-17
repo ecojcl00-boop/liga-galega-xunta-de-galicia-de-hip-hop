@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { downloadFile } from "@/components/utils/downloadFile";
 
-function DocRow({ doc, onRemove, readOnly }) {
+function DocRow({ doc, onRemove }) {
   return (
     <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
       <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -30,17 +30,15 @@ function DocRow({ doc, onRemove, readOnly }) {
             <Download className="w-4 h-4" />
           </button>
         )}
-        {!readOnly && (
-          <button onClick={() => onRemove()} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Eliminar">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <button onClick={() => onRemove()} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Eliminar">
+          <X className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
 }
 
-export default function EditRegistrationDocsDialog({ open, onOpenChange, registration, onSuccess, readOnly = false }) {
+export default function EditRegistrationDocsDialog({ open, onOpenChange, registration, onSuccess }) {
   const queryClient = useQueryClient();
   const [documents, setDocuments] = useState([]);
   const [addingDoc, setAddingDoc] = useState(false);
