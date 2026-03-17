@@ -140,7 +140,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
               {documents.map((d, i) => (
                 <DocRow key={i} doc={d} onRemove={() => removeDocument(i)} readOnly={readOnly} />
               ))}
-              {addingDoc ? (
+              {!readOnly && addingDoc ? (
                 <div className="border rounded-xl p-3 space-y-2 bg-muted/10">
                   <div className="space-y-2">
                     <Label htmlFor="docName" className="text-xs">Nombre del documento</Label>
