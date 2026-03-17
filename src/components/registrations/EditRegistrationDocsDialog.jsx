@@ -182,7 +182,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                     </Button>
                   </div>
                 </div>
-              ) : (
+              ) : !readOnly ? (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -191,7 +191,7 @@ export default function EditRegistrationDocsDialog({ open, onOpenChange, registr
                 >
                   <Plus className="w-4 h-4" /> Añadir documento
                 </Button>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         </div>
