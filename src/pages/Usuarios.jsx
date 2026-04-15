@@ -170,16 +170,18 @@ export default function Usuarios() {
       try {
         await base44.users.inviteUser(invitation.email, invitation.role);
       } catch {
-        // User may already be registered — send a direct email reminder instead
         await base44.integrations.Core.SendEmail({
           to: invitation.email,
           subject: "Acceso a HIPHOPGDT — tu cuenta está lista",
           body: `Hola,\n\nTu acceso a la plataforma HipHop Galician Dance Tour ha sido configurado.\n\n${invitation.school_name ? `Escuela asignada: ${invitation.school_name}\n\n` : ""}Puedes entrar en: ${window.location.origin}\n\nSi ya tienes cuenta, inicia sesión con este email.\n\nSaludos,\nEquipo HIPHOPGDT`,
         });
       }
-      await base44.entities.InvitacionPendiente.update(invitation.id, {
-        fecha_invitacion: new Date().toISOString()
-      });
+      // Only update the InvitacionPendiente record if it's an invitation (not a registered user)
+      if (invitation._isPendingInvitation) {
+        await base44.entities.InvitacionPendiente.update(invitation.id, {
+          fecha_invitacion: new Date().toISOString()
+        });
+      }
       return invitation.id;
     },
     onSuccess: (id) => {
@@ -260,24 +262,15 @@ export default function Usuarios() {
                   }
                 });
 
-                // Add accepted invitations (assigned but not logged in yet)
+                // Add ALL pending invitations (pending or accepted, with or without school)
+                // that don't already have a matching registered user
+                const registeredEmails = new Set(users.map(u => u.email?.toLowerCase()));
                 pendingInvitations
-                  .filter(inv => inv.status === "accepted")
+                  .filter(inv => !registeredEmails.has(inv.email?.toLowerCase()))
                   .forEach(inv => {
+                    const type = inv.school_name ? "invitation_accepted" : "invitation_pending";
                     pendingUsers.push({
-                      type: "invitation_accepted",
-                      id: inv.id,
-                      email: inv.email,
-                      data: inv
-                    });
-                  });
-
-                // Add pending invitations (no school assigned yet)
-                pendingInvitations
-                  .filter(inv => inv.status === "pending" && !inv.school_name)
-                  .forEach(inv => {
-                    pendingUsers.push({
-                      type: "invitation_pending",
+                      type,
                       id: inv.id,
                       email: inv.email,
                       data: inv
@@ -351,7 +344,7 @@ export default function Usuarios() {
                               variant="ghost"
                               size="sm"
                               className="h-7 text-xs gap-1"
-                              onClick={() => resendInvite.mutate(inv)}
+                              onClick={() => resendInvite.mutate({ ...inv, _isPendingInvitation: true })}
                               disabled={resendInvite.isPending}
                             >
                               <Mail className="w-3 h-3" />
@@ -398,6 +391,23 @@ export default function Usuarios() {
                           <CheckCircle2 className="w-3 h-3" />
                           Activo
                         </Badge>
+                        {resendSuccessId === u.id ? (
+                          <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                            ✓ Enviada
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            title="Reenviar enlace de acceso"
+                            onClick={() => resendInvite.mutate({ id: u.id, email: u.email, role: u.role, school_name: u.school_name })}
+                            disabled={resendInvite.isPending}
+                          >
+                            <Mail className="w-3 h-3" />
+                            Reenviar
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

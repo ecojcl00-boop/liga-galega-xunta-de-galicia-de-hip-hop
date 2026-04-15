@@ -52,21 +52,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
     return matched?.school_name?.trim() || "";
   }, [allGroups, user]);
 
-  // If no school found at all → show lockout, never show data
-  if (!mySchoolName) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] p-4">
-        <Card className="max-w-sm w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-3">
-            <Lock className="w-12 h-12 mx-auto text-muted-foreground/30" />
-            <h2 className="text-xl font-bold">Cuenta sin escuela asignada</h2>
-            <p className="text-sm text-muted-foreground">Tu cuenta no está vinculada a ninguna escuela. Contacta con el administrador.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Use normalized comparison so typos/tildes don't break the match
   const myGroups = useMemo(() =>
     allGroups.filter(g => norm(g.school_name) === norm(mySchoolName)),
@@ -75,22 +60,10 @@ export default function SchoolView({ user, competitions, allGroups, registration
 
   // Group structure by modality and category
   const modalityStructure = [
-    {
-      name: "Individual",
-      categories: ["Mini Individual A", "Mini Individual B", "Individual"]
-    },
-    {
-      name: "Parejas",
-      categories: ["Mini Parejas A", "Mini Parejas B", "Parejas"]
-    },
-    {
-      name: "Grupos",
-      categories: ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"]
-    },
-    {
-      name: "Mega Crew",
-      categories: ["Megacrew"]
-    }
+    { name: "Individual", categories: ["Mini Individual A", "Mini Individual B", "Individual"] },
+    { name: "Parejas", categories: ["Mini Parejas A", "Mini Parejas B", "Parejas"] },
+    { name: "Grupos", categories: ["Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium"] },
+    { name: "Mega Crew", categories: ["Megacrew"] }
   ];
 
   // Group myGroups by modality structure
@@ -100,7 +73,6 @@ export default function SchoolView({ user, competitions, allGroups, registration
         const groups = myGroups.filter(g => g.category === category);
         return groups.length > 0 ? { category, groups } : null;
       }).filter(Boolean);
-      
       return categoriesWithGroups.length > 0 ? { ...modality, categoriesWithGroups } : null;
     }).filter(Boolean);
   }, [myGroups]);
@@ -113,11 +85,10 @@ export default function SchoolView({ user, competitions, allGroups, registration
     [registrations, mySchoolName]
   );
 
-  // Map: competition_id → Set of registered group IDs
-  // Map: competition_id → Set of normalized registered group names (fallback)
+  // Map: competition_id → Set of registered group IDs / normalized group names
   const { regByCompId, regNamesByCompId } = useMemo(() => {
-    const byId = {};   // competitionId → Set<groupId>
-    const byName = {}; // competitionId → Set<norm(groupName)>
+    const byId = {};
+    const byName = {};
     myRegistrations.forEach(r => {
       const compId = r.competition_id || r.competition_name;
       if (!compId) return;
@@ -136,6 +107,21 @@ export default function SchoolView({ user, competitions, allGroups, registration
     acc[key].push(r);
     return acc;
   }, {}), [myRegistrations]);
+
+  // If no school found at all → show lockout, never show data
+  if (!mySchoolName) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] p-4">
+        <Card className="max-w-sm w-full">
+          <CardContent className="pt-8 pb-8 text-center space-y-3">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground/30" />
+            <h2 className="text-xl font-bold">Cuenta sin escuela asignada</h2>
+            <p className="text-sm text-muted-foreground">Tu cuenta no está vinculada a ninguna escuela. Contacta con el administrador.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const toggleExpanded = (groupId) => {
     setExpandedGroups(prev => {

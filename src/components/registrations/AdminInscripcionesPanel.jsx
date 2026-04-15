@@ -140,7 +140,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
   const exportCSV = (compName = null) => {
     // Validate that compName is a string (not an event object)
     const validCompName = typeof compName === 'string' ? compName : null;
-    const toExport = validCompName ? filtered.filter(r => r.competition_name === validCompName) : (csvComp === "all" ? filtered : filtered.filter(r => r.competition_name === csvComp));
+    const toExport = validCompName ? filtered.filter(r => r.competition_name === validCompName) : (filterComp === "all" ? filtered : filtered.filter(r => r.competition_name === filterComp));
     
     // Find max number of participants across all registrations
     const maxParticipants = Math.max(...toExport.map(r => (r.participants || []).length), 0);
@@ -176,7 +176,7 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    const filename = validCompName ? `inscripciones_${validCompName.replace(/[^a-z0-9]/gi, '_')}.csv` : (csvComp === "all" ? "inscripciones.csv" : `inscripciones_${csvComp.replace(/[^a-z0-9]/gi, '_')}.csv`);
+    const filename = validCompName ? `inscripciones_${validCompName.replace(/[^a-z0-9]/gi, '_')}.csv` : (filterComp === "all" ? "inscripciones.csv" : `inscripciones_${filterComp.replace(/[^a-z0-9]/gi, '_')}.csv`);
     a.download = filename;
     a.click();
   };
