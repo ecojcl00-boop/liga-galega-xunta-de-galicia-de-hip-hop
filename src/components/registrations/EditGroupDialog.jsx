@@ -96,7 +96,7 @@ export default function EditGroupDialog({ open, onOpenChange, group, onSuccess }
   };
 
   const handleSave = () => {
-    if (!groupName.trim() || !selectedCategory || participants.length === 0) return;
+    if (!groupName.trim() || !selectedCategory) return;
 
     updateMutation.mutate({
       name: groupName.trim(),
@@ -105,7 +105,7 @@ export default function EditGroupDialog({ open, onOpenChange, group, onSuccess }
     });
   };
 
-  const isFormValid = groupName.trim() && selectedCategory && participants.length > 0;
+  const isFormValid = groupName.trim() && selectedCategory;
 
   if (!group) return null;
 
@@ -152,7 +152,7 @@ export default function EditGroupDialog({ open, onOpenChange, group, onSuccess }
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase">Participantes ({participants.length}) *</CardTitle>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase">Participantes ({participants.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {participants.length === 0 && (

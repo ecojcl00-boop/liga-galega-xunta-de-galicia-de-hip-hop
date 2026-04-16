@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock, Pencil, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { Plus, ChevronLeft, Users, CheckCircle2, Circle, History, Lock, Pencil, ChevronDown, ChevronUp, Check, X, Trash2 } from "lucide-react";
 import ReenrollmentWizard from "./ReenrollmentWizard.jsx";
 import HistorialCompeticiones from "./HistorialCompeticiones";
 import CreateGroupDialog from "./CreateGroupDialog";
 import EditGroupDialog from "./EditGroupDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const statusColors = {
   pending:   "bg-yellow-100 text-yellow-700",
@@ -42,6 +43,8 @@ export default function SchoolView({ user, competitions, allGroups, registration
   const [editName, setEditName] = useState("");
   const [editBirthDate, setEditBirthDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
   const queryClient = useQueryClient();
 
   // Derive school name via normalized comparison
@@ -135,6 +138,14 @@ export default function SchoolView({ user, competitions, allGroups, registration
     setEditingParticipant({ groupId, participantIndex });
     setEditName(participant.name || "");
     setEditBirthDate(participant.birth_date || "");
+  };
+
+  const deleteGroup = async (group) => {
+    setIsDeletingGroup(true);
+    await base44.entities.Group.delete(group.id);
+    queryClient.invalidateQueries({ queryKey: ["groups"] });
+    setIsDeletingGroup(false);
+    setGroupToDelete(null);
   };
 
   const cancelEditParticipant = () => {
@@ -266,6 +277,14 @@ export default function SchoolView({ user, competitions, allGroups, registration
                                 className="gap-2"
                               >
                                 <Pencil className="w-3.5 h-3.5" /> Modificar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setGroupToDelete(group)}
+                                className="gap-2 text-destructive hover:text-destructive hover:border-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
                           </div>
@@ -408,6 +427,27 @@ export default function SchoolView({ user, competitions, allGroups, registration
           setSelectedGroup(null);
         }}
       />
+
+      <AlertDialog open={!!groupToDelete} onOpenChange={(o) => !o && setGroupToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar grupo "{groupToDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El grupo será eliminado permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteGroup(groupToDelete)}
+              disabled={isDeletingGroup}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingGroup ? "Eliminando..." : "Eliminar grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
