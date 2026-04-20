@@ -286,7 +286,7 @@ export default function Layout({ children, currentPageName }) {
   // Build effective user context: if simulating a school, inject school identity
   // IMPORTANT: Only override role when actually simulating a school (not when simulatedSchool is null)
   const effectiveUser = simulatedSchool
-    ? { ...user, role: "user", school_name: simulatedSchool, _simulating: true }
+    ? { ...user, role: "user", school_name: simulatedSchool, _simulating: true, _realRole: user?.role }
     : user;
 
   // Determine if current effective user is admin (respects simulation)
