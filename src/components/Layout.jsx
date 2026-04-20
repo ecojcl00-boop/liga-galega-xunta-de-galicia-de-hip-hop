@@ -24,10 +24,13 @@ import {
   Loader2,
   LogOut,
   User,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { SimulacroContext } from "./SimulacroContext";
+import MobileBottomBar from "./MobileBottomBar";
 
 const navItems = [
   { name: "Home", icon: LayoutDashboard, page: "Dashboard", adminOnly: true },
@@ -66,6 +69,19 @@ export default function Layout({ children, currentPageName }) {
   });
   const [cleaningSimulacro, setCleaningSimulacro] = useState(false);
   const [assignError, setAssignError] = useState(null);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await base44.functions.invoke("deleteMyAccount", {});
+      base44.auth.logout(createPageUrl("Landing"));
+    } finally {
+      setDeletingAccount(false);
+      setShowDeleteAccount(false);
+    }
+  };
 
   const activateSimulacro = () => {
     try { localStorage.setItem("simulacro_mode", "true"); } catch {}
@@ -441,7 +457,16 @@ export default function Layout({ children, currentPageName }) {
               {navItems.find(n => n.page === currentPageName)?.name || currentPageName}
             </span>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDeleteAccount(true)}
+              className="gap-2 text-muted-foreground hover:text-destructive select-none hidden sm:flex"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden md:inline">Eliminar cuenta</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -516,13 +541,38 @@ export default function Layout({ children, currentPageName }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 overflow-y-auto bg-background"
+            className="flex-1 overflow-y-auto bg-background pb-16 lg:pb-0"
             style={{ overscrollBehaviorY: 'none' }}
           >
             {children}
           </motion.main>
         </AnimatePresence>
       </div>
+
+      {/* Mobile Bottom Tab Bar */}
+      <MobileBottomBar currentPageName={currentPageName} isAdmin={isEffectiveAdmin} />
+
+      {/* Delete Account Dialog */}
+      <AlertDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es irreversible. Se eliminará tu cuenta y perderás acceso a la aplicación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAccount}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
+            >
+              {deletingAccount ? <><Loader2 className="w-4 h-4 animate-spin" /> Eliminando...</> : "Sí, eliminar mi cuenta"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </UserContext.Provider>
     </SimulacroContext.Provider>

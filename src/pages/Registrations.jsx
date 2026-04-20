@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import PullToRefresh from "../components/PullToRefresh";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +43,11 @@ export default function Registrations() {
   const [simulatedSchool, setSimulatedSchool] = useState(null);
 
   const queryClient = useQueryClient();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["registrations"] });
+    await queryClient.invalidateQueries({ queryKey: ["groups"] });
+  }, [queryClient]);
 
   const { data: competitions = [] } = useQuery({
     queryKey: ["competitions"],
@@ -125,12 +131,14 @@ export default function Registrations() {
   // School users → SchoolView
   if (user.role !== "admin") {
     return (
-      <SchoolView
-        user={user}
-        competitions={competitions}
-        allGroups={groups}
-        registrations={registrations}
-      />
+      <PullToRefresh onRefresh={handleRefresh}>
+        <SchoolView
+          user={user}
+          competitions={competitions}
+          allGroups={groups}
+          registrations={registrations}
+        />
+      </PullToRefresh>
     );
   }
 
@@ -152,6 +160,7 @@ export default function Registrations() {
 
   // Admin view
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
@@ -284,5 +293,6 @@ export default function Registrations() {
         onSelect={(school) => { setSimulatedSchool(school); setShowSchoolSimulator(false); }}
       />
     </div>
+    </PullToRefresh>
   );
 }

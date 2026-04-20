@@ -74,7 +74,18 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Registration.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["registrations"] }),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["registrations"] });
+      const prev = queryClient.getQueriesData({ queryKey: ["registrations"] });
+      queryClient.setQueriesData({ queryKey: ["registrations"] }, (old) =>
+        Array.isArray(old) ? old.map(r => r.id === id ? { ...r, ...data } : r) : old
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) ctx.prev.forEach(([key, val]) => queryClient.setQueryData(key, val));
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["registrations"] }),
   });
 
   const deleteMutation = useMutation({

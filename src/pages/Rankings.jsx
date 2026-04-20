@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import LigaRankingView from "../components/rankings/LigaRankingView";
 import JornadaResultados from "../components/rankings/JornadaResultados";
@@ -8,6 +8,7 @@ import GestionDuplicados from "../components/rankings/GestionDuplicados";
 import { useSimulacro } from "../components/SimulacroContext";
 import { useUser } from "../components/UserContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PullToRefresh from "../components/PullToRefresh";
 
 const JORNADAS_INFO = [
   { numero: 1, nombre: "Marín", fecha: "1-mar" },
@@ -21,6 +22,12 @@ export default function Rankings() {
   const { isSimulacro } = useSimulacro();
   const user = useUser();
   const isAdmin = user?.role === "admin" || user?._realRole === "admin";
+  const queryClient = useQueryClient();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["ligaResultados"] });
+    await queryClient.invalidateQueries({ queryKey: ["grupoAliases"] });
+  }, [queryClient]);
 
   const { data: resultados = [], isLoading } = useQuery({
     queryKey: ["ligaResultados", isSimulacro],
@@ -43,6 +50,7 @@ export default function Rankings() {
   const jornadasConDatos = [...new Set(resultados.map(r => r.numero_jornada))].sort((a, b) => a - b);
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {isSimulacro && (
         <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded-lg text-sm">
@@ -101,5 +109,6 @@ export default function Rankings() {
         })}
       </Tabs>
     </div>
+    </PullToRefresh>
   );
 }
