@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Trophy } from "lucide-react";
 import { useSimulacro } from "@/components/SimulacroContext";
+import { buildAliasMap, normalizeName, canonicalClub } from "@/lib/normalizacion";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -10,49 +11,46 @@ const CATEGORY_ORDER = [
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
 
-const CATEGORY_LABEL = { "Megacrew": "Mega Crew" };
-function catLabel(c) { return CATEGORY_LABEL[c] || c; }
+const TOTAL_JORNADAS_CIRCUITO = 5;
+const BEST_N = 3;
+const PUNTOS_POR_PUESTO = { 1: 100, 2: 90, 3: 80, 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 };
 
-function nd(str = "") {
-  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+function applyAlias(r, aliasMap) {
+  const key = `${normalizeName(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
+  if (aliasMap.has(key)) {
+    const alias = aliasMap.get(key);
+    return { nombre: alias.canonical_nombre, school: alias.canonical_school };
+  }
+  return { nombre: r.grupo_nombre, school: canonicalClub(r.school_name || "") };
 }
 
-function calcularRanking(resultados, categoria) {
+function calcularRankingLiga(resultados, categoria, aliasMap) {
   const grupos = new Map();
+
   resultados
     .filter(r => r.categoria === categoria)
     .forEach(r => {
-      const key = nd(r.grupo_nombre);
-      if (!grupos.has(key)) grupos.set(key, { nombre: r.grupo_nombre, school: r.school_name || "", puestos: {} });
-      grupos.get(key).puestos[r.numero_jornada] = r.puesto;
+      const resolved = applyAlias(r, aliasMap);
+      const key = `${normalizeName(resolved.nombre)}|${normalizeName(resolved.school)}`;
+      if (!grupos.has(key)) {
+        grupos.set(key, { nombre: resolved.nombre, school: resolved.school, jornadas: {} });
+      }
+      const g = grupos.get(key);
+      const pts = r.puntos_liga != null ? r.puntos_liga : (PUNTOS_POR_PUESTO[r.puesto] || 0);
+      g.jornadas[r.numero_jornada] = pts;
     });
 
-  // Accumulated puntuacion per group (tiebreaker)
-  const puntMap = new Map();
-  resultados
-    .filter(r => r.categoria === categoria && r.puntuacion > 0)
-    .forEach(r => {
-      const key = nd(r.grupo_nombre);
-      puntMap.set(key, (puntMap.get(key) || 0) + r.puntuacion);
-    });
-
-  const items = [...grupos.values()];
-  const allVals = items.flatMap(g => Object.values(g.puestos));
-  const maxPos = allVals.length > 0 ? Math.max(...allVals) : 10;
-
-  items.sort((a, b) => {
-    for (let pos = 1; pos <= maxPos; pos++) {
-      const ac = Object.values(a.puestos).filter(p => p === pos).length;
-      const bc = Object.values(b.puestos).filter(p => p === pos).length;
-      if (bc !== ac) return bc - ac;
-    }
-    const pa = puntMap.get(nd(a.nombre)) || 0;
-    const pb = puntMap.get(nd(b.nombre)) || 0;
-    if (pb !== pa) return pb - pa;
-    return a.nombre.localeCompare(b.nombre);
+  const items = [...grupos.values()].map(g => {
+    const jornadasParticipadas = Object.keys(g.jornadas).length;
+    const allPts = Object.values(g.jornadas).sort((a, b) => b - a);
+    const best3 = allPts.slice(0, BEST_N).reduce((s, p) => s + p, 0);
+    const hasBonus = jornadasParticipadas >= TOTAL_JORNADAS_CIRCUITO;
+    const total = hasBonus ? Math.round(best3 * 1.1) : best3;
+    return { ...g, total, hasBonus };
   });
 
-  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
+  items.sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre));
+  return items;
 }
 
 const medalEmoji = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -64,11 +62,19 @@ const medalColor = {
 
 export default function RankingSummary() {
   const { isSimulacro } = useSimulacro();
+
   const { data: resultados = [] } = useQuery({
     queryKey: ["liga_resultados_home", isSimulacro],
     queryFn: () => base44.entities.LigaResultado.list(),
     select: (data) => data.filter(r => isSimulacro ? r.is_simulacro : !r.is_simulacro),
   });
+
+  const { data: grupoAliases = [] } = useQuery({
+    queryKey: ["grupoAliases"],
+    queryFn: () => base44.entities.GrupoAlias.filter({ estado: "unificado" }),
+  });
+
+  const aliasMap = buildAliasMap(grupoAliases);
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
@@ -84,19 +90,18 @@ export default function RankingSummary() {
   return (
     <div className="space-y-5">
       {allCategories.map(cat => {
-        const top3 = calcularRanking(resultados, cat).slice(0, 3);
+        const top3 = calcularRankingLiga(resultados, cat, aliasMap).slice(0, 3);
         if (top3.length === 0) return null;
         return (
           <div key={cat}>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-              {catLabel(cat)}
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{cat}</p>
             <div className="grid gap-1">
               {top3.map((g, i) => (
                 <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${medalColor[i + 1] || "bg-muted/30"}`}>
                   <span className="text-base">{medalEmoji[i + 1]}</span>
                   <span className="font-medium text-sm flex-1 truncate">{g.nombre}</span>
                   <span className="text-xs text-muted-foreground truncate hidden sm:block">{g.school}</span>
+                  <span className="text-xs font-bold text-primary ml-1">{g.total} pts</span>
                 </div>
               ))}
             </div>

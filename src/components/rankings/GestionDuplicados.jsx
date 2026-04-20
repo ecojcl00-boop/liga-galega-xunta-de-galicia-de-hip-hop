@@ -26,26 +26,35 @@ function suggestCanonical(nameA, nameB) {
 }
 
 function PairCard({ par, aliases, onUnificar, onIgnorar, onPosponer }) {
-  const [canonName, setCanonName] = useState(() => suggestCanonical(par.a.grupo_nombre, par.b.grupo_nombre));
-  const [canonSchool, setCanonSchool] = useState(() => suggestCanonical(
-    canonicalClub(par.a.school_name), canonicalClub(par.b.school_name)
-  ));
-
   const keyA = `${normalizeName(par.a.grupo_nombre)}|${normalizeName(par.a.school_name)}`;
   const keyB = `${normalizeName(par.b.grupo_nombre)}|${normalizeName(par.b.school_name)}`;
   const pk = pairKey(keyA, keyB);
   const existing = aliases.find(a => a.par_key === pk);
 
+  // Inicializar con el canónico guardado si existe, si no sugerir
+  const existingCanonical = existing?.estado === "unificado" ? existing : null;
+  const [canonName, setCanonName] = useState(() =>
+    existingCanonical ? existingCanonical.canonical_nombre : suggestCanonical(par.a.grupo_nombre, par.b.grupo_nombre)
+  );
+  const [canonSchool, setCanonSchool] = useState(() =>
+    existingCanonical ? existingCanonical.canonical_school : suggestCanonical(canonicalClub(par.a.school_name), canonicalClub(par.b.school_name))
+  );
+  const [editing, setEditing] = useState(false);
+
+  const isUnificado = existing?.estado === "unificado";
+  const isIgnorado = existing?.estado === "ignorado";
+  const showFields = !isIgnorado && (!isUnificado || editing);
+
   const estadoBadge = existing ? (
-    existing.estado === "unificado"
+    isUnificado
       ? <Badge className="bg-green-100 text-green-700 border-green-200">✓ Unificado</Badge>
-      : existing.estado === "ignorado"
+      : isIgnorado
         ? <Badge variant="outline" className="text-muted-foreground">✗ Ignorado</Badge>
         : <Badge variant="outline">⏸ Pendiente</Badge>
   ) : null;
 
   return (
-    <Card className={`border-l-4 ${existing?.estado === "unificado" ? "border-l-green-400 opacity-70" : existing?.estado === "ignorado" ? "border-l-gray-300 opacity-60" : "border-l-orange-400"}`}>
+    <Card className={`border-l-4 ${isUnificado ? "border-l-green-400 opacity-80" : isIgnorado ? "border-l-gray-300 opacity-60" : "border-l-orange-400"}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
@@ -70,7 +79,20 @@ function PairCard({ par, aliases, onUnificar, onIgnorar, onPosponer }) {
           </div>
         </div>
 
-        {(!existing || existing.estado !== "ignorado") && (
+        {/* Si ya unificado y no editando: mostrar resumen del canónico */}
+        {isUnificado && !editing && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-green-700 font-medium">Nombre canónico:</p>
+              <p className="text-sm font-semibold truncate">{canonName} <span className="text-xs font-normal text-muted-foreground">— {canonSchool}</span></p>
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 shrink-0" onClick={() => setEditing(true)}>
+              ✏️ Editar
+            </Button>
+          </div>
+        )}
+
+        {showFields && (
           <div className="space-y-2 pt-1">
             <p className="text-xs text-muted-foreground font-medium">Nombre canónico (editable):</p>
             <Input
@@ -89,15 +111,24 @@ function PairCard({ par, aliases, onUnificar, onIgnorar, onPosponer }) {
         )}
 
         <div className="flex gap-2 flex-wrap">
-          <Button size="sm" className="gap-1.5 h-8" onClick={() => onUnificar(par, canonName, canonSchool)}>
-            <Check className="w-3.5 h-3.5" /> Unificar
+          <Button size="sm" className="gap-1.5 h-8" onClick={() => { onUnificar(par, canonName, canonSchool); setEditing(false); }}>
+            <Check className="w-3.5 h-3.5" /> {isUnificado ? "Guardar cambios" : "Unificar"}
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => onIgnorar(par)}>
-            <X className="w-3.5 h-3.5" /> Son diferentes
-          </Button>
-          <Button size="sm" variant="ghost" className="gap-1.5 h-8 text-muted-foreground" onClick={() => onPosponer(par)}>
-            <Clock className="w-3.5 h-3.5" /> Posponer
-          </Button>
+          {!isIgnorado && (
+            <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => { onIgnorar(par); setEditing(false); }}>
+              <X className="w-3.5 h-3.5" /> Son diferentes
+            </Button>
+          )}
+          {!isUnificado && (
+            <Button size="sm" variant="ghost" className="gap-1.5 h-8 text-muted-foreground" onClick={() => onPosponer(par)}>
+              <Clock className="w-3.5 h-3.5" /> Posponer
+            </Button>
+          )}
+          {(isIgnorado || isUnificado) && (
+            <Button size="sm" variant="ghost" className="gap-1.5 h-8 text-muted-foreground" onClick={() => { onPosponer(par); setEditing(false); }}>
+              <Clock className="w-3.5 h-3.5" /> Resetear
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -189,6 +220,7 @@ export default function GestionDuplicados() {
     });
     qc.invalidateQueries({ queryKey: ["grupoAliases"] });
     qc.invalidateQueries({ queryKey: ["ligaResultados"] });
+    qc.invalidateQueries({ queryKey: ["liga_resultados_home"] });
   }
 
   const pendientesCount = duplicados.filter(par => {
