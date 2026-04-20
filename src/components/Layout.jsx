@@ -488,7 +488,7 @@ export default function Layout({ children, currentPageName }) {
               variant="ghost"
               size="sm"
               onClick={() => setShowDeleteAccount(true)}
-              className="gap-2 text-muted-foreground hover:text-destructive select-none hidden sm:flex"
+              className="gap-2 text-muted-foreground hover:text-destructive select-none flex"
             >
               <Trash2 className="w-4 h-4" />
               <span className="hidden md:inline">Eliminar cuenta</span>

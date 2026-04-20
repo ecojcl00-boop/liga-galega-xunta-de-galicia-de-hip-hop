@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { LayoutDashboard, Trophy, ClipboardList, Home } from "lucide-react";
 
@@ -18,7 +18,19 @@ const SCHOOL_TABS = [
 
 export default function MobileBottomBar({ currentPageName, isAdmin }) {
   const tabs = isAdmin ? ADMIN_TABS : SCHOOL_TABS;
+  const navigate = useNavigate();
   const location = useLocation();
+
+  const handleTabPress = (tab) => {
+    const tabUrl = createPageUrl(tab.page);
+    const isActive = currentPageName === tab.page;
+    if (isActive) {
+      // Already on this tab — reset to root by replacing current history entry
+      navigate(tabUrl, { replace: true });
+    } else {
+      navigate(tabUrl);
+    }
+  };
 
   return (
     <nav
@@ -27,21 +39,16 @@ export default function MobileBottomBar({ currentPageName, isAdmin }) {
     >
       {tabs.map((tab) => {
         const isActive = currentPageName === tab.page;
-        const tabUrl = createPageUrl(tab.page);
         return (
-          <Link
+          <button
             key={tab.page}
-            to={tabUrl}
-            // replace=true prevents duplicate history entries when tapping the same tab
-            // state is preserved so each tab keeps its own scroll/filter state
-            replace={isActive}
-            state={{ preserveState: true }}
+            onClick={() => handleTabPress(tab)}
             className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 gap-0.5 text-[10px] font-medium transition-colors select-none
               ${isActive ? "text-primary" : "text-muted-foreground"}`}
           >
             <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
             <span>{tab.name}</span>
-          </Link>
+          </button>
         );
       })}
     </nav>

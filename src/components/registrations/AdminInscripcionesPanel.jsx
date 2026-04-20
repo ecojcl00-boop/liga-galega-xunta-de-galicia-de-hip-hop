@@ -4,7 +4,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/MobileSelect";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ChevronDown, ChevronRight, Download, Trash2, Users, FileText, Music, Search, Trophy, Loader2 } from "lucide-react";
 import { downloadFile } from "@/components/utils/downloadFile";
@@ -214,36 +214,24 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar grupo o escuela..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <Select value={filterComp} onValueChange={setFilterComp}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Competición" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las competiciones</SelectItem>
-            {allCompNames.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterSchool} onValueChange={setFilterSchool}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Escuela" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las escuelas</SelectItem>
-            {allSchools.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Categoría" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
-            {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Estado" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
-              <SelectItem key={v} value={v}>{icon} {label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={filterComp} onValueChange={setFilterComp} placeholder="Competición" triggerClassName="w-44" title="Competición">
+          <MobileSelectItem value="all">Todas las competiciones</MobileSelectItem>
+          {allCompNames.map(c => <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={filterSchool} onValueChange={setFilterSchool} placeholder="Escuela" triggerClassName="w-44" title="Escuela">
+          <MobileSelectItem value="all">Todas las escuelas</MobileSelectItem>
+          {allSchools.map(s => <MobileSelectItem key={s} value={s}>{s}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={filterCat} onValueChange={setFilterCat} placeholder="Categoría" triggerClassName="w-40" title="Categoría">
+          <MobileSelectItem value="all">Todas las categorías</MobileSelectItem>
+          {allCategories.map(c => <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={filterStatus} onValueChange={setFilterStatus} placeholder="Estado" triggerClassName="w-36" title="Estado">
+          <MobileSelectItem value="all">Todos los estados</MobileSelectItem>
+          {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
+            <MobileSelectItem key={v} value={v}>{icon} {label}</MobileSelectItem>
+          ))}
+        </MobileSelect>
       </div>
 
       {/* CSV Download */}
@@ -331,16 +319,11 @@ export default function AdminInscripcionesPanel({ registrations, competitions, g
                                       </span>
                                     )}
                                     {/* Inline status */}
-                                    <Select value={reg.status || "pending"} onValueChange={(v) => handleStatusChange(reg, v)}>
-                                      <SelectTrigger className="w-32 h-7 text-xs shrink-0">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
-                                          <SelectItem key={v} value={v} className="text-xs">{icon} {label}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <MobileSelect value={reg.status || "pending"} onValueChange={(v) => handleStatusChange(reg, v)} triggerClassName="w-32 h-7 text-xs shrink-0" title="Estado">
+                                      {Object.entries(STATUS_CONFIG).map(([v, { label, icon }]) => (
+                                        <MobileSelectItem key={v} value={v}>{icon} {label}</MobileSelectItem>
+                                      ))}
+                                    </MobileSelect>
                                     <Button
                                       variant="ghost" size="icon"
                                       className="h-7 w-7 text-destructive hover:text-destructive shrink-0"

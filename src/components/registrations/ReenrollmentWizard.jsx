@@ -4,9 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/MobileSelect";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -270,12 +268,9 @@ function NewGroupForm({ onCreated, onCancel, mySchoolName, coachName, coachEmail
           onChange={e => setName(e.target.value)}
           autoFocus
         />
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger><SelectValue placeholder="Categoría *" /></SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={category} onValueChange={setCategory} placeholder="Categoría *" title="Categoría">
+          {CATEGORIES.map(cat => <MobileSelectItem key={cat} value={cat}>{cat}</MobileSelectItem>)}
+        </MobileSelect>
         <p className="text-xs text-muted-foreground">
           Entrenador: <strong>{coachName || "—"}</strong> · Escuela: <strong>{mySchoolName}</strong>
         </p>

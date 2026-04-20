@@ -104,6 +104,33 @@
   }
 }
 
+/* ── Mobile keyboard avoidance: scroll focused inputs into view ── */
+@supports (height: 100dvh) {
+  .dialog-scrollable,
+  [data-radix-dialog-content],
+  [role="dialog"] {
+    max-height: 100dvh;
+  }
+}
+
+/* Ensure dialog/sheet content scrolls so keyboard doesn't cover inputs */
+[role="dialog"] > div,
+[data-radix-dialog-content] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Give forms breathing room above mobile keyboard */
+@media (max-width: 1024px) {
+  form, .form-body {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+  /* When an input is focused, help scroll containers see it */
+  input:focus, textarea:focus {
+    scroll-margin-bottom: 80px;
+  }
+}
+
 /* ── user-select: none for non-content UI elements ── */
 nav, header, footer,
 button, [role="button"],

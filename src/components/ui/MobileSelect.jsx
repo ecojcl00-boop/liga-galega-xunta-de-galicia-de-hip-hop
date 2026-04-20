@@ -1,18 +1,18 @@
 /**
- * MobileSelect — renders a native bottom-sheet drawer on mobile,
- * falls back to the standard shadcn Select on desktop.
+ * MobileSelect — renders a native bottom-sheet drawer on mobile (<1024px),
+ * falls back to a styled dropdown on desktop.
  *
  * Drop-in replacement API:
  *   <MobileSelect value={v} onValueChange={fn} placeholder="Pick one">
  *     <MobileSelectItem value="a">Option A</MobileSelectItem>
  *   </MobileSelect>
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronDown, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 1024);
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 1024);
   useEffect(() => {
     const handler = () => setMobile(window.innerWidth < 1024);
     window.addEventListener("resize", handler);
@@ -54,27 +54,53 @@ export function MobileSelect({
     setOpen(false);
   };
 
-  // ── Desktop: standard select ─────────────────────────────────
+  // ── Desktop: inline dropdown ─────────────────────────────────
   if (!isMobile) {
     return (
-      <select
-        value={value ?? ""}
-        disabled={disabled}
-        onChange={(e) => onValueChange?.(e.target.value)}
-        className={cn(
-          "flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
-          "focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-          triggerClassName,
-          className
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setOpen((o) => !o)}
+          className={cn(
+            "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
+            "focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 select-none",
+            triggerClassName,
+            className
+          )}
+        >
+          <span className={selectedLabel ? "text-foreground" : "text-muted-foreground"}>
+            {selectedLabel ?? placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+        </button>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <ul className="absolute z-50 mt-1 max-h-60 min-w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+              {items.map((item) => (
+                <li key={item.value}>
+                  <button
+                    type="button"
+                    disabled={item.disabled}
+                    onClick={() => { onValueChange?.(item.value); setOpen(false); }}
+                    className={cn(
+                      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none",
+                      "hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50",
+                      item.value === value && "bg-accent text-accent-foreground font-medium"
+                    )}
+                  >
+                    {item.label}
+                    {item.value === value && (
+                      <span className="absolute right-2"><Check className="h-4 w-4" /></span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
-      >
-        {!value && <option value="">{placeholder}</option>}
-        {items.map((item) => (
-          <option key={item.value} value={item.value} disabled={item.disabled}>
-            {item.label}
-          </option>
-        ))}
-      </select>
+      </div>
     );
   }
 

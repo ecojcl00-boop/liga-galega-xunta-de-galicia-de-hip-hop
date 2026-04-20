@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PullToRefresh from "../components/PullToRefresh";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/MobileSelect";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -222,18 +222,14 @@ export default function Registrations() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Competición (con inscripción abierta)</Label>
-              <Select value={selectedCompetition?.id || ""} onValueChange={(id) => setSelectedCompetition(openCompetitions.find(c => c.id === id))}>
-                <SelectTrigger><SelectValue placeholder="Selecciona una competición" /></SelectTrigger>
-                <SelectContent>
-                  {openCompetitions.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground text-center">No hay competiciones con inscripción abierta</div>
-                  ) : (
-                    openCompetitions.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <MobileSelect value={selectedCompetition?.id || ""} onValueChange={(id) => setSelectedCompetition(openCompetitions.find(c => c.id === id))} placeholder="Selecciona una competición" title="Competición">
+                {openCompetitions.map(c => (
+                  <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>
+                ))}
+              </MobileSelect>
+              {openCompetitions.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">No hay competiciones con inscripción abierta</p>
+              )}
             </div>
 
             {selectedCompetition && (

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect, MobileSelectItem } from "@/components/ui/MobileSelect";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X, Check } from "lucide-react";
@@ -121,27 +121,21 @@ export default function CreateGroupDialog({ open, onOpenChange, schools, onSucce
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoría *</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger id="category"><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
-                    <SelectContent>
-                      {ALL_CATEGORIES.map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Categoría *</Label>
+                  <MobileSelect value={selectedCategory} onValueChange={setSelectedCategory} placeholder="Selecciona categoría" title="Categoría">
+                    {ALL_CATEGORIES.map(c => (
+                      <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="school">Escuela *</Label>
-                  <Select value={selectedSchoolName} onValueChange={setSelectedSchoolName}>
-                    <SelectTrigger id="school"><SelectValue placeholder="Selecciona escuela" /></SelectTrigger>
-                    <SelectContent>
-                      {schools.map(s => (
-                        <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Escuela *</Label>
+                  <MobileSelect value={selectedSchoolName} onValueChange={setSelectedSchoolName} placeholder="Selecciona escuela" title="Escuela">
+                    {schools.map(s => (
+                      <MobileSelectItem key={s.name} value={s.name}>{s.name}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
                 </div>
               </div>
             </CardContent>
