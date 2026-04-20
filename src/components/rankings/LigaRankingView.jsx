@@ -21,7 +21,13 @@ function puntosParaPuesto(puesto) {
 }
 
 function nd(str = "") {
-  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+  return String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quitar tildes/acentos
+    .replace(/['''´`]/g, "")         // quitar apóstrofos y comillas simples
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function calcularRankingLiga(resultados, categoria, jornadasDisputadas) {
