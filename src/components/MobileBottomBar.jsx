@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { LayoutDashboard, Trophy, ClipboardList, Home } from "lucide-react";
 
@@ -18,6 +18,7 @@ const SCHOOL_TABS = [
 
 export default function MobileBottomBar({ currentPageName, isAdmin }) {
   const tabs = isAdmin ? ADMIN_TABS : SCHOOL_TABS;
+  const location = useLocation();
 
   return (
     <nav
@@ -26,10 +27,15 @@ export default function MobileBottomBar({ currentPageName, isAdmin }) {
     >
       {tabs.map((tab) => {
         const isActive = currentPageName === tab.page;
+        const tabUrl = createPageUrl(tab.page);
         return (
           <Link
             key={tab.page}
-            to={createPageUrl(tab.page)}
+            to={tabUrl}
+            // replace=true prevents duplicate history entries when tapping the same tab
+            // state is preserved so each tab keeps its own scroll/filter state
+            replace={isActive}
+            state={{ preserveState: true }}
             className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 gap-0.5 text-[10px] font-medium transition-colors select-none
               ${isActive ? "text-primary" : "text-muted-foreground"}`}
           >

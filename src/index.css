@@ -104,6 +104,24 @@
   }
 }
 
+/* ── user-select: none for non-content UI elements ── */
+nav, header, footer,
+button, [role="button"],
+[role="tab"], [role="tablist"],
+[role="menuitem"], [role="menu"],
+label, .select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Allow selection on content areas */
+p, span, h1, h2, h3, h4, h5, h6,
+td, th, li, blockquote, pre, code,
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* ── Texto visible en fondos oscuros ── */
 [class*="bg-gray-9"] *, [class*="bg-gray-8"] *,
 [class*="bg-black"] *, [class*="bg-zinc-9"] *,

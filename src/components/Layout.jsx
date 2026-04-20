@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronLeft,
   Home,
   Lock,
   UserCog,
@@ -50,6 +51,9 @@ const navItems = [
 // Only Landing is public
 const OWNER_EMAIL = "ecojcl00@gmail.com";
 const PUBLIC_PAGES = ["Landing"];
+
+// Root tabs in the bottom bar — these are "top-level" pages, no back button
+const ROOT_TAB_PAGES = ["Dashboard", "Rankings", "Registrations", "PortalEscuela"];
 
 // Pages that non-admin users (and simulated schools) can also access
 const SCHOOL_ALLOWED_PAGES = ["Dashboard", "PortalEscuela", "Registrations", "Groups", "Rankings", "JudgePanel", "Competitions"];
@@ -438,21 +442,43 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 flex items-center gap-4 px-4 lg:px-6 border-b bg-card">
+        <header className="h-16 flex items-center gap-4 px-4 lg:px-6 border-b bg-card select-none">
+          {/* Desktop: hamburger to open sidebar */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden select-none"
+            className="hidden lg:hidden lg:flex select-none"
           >
             <Menu className="w-5 h-5" />
           </Button>
+
+          {/* Mobile: back button on child pages, hamburger on root pages */}
+          {ROOT_TAB_PAGES.includes(currentPageName) ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden select-none"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="lg:hidden select-none"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+          )}
           
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to={createPageUrl("Dashboard")} className="hover:text-foreground transition-colors">
+            <Link to={createPageUrl("Dashboard")} className="hover:text-foreground transition-colors hidden lg:block">
               <Home className="w-4 h-4" />
             </Link>
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3 h-3 hidden lg:block" />
             <span className="font-medium text-foreground">
               {navItems.find(n => n.page === currentPageName)?.name || currentPageName}
             </span>
