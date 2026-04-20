@@ -1,8 +1,12 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Trophy } from "lucide-react";
+import { buildAliasMap, normalizeName } from "@/lib/normalizacion";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -17,9 +21,35 @@ function PosCell({ pos }) {
   return <span className="text-foreground">{pos}º</span>;
 }
 
-function CategoryResults({ categoria, resultados }) {
+function AliasIcon({ original, canonical }) {
+  if (!original || original === canonical) return null;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded text-xs bg-primary/15 text-primary cursor-help ml-1 font-bold select-none">≡</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">Guardado como: <span className="font-semibold">"{original}"</span></p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function CategoryResults({ categoria, resultados, aliasMap }) {
   const items = resultados
     .filter(r => r.categoria === categoria)
+    .map(r => {
+      const key = `${normalizeName(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
+      const alias = aliasMap.has(key) ? aliasMap.get(key) : null;
+      return {
+        ...r,
+        display_nombre: alias ? alias.canonical_nombre : r.grupo_nombre,
+        display_school: alias ? alias.canonical_school : r.school_name,
+        is_aliased: alias && alias.nombre_original !== alias.canonical_nombre,
+      };
+    })
     .sort((a, b) => a.puesto - b.puesto);
 
   if (items.length === 0) return null;
@@ -47,8 +77,11 @@ function CategoryResults({ categoria, resultados }) {
               {items.map((r, i) => (
                 <tr key={i} className={`border-t ${i === 0 ? "bg-yellow-500/5" : i === 1 ? "bg-gray-400/5" : i === 2 ? "bg-amber-600/5" : ""}`}>
                   <td className="py-2 px-3"><PosCell pos={r.puesto} /></td>
-                  <td className="py-2 px-3 font-medium">{r.grupo_nombre}</td>
-                  <td className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">{r.school_name || "—"}</td>
+                  <td className="py-2 px-3 font-medium">
+                    {r.display_nombre}
+                    {r.is_aliased && <AliasIcon original={r.grupo_nombre} canonical={r.display_nombre} />}
+                  </td>
+                  <td className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">{r.display_school || "—"}</td>
                   <td className="py-2 px-3 text-center tabular-nums text-xs text-muted-foreground">
                     {r.puntuacion > 0 ? r.puntuacion.toFixed(3) : "—"}
                   </td>
@@ -64,6 +97,12 @@ function CategoryResults({ categoria, resultados }) {
 
 export default function JornadaResultados({ resultados, competicion }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const { data: grupoAliases = [] } = useQuery({
+    queryKey: ["grupoAliases"],
+    queryFn: () => base44.entities.GrupoAlias.filter({ estado: "unificado" }),
+  });
+  const aliasMap = buildAliasMap(grupoAliases);
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
@@ -85,10 +124,8 @@ export default function JornadaResultados({ resultados, competicion }) {
 
   return (
     <div className="space-y-4">
-      {competicion && (
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          {competicion.date && <span>📅 {competicion.date}</span>}
-        </div>
+      {competicion && competicion.date && (
+        <div className="text-sm text-muted-foreground">📅 {competicion.date}</div>
       )}
 
       <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -103,7 +140,7 @@ export default function JornadaResultados({ resultados, competicion }) {
 
       <div className="space-y-4">
         {displayCategories.map(cat => (
-          <CategoryResults key={cat} categoria={cat} resultados={resultados} />
+          <CategoryResults key={cat} categoria={cat} resultados={resultados} aliasMap={aliasMap} />
         ))}
       </div>
     </div>

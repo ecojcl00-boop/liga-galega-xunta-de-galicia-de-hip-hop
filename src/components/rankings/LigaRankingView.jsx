@@ -1,12 +1,16 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
+import { buildAliasMap, normalizeName, canonicalClub } from "@/lib/normalizacion";
 
 const TOTAL_JORNADAS_CIRCUITO = 5;
-const BEST_N = 3; // cuenta las 3 mejores
+const BEST_N = 3;
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -20,32 +24,63 @@ function puntosParaPuesto(puesto) {
   return PUNTOS_POR_PUESTO[puesto] || 0;
 }
 
-function nd(str = "") {
-  return String(str)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // quitar tildes/acentos
-    .replace(/['''´`]/g, "")         // quitar apóstrofos y comillas simples
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ");
+/** Clave de normalización de un resultado para buscar en aliasMap */
+function resultKey(r) {
+  return `${normalizeName(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
 }
 
-function calcularRankingLiga(resultados, categoria, jornadasDisputadas) {
+/** Aplica alias a un resultado: devuelve nombre y club canónicos */
+function applyAlias(r, aliasMap) {
+  const key = resultKey(r);
+  if (aliasMap.has(key)) {
+    const alias = aliasMap.get(key);
+    return {
+      nombre: alias.canonical_nombre,
+      school: alias.canonical_school,
+      aliased: alias.nombre_original !== alias.canonical_nombre || alias.school_original !== alias.canonical_school,
+      originalNombre: alias.nombre_original,
+      originalSchool: alias.school_original,
+    };
+  }
+  // Normalización básica de clubs (aliases conocidos)
+  return {
+    nombre: r.grupo_nombre,
+    school: canonicalClub(r.school_name || ""),
+    aliased: false,
+  };
+}
+
+/** Agrupa key de comparación: usa nombre+club normalizados después de aplicar alias */
+function groupKey(nombre, school) {
+  return `${normalizeName(nombre)}|${normalizeName(school)}`;
+}
+
+function calcularRankingLiga(resultados, categoria, aliasMap) {
   const grupos = new Map();
 
   resultados
     .filter(r => r.categoria === categoria)
     .forEach(r => {
-      const key = nd(r.grupo_nombre);
+      const resolved = applyAlias(r, aliasMap);
+      const key = groupKey(resolved.nombre, resolved.school);
+
       if (!grupos.has(key)) {
         grupos.set(key, {
-          nombre: r.grupo_nombre,
-          school: r.school_name || "",
-          jornadas: {}, // jornada -> puntos_liga
+          nombre: resolved.nombre,
+          school: resolved.school,
+          jornadas: {},
+          aliases: [], // nombres como aparecieron en cada jornada
         });
       }
+      const g = grupos.get(key);
       const pts = r.puntos_liga != null ? r.puntos_liga : puntosParaPuesto(r.puesto);
-      grupos.get(key).jornadas[r.numero_jornada] = pts;
+      g.jornadas[r.numero_jornada] = pts;
+
+      // Registrar variante si es diferente al canónico
+      if (resolved.aliased) {
+        const entry = `J${r.numero_jornada}: "${r.grupo_nombre}" (${r.school_name})`;
+        if (!g.aliases.includes(entry)) g.aliases.push(entry);
+      }
     });
 
   const items = [...grupos.values()].map(g => {
@@ -54,13 +89,28 @@ function calcularRankingLiga(resultados, categoria, jornadasDisputadas) {
     const best3 = allPts.slice(0, BEST_N).reduce((s, p) => s + p, 0);
     const hasBonus = jornadasParticipadas >= TOTAL_JORNADAS_CIRCUITO;
     const total = hasBonus ? Math.round(best3 * 1.1) : best3;
-
     return { ...g, jornadasParticipadas, best3, total, hasBonus };
   });
 
   items.sort((a, b) => b.total - a.total || b.best3 - a.best3 || a.nombre.localeCompare(b.nombre));
-
   return items.map((g, i) => ({ ...g, posicion: i + 1 }));
+}
+
+function AliasIcon({ aliases }) {
+  if (!aliases || aliases.length === 0) return null;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded text-xs bg-primary/15 text-primary cursor-help ml-1 font-bold select-none">≡</span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p className="text-xs font-semibold mb-1">Aparece también como:</p>
+          {aliases.map((a, i) => <p key={i} className="text-xs text-muted-foreground">{a}</p>)}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function PodiumCard({ group, rank, jornadas }) {
@@ -74,7 +124,10 @@ function PodiumCard({ group, rank, jornadas }) {
     <div className={`flex-1 ${rank === 2 ? "mt-8" : rank === 3 ? "mt-12" : ""}`}>
       <div className={`border-2 rounded-xl p-3 text-center ${cfg.bg} flex flex-col items-center gap-1.5`}>
         <span className="text-2xl">{cfg.icon}</span>
-        <p className={`font-bold text-sm leading-tight line-clamp-2 ${rank === 1 ? "text-base" : ""}`}>{group.nombre}</p>
+        <p className={`font-bold text-sm leading-tight line-clamp-2 ${rank === 1 ? "text-base" : ""}`}>
+          {group.nombre}
+          {group.aliases?.length > 0 && <AliasIcon aliases={group.aliases} />}
+        </p>
         <p className="text-xs text-muted-foreground truncate w-full">{group.school}</p>
         <p className="text-lg font-bold text-primary">
           {group.total} pts
@@ -83,7 +136,9 @@ function PodiumCard({ group, rank, jornadas }) {
         <div className="flex flex-wrap gap-1 justify-center">
           {jornadas.map(j => (
             <span key={j} className="text-xs bg-background/70 rounded px-1.5 py-0.5 border">
-              J{j}: {group.jornadas[j] != null ? <span className="font-medium">{group.jornadas[j]}</span> : <span className="text-muted-foreground/40">—</span>}
+              J{j}: {group.jornadas[j] != null
+                ? <span className="font-medium">{group.jornadas[j]}</span>
+                : <span className="text-muted-foreground/40">—</span>}
             </span>
           ))}
         </div>
@@ -92,9 +147,9 @@ function PodiumCard({ group, rank, jornadas }) {
   );
 }
 
-function CategoryRanking({ categoria, resultados, jornadas }) {
+function CategoryRanking({ categoria, resultados, jornadas, aliasMap }) {
   const [expanded, setExpanded] = useState(false);
-  const ranking = calcularRankingLiga(resultados, categoria, jornadas.length);
+  const ranking = calcularRankingLiga(resultados, categoria, aliasMap);
   if (ranking.length === 0) return null;
   const top3 = ranking.slice(0, 3);
 
@@ -110,7 +165,6 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-4">
-        {/* Podium */}
         <div className="flex gap-3 items-end px-2 pb-2">
           {top3[1] ? <PodiumCard group={top3[1]} rank={2} jornadas={jornadas} /> : <div className="flex-1 mt-8" />}
           <PodiumCard group={top3[0]} rank={1} jornadas={jornadas} />
@@ -148,8 +202,9 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
                       </span>
                     </td>
                     <td className="py-2 px-3 font-medium">
-                      {g.nombre}
+                      <span>{g.nombre}</span>
                       {g.hasBonus && <Star className="w-3 h-3 inline ml-1 text-yellow-500 fill-yellow-400" />}
+                      <AliasIcon aliases={g.aliases} />
                     </td>
                     <td className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">{g.school}</td>
                     {jornadas.map(j => (
@@ -176,6 +231,13 @@ function CategoryRanking({ categoria, resultados, jornadas }) {
 
 export default function LigaRankingView({ resultados }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const { data: grupoAliases = [] } = useQuery({
+    queryKey: ["grupoAliases"],
+    queryFn: () => base44.entities.GrupoAlias.filter({ estado: "unificado" }),
+  });
+
+  const aliasMap = buildAliasMap(grupoAliases);
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
@@ -232,6 +294,7 @@ export default function LigaRankingView({ resultados }) {
             categoria={cat}
             resultados={resultados}
             jornadas={jornadas}
+            aliasMap={aliasMap}
           />
         ))}
       </div>

@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import LigaRankingView from "../components/rankings/LigaRankingView";
 import JornadaResultados from "../components/rankings/JornadaResultados";
 import ImportarResultados from "../components/rankings/ImportarResultados";
+import GestionDuplicados from "../components/rankings/GestionDuplicados";
 import { useSimulacro } from "../components/SimulacroContext";
 import { useUser } from "../components/UserContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -59,6 +60,7 @@ export default function Rankings() {
       <Tabs defaultValue="rankings">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="rankings" className="font-semibold">🏆 Rankings</TabsTrigger>
+          {isAdmin && <TabsTrigger value="duplicados" className="font-semibold">🔗 Duplicados</TabsTrigger>}
           {JORNADAS_INFO.map(j => {
             const hasData = jornadasConDatos.includes(j.numero);
             return (
@@ -77,6 +79,12 @@ export default function Rankings() {
         <TabsContent value="rankings" className="mt-6">
           <LigaRankingView resultados={resultados} />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="duplicados" className="mt-6">
+            <GestionDuplicados />
+          </TabsContent>
+        )}
 
         {JORNADAS_INFO.map(j => {
           const jornadaResultados = resultados.filter(r => r.numero_jornada === j.numero);

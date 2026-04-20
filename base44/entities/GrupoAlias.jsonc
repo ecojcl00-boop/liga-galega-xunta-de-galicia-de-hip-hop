@@ -1,0 +1,49 @@
+{
+  "name": "GrupoAlias",
+  "type": "object",
+  "properties": {
+    "key_original": {
+      "type": "string",
+      "description": "Clave normalizada del nombre original: normalizeName(grupo_nombre)|normalizeClub(school_name)"
+    },
+    "nombre_original": {
+      "type": "string",
+      "description": "Nombre original tal como aparece en los datos"
+    },
+    "school_original": {
+      "type": "string",
+      "description": "Club original tal como aparece en los datos"
+    },
+    "canonical_nombre": {
+      "type": "string",
+      "description": "Nombre can\u00f3nico elegido por el administrador"
+    },
+    "canonical_school": {
+      "type": "string",
+      "description": "Club can\u00f3nico elegido por el administrador"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categor\u00eda del grupo"
+    },
+    "par_key": {
+      "type": "string",
+      "description": "Clave del par unificado (para relacionar los dos alias de un mismo par)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "unificado",
+        "ignorado",
+        "pendiente"
+      ],
+      "default": "pendiente",
+      "description": "Estado de la revisi\u00f3n"
+    }
+  },
+  "required": [
+    "key_original",
+    "canonical_nombre",
+    "canonical_school"
+  ]
+}
