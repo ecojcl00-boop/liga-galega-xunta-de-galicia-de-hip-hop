@@ -7,144 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
-import { buildAliasMap, normalizeName, canonicalClub } from "@/lib/normalizacion";
-
-// Clubs conocidos que están excluidos de forma permanente (en minúsculas normalizadas)
-const CLUBS_EXCLUIDOS_HARDCODED = ["5db", "cincodb", "cinco db"];
-
-function isClubExcluido(schoolName, escuelasExcluidas) {
-  if (!schoolName) return false;
-  const norm = schoolName.toLowerCase().trim();
-  if (CLUBS_EXCLUIDOS_HARDCODED.some(e => norm.includes(e) || e.includes(norm))) return true;
-  return escuelasExcluidas.some(s => s.toLowerCase().trim() === norm);
-}
-
-const TOTAL_JORNADAS_CIRCUITO = 5;
-const BEST_N = 3;
+import { buildAliasMap } from "@/lib/normalizacion";
+import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
   "Mini Parejas A", "Mini Parejas B", "Parejas",
   "Baby", "Infantil", "Junior", "Youth", "Absoluta", "Premium", "Megacrew"
 ];
-
-const PUNTOS_POR_PUESTO = { 1: 100, 2: 90, 3: 80, 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 };
-
-function puntosParaPuesto(puesto) {
-  return PUNTOS_POR_PUESTO[puesto] || 0;
-}
-
-/** Clave de normalización de un resultado para buscar en aliasMap */
-function resultKey(r) {
-  return `${normalizeName(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
-}
-
-/** Aplica alias a un resultado: devuelve nombre y club canónicos */
-function applyAlias(r, aliasMap) {
-  const key = resultKey(r);
-  if (aliasMap.has(key)) {
-    const alias = aliasMap.get(key);
-    return {
-      nombre: alias.canonical_nombre,
-      school: alias.canonical_school,
-      aliased: alias.nombre_original !== alias.canonical_nombre || alias.school_original !== alias.canonical_school,
-      originalNombre: alias.nombre_original,
-      originalSchool: alias.school_original,
-    };
-  }
-  // Normalización básica de clubs (aliases conocidos)
-  return {
-    nombre: r.grupo_nombre,
-    school: canonicalClub(r.school_name || ""),
-    aliased: false,
-  };
-}
-
-/** Agrupa key de comparación: usa nombre+club normalizados después de aplicar alias */
-function groupKey(nombre, school) {
-  return `${normalizeName(nombre)}|${normalizeName(school)}`;
-}
-
-function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas = []) {
-  const grupos = new Map();
-
-  resultados
-    .filter(r => r.categoria === categoria)
-    .forEach(r => {
-      const resolved = applyAlias(r, aliasMap);
-
-      // Excluir clubs marcados como "solo participación"
-      if (isClubExcluido(resolved.school, escuelasExcluidas)) return;
-
-      const key = groupKey(resolved.nombre, resolved.school);
-
-      if (!grupos.has(key)) {
-        grupos.set(key, {
-          nombre: resolved.nombre,
-          school: resolved.school,
-          jornadas: {},    // numero_jornada → puntos_liga
-          puestos: {},     // numero_jornada → puesto (para desempate)
-          aliases: [],
-        });
-      }
-      const g = grupos.get(key);
-      const pts = r.puntos_liga != null ? r.puntos_liga : puntosParaPuesto(r.puesto);
-      g.jornadas[r.numero_jornada] = pts;
-      g.puestos[r.numero_jornada] = r.puesto;
-
-      if (resolved.aliased) {
-        const entry = `J${r.numero_jornada}: "${r.grupo_nombre}" (${r.school_name})`;
-        if (!g.aliases.includes(entry)) g.aliases.push(entry);
-      }
-    });
-
-  const items = [...grupos.values()].map(g => {
-    const jornadasParticipadas = Object.keys(g.jornadas).length;
-    const allPts = Object.values(g.jornadas).sort((a, b) => b - a);
-    const best3 = allPts.slice(0, BEST_N).reduce((s, p) => s + p, 0);
-    const hasBonus = jornadasParticipadas >= TOTAL_JORNADAS_CIRCUITO;
-    const total = hasBonus ? Math.round(best3 * 1.1) : best3;
-    return { ...g, jornadasParticipadas, best3, total, hasBonus };
-  });
-
-  // Criterios de desempate (en orden de prioridad):
-  // 1. Total de puntos (descendente)
-  // 2. Mejor puesto en la jornada más reciente en que ambos participaron
-  // 3. Mayor número de jornadas disputadas
-  // 4. Mejor puesto jornada a jornada (de más reciente a más antigua)
-  // 5. Orden alfabético
-  const jornadasOrdenadas = [...new Set(resultados.map(r => r.numero_jornada))].sort((a, b) => b - a);
-
-  items.sort((a, b) => {
-    // 1. Total
-    if (b.total !== a.total) return b.total - a.total;
-
-    // 2. Mejor puesto en la jornada más reciente común
-    for (const j of jornadasOrdenadas) {
-      const pA = a.puestos[j];
-      const pB = b.puestos[j];
-      if (pA != null && pB != null) {
-        if (pA !== pB) return pA - pB; // menor puesto = mejor posición
-        break; // misma jornada reciente, pasan al criterio 3
-      }
-    }
-
-    // 3. Más jornadas disputadas
-    if (b.jornadasParticipadas !== a.jornadasParticipadas) return b.jornadasParticipadas - a.jornadasParticipadas;
-
-    // 4. Mejor puesto en jornadas anteriores (de más reciente a más antigua)
-    for (const j of jornadasOrdenadas) {
-      const pA = a.puestos[j];
-      const pB = b.puestos[j];
-      if (pA != null && pB != null && pA !== pB) return pA - pB;
-    }
-
-    // 5. Alfabético
-    return a.nombre.localeCompare(b.nombre);
-  });
-
-  return items.map((g, i) => ({ ...g, posicion: i + 1 }));
-}
 
 function AliasIcon({ aliases }) {
   if (!aliases || aliases.length === 0) return null;
