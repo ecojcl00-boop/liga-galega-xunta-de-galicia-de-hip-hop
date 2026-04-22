@@ -9,6 +9,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
 import { buildAliasMap, normalizeName, canonicalClub } from "@/lib/normalizacion";
 
+// Clubs conocidos que están excluidos de forma permanente (en minúsculas normalizadas)
+const CLUBS_EXCLUIDOS_HARDCODED = ["5db", "cincodb", "cinco db"];
+
+function isClubExcluido(schoolName, escuelasExcluidas) {
+  if (!schoolName) return false;
+  const norm = schoolName.toLowerCase().trim();
+  if (CLUBS_EXCLUIDOS_HARDCODED.some(e => norm.includes(e) || e.includes(norm))) return true;
+  return escuelasExcluidas.some(s => s.toLowerCase().trim() === norm);
+}
+
 const TOTAL_JORNADAS_CIRCUITO = 5;
 const BEST_N = 3;
 
@@ -55,13 +65,17 @@ function groupKey(nombre, school) {
   return `${normalizeName(nombre)}|${normalizeName(school)}`;
 }
 
-function calcularRankingLiga(resultados, categoria, aliasMap) {
+function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas = []) {
   const grupos = new Map();
 
   resultados
     .filter(r => r.categoria === categoria)
     .forEach(r => {
       const resolved = applyAlias(r, aliasMap);
+
+      // Excluir clubs marcados como "solo participación"
+      if (isClubExcluido(resolved.school, escuelasExcluidas)) return;
+
       const key = groupKey(resolved.nombre, resolved.school);
 
       if (!grupos.has(key)) {
@@ -147,9 +161,9 @@ function PodiumCard({ group, rank, jornadas }) {
   );
 }
 
-function CategoryRanking({ categoria, resultados, jornadas, aliasMap }) {
+function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasExcluidas }) {
   const [expanded, setExpanded] = useState(false);
-  const ranking = calcularRankingLiga(resultados, categoria, aliasMap);
+  const ranking = calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas);
   if (ranking.length === 0) return null;
   const top3 = ranking.slice(0, 3);
 
@@ -237,7 +251,13 @@ export default function LigaRankingView({ resultados }) {
     queryFn: () => base44.entities.GrupoAlias.filter({ estado: "unificado" }),
   });
 
+  const { data: escuelas = [] } = useQuery({
+    queryKey: ["schoolsExcluidasLiga"],
+    queryFn: () => base44.entities.School.filter({ excluida_de_liga: true }),
+  });
+
   const aliasMap = buildAliasMap(grupoAliases);
+  const escuelasExcluidas = escuelas.map(s => s.name);
 
   const allCategories = [...new Set(resultados.map(r => r.categoria))].sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a), bi = CATEGORY_ORDER.indexOf(b);
@@ -287,6 +307,12 @@ export default function LigaRankingView({ resultados }) {
         </SelectContent>
       </Select>
 
+      {escuelasExcluidas.length > 0 && (
+        <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+          ℹ️ <strong>Solo participación (no puntúan para liga):</strong> {escuelasExcluidas.join(", ")}
+        </div>
+      )}
+
       <div className="space-y-6">
         {displayCategories.map(cat => (
           <CategoryRanking
@@ -295,6 +321,7 @@ export default function LigaRankingView({ resultados }) {
             resultados={resultados}
             jornadas={jornadas}
             aliasMap={aliasMap}
+            escuelasExcluidas={escuelasExcluidas}
           />
         ))}
       </div>

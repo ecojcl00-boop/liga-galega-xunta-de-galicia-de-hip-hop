@@ -5,6 +5,7 @@ import LigaRankingView from "../components/rankings/LigaRankingView";
 import JornadaResultados from "../components/rankings/JornadaResultados";
 import ImportarResultados from "../components/rankings/ImportarResultados";
 import GestionDuplicados from "../components/rankings/GestionDuplicados";
+import GestionExclusionesLiga from "../components/rankings/GestionExclusionesLiga";
 import { useSimulacro } from "../components/SimulacroContext";
 import { useUser } from "../components/UserContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -69,6 +70,7 @@ export default function Rankings() {
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="rankings" className="font-semibold">🏆 Rankings</TabsTrigger>
           {isAdmin && <TabsTrigger value="duplicados" className="font-semibold">🔗 Duplicados</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="exclusiones" className="font-semibold">🚫 Exclusiones liga</TabsTrigger>}
           {JORNADAS_INFO.map(j => {
             const hasData = jornadasConDatos.includes(j.numero);
             return (
@@ -91,6 +93,20 @@ export default function Rankings() {
         {isAdmin && (
           <TabsContent value="duplicados" className="mt-6">
             <GestionDuplicados />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="exclusiones" className="mt-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-bold">Exclusiones del ranking de liga</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gestiona qué escuelas participan "solo a efectos de exhibición" y no computan en la clasificación general de liga.
+                </p>
+              </div>
+              <GestionExclusionesLiga />
+            </div>
           </TabsContent>
         )}
 

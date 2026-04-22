@@ -1,0 +1,47 @@
+{
+  "name": "School",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad o localidad"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contacto"
+    },
+    "emails_adicionales": {
+      "type": "string",
+      "description": "Emails adicionales separados por comas"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "coach_name": {
+      "type": "string",
+      "description": "Nombre del entrenador principal"
+    },
+    "unique_participants": {
+      "type": "number",
+      "description": "N\u00famero de participantes \u00fanicos (calculado autom\u00e1ticamente)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Escuela activa (false = desactivada, no aparece en desplegables)"
+    },
+    "excluida_de_liga": {
+      "type": "boolean",
+      "default": false,
+      "description": "Solo participaci\u00f3n \u2014 no punt\u00faa para el ranking de liga"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
