@@ -82,15 +82,16 @@ function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas 
         grupos.set(key, {
           nombre: resolved.nombre,
           school: resolved.school,
-          jornadas: {},
-          aliases: [], // nombres como aparecieron en cada jornada
+          jornadas: {},    // numero_jornada → puntos_liga
+          puestos: {},     // numero_jornada → puesto (para desempate)
+          aliases: [],
         });
       }
       const g = grupos.get(key);
       const pts = r.puntos_liga != null ? r.puntos_liga : puntosParaPuesto(r.puesto);
       g.jornadas[r.numero_jornada] = pts;
+      g.puestos[r.numero_jornada] = r.puesto;
 
-      // Registrar variante si es diferente al canónico
       if (resolved.aliased) {
         const entry = `J${r.numero_jornada}: "${r.grupo_nombre}" (${r.school_name})`;
         if (!g.aliases.includes(entry)) g.aliases.push(entry);
@@ -106,7 +107,42 @@ function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas 
     return { ...g, jornadasParticipadas, best3, total, hasBonus };
   });
 
-  items.sort((a, b) => b.total - a.total || b.best3 - a.best3 || a.nombre.localeCompare(b.nombre));
+  // Criterios de desempate (en orden de prioridad):
+  // 1. Total de puntos (descendente)
+  // 2. Mejor puesto en la jornada más reciente en que ambos participaron
+  // 3. Mayor número de jornadas disputadas
+  // 4. Mejor puesto jornada a jornada (de más reciente a más antigua)
+  // 5. Orden alfabético
+  const jornadasOrdenadas = [...new Set(resultados.map(r => r.numero_jornada))].sort((a, b) => b - a);
+
+  items.sort((a, b) => {
+    // 1. Total
+    if (b.total !== a.total) return b.total - a.total;
+
+    // 2. Mejor puesto en la jornada más reciente común
+    for (const j of jornadasOrdenadas) {
+      const pA = a.puestos[j];
+      const pB = b.puestos[j];
+      if (pA != null && pB != null) {
+        if (pA !== pB) return pA - pB; // menor puesto = mejor posición
+        break; // misma jornada reciente, pasan al criterio 3
+      }
+    }
+
+    // 3. Más jornadas disputadas
+    if (b.jornadasParticipadas !== a.jornadasParticipadas) return b.jornadasParticipadas - a.jornadasParticipadas;
+
+    // 4. Mejor puesto en jornadas anteriores (de más reciente a más antigua)
+    for (const j of jornadasOrdenadas) {
+      const pA = a.puestos[j];
+      const pB = b.puestos[j];
+      if (pA != null && pB != null && pA !== pB) return pA - pB;
+    }
+
+    // 5. Alfabético
+    return a.nombre.localeCompare(b.nombre);
+  });
+
   return items.map((g, i) => ({ ...g, posicion: i + 1 }));
 }
 
