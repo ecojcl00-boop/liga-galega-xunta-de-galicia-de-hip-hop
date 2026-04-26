@@ -328,9 +328,9 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center justify-between h-16 px-5 border-b border-sidebar-border">
           <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
             <img
-              src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/ab9543711_logofgbd3d.png"
-              alt="FGBD Logo"
-              className="w-8 h-8 rounded-md object-contain bg-white"
+              src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/05dffe28b_logoLGhiphopgradiente.png"
+              alt="Liga HipHop Logo"
+              className="w-8 h-8 rounded-md object-contain"
             />
             <div>
               <span className="text-sm font-bold tracking-wider text-sidebar-foreground">HIPHOP</span>
