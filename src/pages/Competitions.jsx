@@ -248,7 +248,7 @@ export default function Competitions() {
 
       {competitions.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
-          <Trophy className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <img src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/c9cc575f9_logoLGhiphopgradiente.png" alt="Logo Liga" className="w-16 h-16 mx-auto mb-4 opacity-40 object-contain" />
           <p>No hay competiciones aún. Crea la primera.</p>
         </div>
       ) : (
@@ -261,7 +261,7 @@ export default function Competitions() {
                   <div className="flex flex-col md:flex-row md:items-start gap-3">
                     <div className="flex items-center gap-2 flex-1">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Trophy className="w-5 h-5 text-primary" />
+                        <img src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/c9cc575f9_logoLGhiphopgradiente.png" alt="Logo Liga" className="w-8 h-8 object-contain" />
                       </div>
                       <div className="min-w-0">
                         <CardTitle className="text-base flex items-center gap-2 flex-wrap">
