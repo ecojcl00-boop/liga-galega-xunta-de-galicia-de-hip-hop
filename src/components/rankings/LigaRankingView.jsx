@@ -188,7 +188,7 @@ export default function LigaRankingView({ resultados }) {
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Jornadas disputadas:</span>
+          <span className="text-xs text-foreground/80">Jornadas disputadas:</span>
           {jornadas.map(j => (
             <span key={j} className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">J{j}</span>
           ))}
@@ -199,7 +199,7 @@ export default function LigaRankingView({ resultados }) {
         </div>
       </div>
 
-      <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+      <div className="text-xs text-foreground/80 bg-muted/40 rounded-lg px-3 py-2">
         Puntuación: suma de las <strong>3 mejores jornadas</strong> de cada participante (de 5 en total). 1º=100pts · 2º=90 · 3º=80 · 4º=70 · 5º=60 · 6º=50 · 7º=40 · 8º=30 · 9º=20 · 10º=10
       </div>
 
@@ -214,7 +214,7 @@ export default function LigaRankingView({ resultados }) {
       </Select>
 
       {escuelasExcluidas.length > 0 && (
-        <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+        <div className="text-xs text-foreground/80 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
           ℹ️ <strong>Solo participación (no puntúan para liga):</strong> {escuelasExcluidas.join(", ")}
         </div>
       )}

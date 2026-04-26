@@ -60,8 +60,8 @@ export default function Rankings() {
       )}
 
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Liga Galega Xunta de Galicia Hip Hop</h1>
-        <p className="text-muted-foreground mt-1">Circuito 2026 · 5 jornadas</p>
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Liga Galega Xunta de Galicia Hip Hop</h1>
+        <p className="text-foreground/70 mt-1">Circuito 2026 · 5 jornadas</p>
       </div>
 
       {isAdmin && !isSimulacro && <ImportarResultados />}
@@ -80,7 +80,7 @@ export default function Rankings() {
                 className={!hasData ? "opacity-50" : ""}
               >
                 J{j.numero} · {j.nombre}
-                {!hasData && <span className="ml-1 text-xs text-muted-foreground">({j.fecha})</span>}
+                {!hasData && <span className="ml-1 text-xs text-foreground/60">({j.fecha})</span>}
               </TabsTrigger>
             );
           })}
@@ -116,8 +116,8 @@ export default function Rankings() {
           return (
             <TabsContent key={j.numero} value={`jornada-${j.numero}`} className="mt-6">
               <div className="mb-4">
-                <h2 className="text-xl font-bold">Jornada {j.numero} — {j.nombre}</h2>
-                {comp && <p className="text-sm text-muted-foreground">{comp.name} · {j.fecha}</p>}
+                <h2 className="text-xl font-bold text-foreground">Jornada {j.numero} — {j.nombre}</h2>
+                {comp && <p className="text-sm text-foreground/70">{comp.name} · {j.fecha}</p>}
               </div>
               <JornadaResultados resultados={jornadaResultados} competicion={comp} />
             </TabsContent>

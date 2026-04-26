@@ -1,0 +1,55 @@
+{
+  "name": "Group",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del grupo"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda del grupo"
+    },
+    "coach_name": {
+      "type": "string",
+      "description": "Nombre del entrenador"
+    },
+    "coach_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email del entrenador"
+    },
+    "coach_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono del entrenador"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "dni": {
+            "type": "string"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "description": "Lista de participantes"
+    }
+  },
+  "required": [
+    "name",
+    "school_name",
+    "category"
+  ]
+}

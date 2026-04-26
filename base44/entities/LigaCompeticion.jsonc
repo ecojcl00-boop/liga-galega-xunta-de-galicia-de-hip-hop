@@ -1,0 +1,34 @@
+{
+  "name": "LigaCompeticion",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la competici\u00f3n"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la competici\u00f3n"
+    },
+    "numero_jornada": {
+      "type": "number",
+      "description": "N\u00famero de jornada"
+    },
+    "is_simulacro": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si es un simulacro"
+    },
+    "registration_open": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si las inscripciones est\u00e1n abiertas"
+    }
+  },
+  "required": [
+    "name",
+    "date",
+    "numero_jornada"
+  ]
+}

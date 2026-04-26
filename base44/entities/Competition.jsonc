@@ -1,0 +1,27 @@
+{
+  "name": "Competition",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la competici\u00f3n"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha"
+    },
+    "location": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n"
+    },
+    "registration_open": {
+      "type": "boolean",
+      "default": true,
+      "description": "Inscripciones abiertas"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user",
+      "description": "Rol del usuario"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela asociada a este usuario (para cuentas de escuela)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "invited",
+        "active"
+      ],
+      "default": "active",
+      "description": "Estado del usuario: invited (pendiente de aceptar) o active (registro completado)"
+    }
+  },
+  "required": []
+}

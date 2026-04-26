@@ -1,0 +1,28 @@
+{
+  "name": "LogSolicitudes",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email del solicitante"
+    },
+    "status": {
+      "type": "string",
+      "description": "Estado de la invitaci\u00f3n (pending, accepted, rejected)"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela asignada"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp cuando se cre\u00f3 la solicitud"
+    }
+  },
+  "required": [
+    "email",
+    "status"
+  ]
+}

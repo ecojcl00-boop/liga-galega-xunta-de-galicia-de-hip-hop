@@ -1,0 +1,33 @@
+{
+  "name": "ActaJueces",
+  "type": "object",
+  "properties": {
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "competition_name": {
+      "type": "string",
+      "description": "Nombre de la competici\u00f3n"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Nombre del archivo"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del acta"
+    }
+  },
+  "required": [
+    "school_name",
+    "competition_name",
+    "file_url",
+    "file_name"
+  ]
+}

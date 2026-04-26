@@ -1,0 +1,44 @@
+{
+  "name": "CompetitionResult",
+  "type": "object",
+  "properties": {
+    "competition_name": {
+      "type": "string",
+      "description": "Nombre de la competici\u00f3n"
+    },
+    "competition_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la competici\u00f3n"
+    },
+    "group_name": {
+      "type": "string",
+      "description": "Nombre del grupo"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "position": {
+      "type": "number",
+      "description": "Puesto obtenido"
+    },
+    "score": {
+      "type": "number",
+      "description": "Puntuaci\u00f3n obtenida"
+    },
+    "group_id": {
+      "type": "string",
+      "description": "ID del grupo (si existe)"
+    }
+  },
+  "required": [
+    "group_name",
+    "category",
+    "competition_name"
+  ]
+}

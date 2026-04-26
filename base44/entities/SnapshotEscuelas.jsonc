@@ -1,0 +1,34 @@
+{
+  "name": "SnapshotEscuelas",
+  "type": "object",
+  "properties": {
+    "snapshot_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del snapshot"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre can\u00f3nico de la escuela"
+    },
+    "groups_count": {
+      "type": "number",
+      "description": "N\u00famero de grupos"
+    },
+    "unique_participants_count": {
+      "type": "number",
+      "description": "Participantes \u00fanicos reales"
+    },
+    "schools_merged_from": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Nombres duplicados que fueron fusionados en esta escuela"
+    }
+  },
+  "required": [
+    "school_name",
+    "snapshot_date"
+  ]
+}

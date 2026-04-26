@@ -1,0 +1,49 @@
+{
+  "name": "JudgeScore",
+  "type": "object",
+  "properties": {
+    "competition_id": {
+      "type": "string",
+      "description": "ID de la competici\u00f3n"
+    },
+    "group_id": {
+      "type": "string",
+      "description": "ID del grupo"
+    },
+    "group_name": {
+      "type": "string",
+      "description": "Nombre del grupo"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "judge_name": {
+      "type": "string",
+      "description": "Nombre del juez"
+    },
+    "technique": {
+      "type": "number",
+      "description": "T\u00e9cnica (0-10)"
+    },
+    "musicality": {
+      "type": "number",
+      "description": "Musicalidad (0-10)"
+    },
+    "creativity": {
+      "type": "number",
+      "description": "Creatividad (0-10)"
+    },
+    "execution": {
+      "type": "number",
+      "description": "Ejecuci\u00f3n (0-10)"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total calculado"
+    }
+  },
+  "required": [
+    "group_name"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "LigaResultado",
+  "type": "object",
+  "properties": {
+    "competicion_id": {
+      "type": "string",
+      "description": "ID de la competici\u00f3n"
+    },
+    "numero_jornada": {
+      "type": "number",
+      "description": "N\u00famero de jornada"
+    },
+    "grupo_id": {
+      "type": "string",
+      "description": "ID del grupo"
+    },
+    "grupo_nombre": {
+      "type": "string",
+      "description": "Nombre del grupo"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "puesto": {
+      "type": "number",
+      "description": "Posici\u00f3n en la clasificaci\u00f3n"
+    },
+    "puntuacion": {
+      "type": "number",
+      "description": "Puntuaci\u00f3n obtenida"
+    },
+    "puntos_liga": {
+      "type": "number",
+      "description": "Puntos de liga"
+    },
+    "is_simulacro": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si es un simulacro"
+    }
+  },
+  "required": [
+    "competicion_id",
+    "numero_jornada",
+    "grupo_nombre",
+    "school_name",
+    "categoria"
+  ]
+}

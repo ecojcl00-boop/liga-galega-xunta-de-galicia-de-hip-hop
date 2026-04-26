@@ -1,0 +1,28 @@
+{
+  "name": "LigaRankingSnapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del snapshot"
+    },
+    "numero_jornada": {
+      "type": "number",
+      "description": "Jornada tras la que se calcul\u00f3"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "ranking_json": {
+      "type": "string",
+      "description": "JSON serializado del ranking completo"
+    }
+  },
+  "required": [
+    "snapshot_date",
+    "numero_jornada",
+    "categoria"
+  ]
+}

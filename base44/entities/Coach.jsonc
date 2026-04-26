@@ -1,0 +1,25 @@
+{
+  "name": "Coach",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del entrenador"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "school_id": {
+      "type": "string",
+      "description": "ID de la escuela"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

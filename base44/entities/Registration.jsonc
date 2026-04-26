@@ -1,0 +1,103 @@
+{
+  "name": "Registration",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID del grupo"
+    },
+    "group_name": {
+      "type": "string",
+      "description": "Nombre del grupo"
+    },
+    "school_name": {
+      "type": "string",
+      "description": "Nombre de la escuela"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "competition_id": {
+      "type": "string",
+      "description": "ID de la competici\u00f3n"
+    },
+    "competition_name": {
+      "type": "string",
+      "description": "Nombre de la competici\u00f3n"
+    },
+    "coach_name": {
+      "type": "string",
+      "description": "Nombre del entrenador"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Estado de la inscripci\u00f3n"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Estado del pago"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "dni": {
+            "type": "string"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "description": "Lista de participantes"
+    },
+    "participants_count": {
+      "type": "number",
+      "description": "N\u00famero de participantes"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Documentos adjuntos"
+    },
+    "is_simulacro": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si es un simulacro"
+    }
+  },
+  "required": [
+    "group_name",
+    "school_name",
+    "category",
+    "competition_name"
+  ]
+}
