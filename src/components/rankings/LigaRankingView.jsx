@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
 import { buildAliasMap } from "@/lib/normalizacion";
 import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
-import EvolucionGraficos from "@/components/rankings/EvolucionGraficos";
+import EvolucionGraficos, { Sparkline, COLORS } from "@/components/rankings/EvolucionGraficos";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -113,6 +113,7 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
                     <th key={j} className="text-center py-2 px-2 text-muted-foreground font-medium text-xs">J{j}</th>
                   ))}
                   <th className="text-center py-2 px-3 text-muted-foreground font-medium">Total</th>
+                  <th className="text-center py-2 px-3 text-muted-foreground font-medium hidden sm:table-cell text-xs">Tendencia</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,6 +141,11 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
                       {g.total}
                       {g.hasBonus && <span className="text-yellow-500 text-xs ml-0.5">★</span>}
                     </td>
+                    <td className="py-1 px-2 hidden sm:table-cell">
+                      <div className="flex justify-center">
+                        <Sparkline puestos={g.puestos} jornadas={jornadas} color={COLORS[i % COLORS.length]} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -147,7 +153,7 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
           </div>
         )}
 
-        {/* Sección colapsable de evolución */}
+        {/* Bump chart colapsable */}
         <Button variant="outline" size="sm" onClick={() => setEvolucionExpanded(!evolucionExpanded)} className="w-full gap-2">
           {evolucionExpanded
             ? <><ChevronUp className="w-4 h-4" />Ocultar evolución</>

@@ -160,46 +160,8 @@ function BumpChart({ ranking, jornadas }) {
   );
 }
 
-// ── Tabla con Sparklines ─────────────────────────────────────────────────────
-function TablaTendencia({ ranking, jornadas }) {
-  return (
-    <div>
-      <p className="text-sm font-semibold text-foreground mb-3">Tendencia por competidor</p>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left py-2 px-3 text-muted-foreground font-medium">Pos.</th>
-              <th className="text-left py-2 px-3 text-muted-foreground font-medium">Grupo</th>
-              <th className="text-left py-2 px-3 text-muted-foreground font-medium hidden sm:table-cell">Club</th>
-              <th className="text-center py-2 px-3 text-muted-foreground font-medium">Tendencia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((g, i) => (
-              <tr key={i} className={`border-t ${i === 0 ? "bg-yellow-500/5" : i === 1 ? "bg-gray-400/5" : i === 2 ? "bg-amber-600/5" : ""}`}>
-                <td className="py-2 px-3">
-                  <span className={`font-bold tabular-nums ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"}`}>
-                    {g.posicion}º
-                  </span>
-                </td>
-                <td className="py-2 px-3 font-medium text-foreground">{g.nombre}</td>
-                <td className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">{g.school}</td>
-                <td className="py-2 px-3 flex justify-center">
-                  <Sparkline puestos={g.puestos} jornadas={jornadas} color={COLORS[i % COLORS.length]} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Componente principal exportado ───────────────────────────────────────────
+// ── Componente principal exportado (solo BumpChart) ──────────────────────────
 export default function EvolucionGraficos({ ranking, jornadas }) {
-  // Solo mostrar si hay al menos 2 jornadas con datos reales en el ranking
   const jornadasConDatos = useMemo(() =>
     jornadas.filter(j => ranking.some(g => g.puestos[j] != null)),
     [ranking, jornadas]
@@ -208,9 +170,10 @@ export default function EvolucionGraficos({ ranking, jornadas }) {
   if (jornadasConDatos.length < 1 || ranking.length === 0) return null;
 
   return (
-    <div className="space-y-8 pt-2">
+    <div className="pt-2">
       <BumpChart ranking={ranking} jornadas={jornadasConDatos} />
-      <TablaTendencia ranking={ranking} jornadas={jornadasConDatos} />
     </div>
   );
 }
+
+export { Sparkline, COLORS };
