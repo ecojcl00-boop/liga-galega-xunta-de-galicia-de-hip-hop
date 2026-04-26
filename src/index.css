@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* GrimeSlime - fuente graffiti para Liga Hip Hop */
+@font-face {
+  font-family: 'GrimeSlime';
+  src: url('/GrimeSlime-Regular.ttf') format('truetype');
+}
+
+h1, h2, h3 {
+  font-family: 'GrimeSlime', sans-serif;
+}
+
+aside nav a span {
+  font-family: 'GrimeSlime', sans-serif;
+}
+
 @layer base {
   :root {
     --background: 0 0% 97%;
