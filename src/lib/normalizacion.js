@@ -12,10 +12,19 @@ const CLUB_ALIAS_GROUPS = [
   ["DA VIGO", "DANCE ACADEMY VIGO"],
   ["DANZA 10", "DANZA10", "D10"],
   ["STAR DANCE", "STARDANCE", "CLUB STAR DANCE"],
-  ["SEVEN AND DANZA FERROL", "7 AND DANZA FERROL", "SEVEN AND DANZA"],
+  ["SEVEN AND DANZA FERROL", "7 AND DANZA FERROL", "SEVEN AND DANZA", "SEVENAN DANZA"],
   ["CD DA RUA", "DA RUA"],
   ["PASO A PASO", "PASO A PASO DANCE"],
+  ["INQUEDANZA DANCE CLUB", "INQUEDANZA"],
 ];
+
+// Palabras genéricas que se eliminan antes del fuzzy matching de clubs
+const GENERIC_CLUB_WORDS = ["dance", "club", "studio", "danza", "escola", "school", "academia", "academy", "escuela", "cd", "sd"];
+
+/** Elimina palabras genéricas del nombre normalizado de un club para comparación fuzzy */
+function stripGenericWords(str = "") {
+  return str.split(" ").filter(w => w.length > 1 && !GENERIC_CLUB_WORDS.includes(w)).join(" ");
+}
 
 // Mapa: nombre_normalizado -> nombre_canónico del grupo
 const CLUB_CANONICAL_MAP = new Map();
@@ -51,8 +60,15 @@ export function clubsMatch(a = "", b = "") {
   const ca = canonicalClub(a);
   const cb = canonicalClub(b);
   if (ca === cb) return true;
-  // Fuzzy sobre canonicals normalizados
-  return levenshteinSim(normalizeClub(ca), normalizeClub(cb)) >= 0.80;
+  // Fuzzy sobre canonicals normalizados completos
+  const nca = normalizeClub(ca);
+  const ncb = normalizeClub(cb);
+  if (levenshteinSim(nca, ncb) >= 0.80) return true;
+  // Fuzzy eliminando palabras genéricas (más permisivo para detectar variantes)
+  const sa = stripGenericWords(nca);
+  const sb = stripGenericWords(ncb);
+  if (sa.length >= 3 && sb.length >= 3 && levenshteinSim(sa, sb) >= 0.80) return true;
+  return false;
 }
 
 // ─────────────────────────────────────────────
@@ -182,8 +198,16 @@ export function detectarDuplicados(resultados, aliasesIgnorados = []) {
         if (normalizeName(a.grupo_nombre) === normalizeName(b.grupo_nombre) &&
             canonicalClub(a.school_name) === canonicalClub(b.school_name)) continue;
 
-        const clubSim = clubsMatch(a.school_name, b.school_name) ? 1 : levenshteinSim(normalizeClub(canonicalClub(a.school_name)), normalizeClub(canonicalClub(b.school_name)));
-        if (clubSim < CLUB_SIM_THRESHOLD) continue;
+        const clubMatches = clubsMatch(a.school_name, b.school_name);
+        const nca = normalizeClub(canonicalClub(a.school_name));
+        const ncb = normalizeClub(canonicalClub(b.school_name));
+        // Si el nombre de grupo coincide exactamente, ser más permisivo con el club
+        const namePerfect = normalizeName(a.grupo_nombre) === normalizeName(b.grupo_nombre);
+        const clubThreshold = namePerfect ? 0.65 : CLUB_SIM_THRESHOLD;
+        const clubSimRaw = levenshteinSim(nca, ncb);
+        const clubSimStripped = levenshteinSim(stripGenericWords(nca), stripGenericWords(ncb));
+        const clubSim = clubMatches ? 1 : Math.max(clubSimRaw, clubSimStripped);
+        if (clubSim < clubThreshold) continue;
 
         const ka = resultKey(a);
         const kb = resultKey(b);

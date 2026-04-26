@@ -60,8 +60,18 @@ function PairCard({ par, aliases, onUnificar, onIgnorar, onPosponer }) {
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs">{par.categoria}</Badge>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${simColor(par.nameSim)}`}>
-              {Math.round(par.nameSim * 100)}% similitud
+              {Math.round(par.nameSim * 100)}% nombre
             </span>
+            {par.clubSim < 1 && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-blue-100 text-blue-700 border-blue-200">
+                ~{Math.round(par.clubSim * 100)}% club
+              </span>
+            )}
+            {par.clubSim < 1 && (
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                🔍 fuzzy escuela
+              </Badge>
+            )}
             {estadoBadge}
           </div>
         </div>
