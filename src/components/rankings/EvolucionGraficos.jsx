@@ -108,18 +108,42 @@ function BumpChart({ ranking, jornadas }) {
             label={{ value: "Posición", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "hsl(var(--muted-foreground))" } }}
           />
           <Tooltip content={<CustomTooltip />} />
-          {ranking.map((g, i) => (
-            <Line
-              key={g.nombre}
-              type="monotone"
-              dataKey={g.nombre}
-              stroke={COLORS[i % COLORS.length]}
-              strokeWidth={2}
-              dot={{ r: 4, fill: COLORS[i % COLORS.length], strokeWidth: 0 }}
-              activeDot={{ r: 6 }}
-              connectNulls={false}
-            />
-          ))}
+          {ranking.map((g, i) => {
+            const color = COLORS[i % COLORS.length];
+            return (
+              <React.Fragment key={g.nombre}>
+                {/* Línea discontinua que conecta todos los puntos (incluye gaps) */}
+                <Line
+                  type="monotone"
+                  dataKey={g.nombre}
+                  stroke={color}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.5}
+                  dot={false}
+                  activeDot={false}
+                  connectNulls={true}
+                  legendType="none"
+                  tooltipType="none"
+                  isAnimationActive={false}
+                />
+                {/* Línea sólida solo en tramos donde hay datos reales */}
+                <Line
+                  type="monotone"
+                  dataKey={g.nombre}
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={(props) => {
+                    const { cx, cy, value } = props;
+                    if (value == null) return null;
+                    return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={color} strokeWidth={0} />;
+                  }}
+                  activeDot={{ r: 6 }}
+                  connectNulls={false}
+                />
+              </React.Fragment>
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
 
