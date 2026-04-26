@@ -110,38 +110,38 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Grupo</th>
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium hidden sm:table-cell">Club</th>
                   {jornadas.map(j => (
-                    <th key={j} className="text-center py-2 px-2 text-muted-foreground font-medium text-xs">J{j}</th>
+                    <th key={j} className="text-center py-1 px-1 text-muted-foreground font-medium text-xs hidden min-[600px]:table-cell">J{j}</th>
                   ))}
-                  <th className="text-center py-2 px-3 text-muted-foreground font-medium">Total</th>
-                  <th className="text-center py-2 px-3 text-muted-foreground font-medium hidden sm:table-cell text-xs">Tendencia</th>
+                  <th className="text-center py-1 px-2 text-muted-foreground font-medium text-xs">Total</th>
+                  <th className="text-center py-1 px-2 text-muted-foreground font-medium text-xs">Tendencia</th>
                 </tr>
               </thead>
               <tbody>
                 {ranking.map((g, i) => (
                   <tr key={i} className={`border-t ${i === 0 ? "bg-yellow-500/5" : i === 1 ? "bg-gray-400/5" : i === 2 ? "bg-amber-600/5" : ""}`}>
-                    <td className="py-2 px-3">
+                    <td className="py-1 px-2">
                       <span className={`font-bold tabular-nums ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-600" : "text-muted-foreground"}`}>
                         {g.posicion}º
                       </span>
                     </td>
-                    <td className="py-2 px-3 font-medium">
-                      <span>{g.nombre}</span>
+                    <td className="py-1 px-2 font-medium max-w-[100px] min-[600px]:max-w-none">
+                      <span className="line-clamp-1">{g.nombre}</span>
                       {g.hasBonus && <Star className="w-3 h-3 inline ml-1 text-yellow-500 fill-yellow-400" />}
                       <AliasIcon aliases={g.aliases} />
                     </td>
-                    <td className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">{g.school}</td>
+                    <td className="py-1 px-2 text-xs text-muted-foreground hidden sm:table-cell">{g.school}</td>
                     {jornadas.map(j => (
-                      <td key={j} className="text-center py-2 px-2 tabular-nums text-xs">
+                      <td key={j} className="text-center py-1 px-1 tabular-nums text-xs hidden min-[600px]:table-cell">
                         {g.jornadas[j] != null
                           ? <span className={g.jornadas[j] > 0 ? "font-medium" : "text-muted-foreground"}>{g.jornadas[j]}</span>
                           : <span className="text-muted-foreground/30">—</span>}
                       </td>
                     ))}
-                    <td className="text-center py-2 px-3 font-bold text-primary tabular-nums">
+                    <td className="text-center py-1 px-2 font-bold text-primary tabular-nums text-xs">
                       {g.total}
                       {g.hasBonus && <span className="text-yellow-500 text-xs ml-0.5">★</span>}
                     </td>
-                    <td className="py-1 px-2 hidden sm:table-cell">
+                    <td className="py-1 px-1">
                       <div className="flex justify-center">
                         <Sparkline puestos={g.puestos} jornadas={jornadas} color={COLORS[i % COLORS.length]} />
                       </div>

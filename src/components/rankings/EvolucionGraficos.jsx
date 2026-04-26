@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
@@ -17,8 +17,19 @@ const COLORS = [
 ];
 
 // ── Sparkline (SVG manual, sin librerías extra) ──────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 600);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 600);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return mobile;
+}
+
 function Sparkline({ puestos, jornadas, color = "#e91e8c" }) {
-  const W = 80, H = 30, PAD = 3;
+  const isMobile = useIsMobile();
+  const W = isMobile ? 50 : 80, H = isMobile ? 24 : 30, PAD = 3;
   const points = jornadas.map(j => puestos[j]).filter(p => p != null);
   if (points.length < 2) {
     return <span className="text-muted-foreground/30 text-xs">—</span>;
@@ -72,7 +83,15 @@ function BumpChart({ ranking, jornadas }) {
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
-    const sorted = [...payload].sort((a, b) => a.value - b.value);
+    // Deduplicar: cada competidor aparece dos veces (línea dashed + sólida), quedarse con el primero
+    const seen = new Set();
+    const unique = payload.filter(p => {
+      if (seen.has(p.dataKey)) return false;
+      seen.add(p.dataKey);
+      return true;
+    });
+    const sorted = unique.filter(p => p.value != null).sort((a, b) => a.value - b.value);
+    if (!sorted.length) return null;
     return (
       <div className="bg-card border rounded-lg shadow-lg p-2 text-xs max-w-[200px]">
         <p className="font-semibold mb-1 text-foreground">{label}</p>
