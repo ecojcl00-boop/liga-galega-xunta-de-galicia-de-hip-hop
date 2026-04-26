@@ -67,10 +67,10 @@ export default function Rankings() {
       {isAdmin && !isSimulacro && <ImportarResultados />}
 
       <Tabs defaultValue="rankings">
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="rankings" className="font-semibold">🏆 Rankings</TabsTrigger>
-          {isAdmin && <TabsTrigger value="duplicados" className="font-semibold">🔗 Duplicados</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="exclusiones" className="font-semibold">🚫 Exclusiones liga</TabsTrigger>}
+        <TabsList className="flex flex-wrap h-auto gap-1" style={{ backgroundColor: 'hsl(316,90%,20%)', padding: '6px' }}>
+          <TabsTrigger value="rankings" className="font-semibold" style={{ color: '#ffffff' }}>🏆 Rankings</TabsTrigger>
+          {isAdmin && <TabsTrigger value="duplicados" className="font-semibold" style={{ color: '#ffffff' }}>🔗 Duplicados</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="exclusiones" className="font-semibold" style={{ color: '#ffffff' }}>🚫 Exclusiones liga</TabsTrigger>}
           {JORNADAS_INFO.map(j => {
             const hasData = jornadasConDatos.includes(j.numero);
             return (
@@ -78,9 +78,10 @@ export default function Rankings() {
                 key={j.numero}
                 value={`jornada-${j.numero}`}
                 className={!hasData ? "opacity-50" : ""}
+                style={{ color: '#ffffff' }}
               >
                 J{j.numero} · {j.nombre}
-                {!hasData && <span className="ml-1 text-xs text-foreground/60">({j.fecha})</span>}
+                {!hasData && <span className="ml-1 text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>({j.fecha})</span>}
               </TabsTrigger>
             );
           })}

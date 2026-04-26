@@ -9,21 +9,33 @@ export default function PullToRefresh({ onRefresh, children }) {
   const startY = useRef(null);
   const containerRef = useRef(null);
 
+  const getScrollParent = useCallback(() => {
+    // Walk up the DOM to find the nearest scrollable ancestor
+    let el = containerRef.current?.parentElement;
+    while (el) {
+      const style = window.getComputedStyle(el);
+      if (style.overflowY === 'auto' || style.overflowY === 'scroll') return el;
+      el = el.parentElement;
+    }
+    return null;
+  }, []);
+
   const onTouchStart = useCallback((e) => {
-    // Only activate when scrolled to the very top
-    if (containerRef.current?.scrollTop === 0) {
+    const scrollParent = getScrollParent();
+    if ((scrollParent?.scrollTop ?? 0) === 0) {
       startY.current = e.touches[0].clientY;
     }
-  }, []);
+  }, [getScrollParent]);
 
   const onTouchMove = useCallback((e) => {
     if (startY.current === null || refreshing) return;
     const delta = e.touches[0].clientY - startY.current;
-    if (delta > 0 && containerRef.current?.scrollTop === 0) {
+    const scrollParent = getScrollParent();
+    if (delta > 0 && (scrollParent?.scrollTop ?? 0) === 0) {
       // Dampen the pull
       setPullY(Math.min(delta * 0.5, THRESHOLD + 20));
     }
-  }, [refreshing]);
+  }, [refreshing, getScrollParent]);
 
   const onTouchEnd = useCallback(async () => {
     if (pullY >= THRESHOLD && !refreshing) {
@@ -41,11 +53,9 @@ export default function PullToRefresh({ onRefresh, children }) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      style={{ overscrollBehaviorY: "none" }}
     >
       {/* Pull indicator */}
       <div
