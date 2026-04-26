@@ -216,12 +216,6 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (!authChecked || redirectedRef.current) return;
     
-    if (currentPageName === "JudgePanel" && user && user.role === "admin") {
-      redirectedRef.current = true;
-      navigate(createPageUrl("Dashboard"), { replace: true });
-      return;
-    }
-
     if (currentPageName === "Usuarios" && user && user.email !== OWNER_EMAIL) {
       redirectedRef.current = true;
       navigate(createPageUrl("Dashboard"), { replace: true });
@@ -333,9 +327,11 @@ export default function Layout({ children, currentPageName }) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-sidebar-border">
           <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-black text-lg leading-none">G</span>
-            </div>
+            <img
+              src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/ab9543711_logofgbd3d.png"
+              alt="FGBD Logo"
+              className="w-8 h-8 rounded-md object-contain bg-white"
+            />
             <div>
               <span className="text-sm font-bold tracking-wider text-sidebar-foreground">HIPHOP</span>
               <span className="text-sm font-bold tracking-wider text-primary">GDT</span>

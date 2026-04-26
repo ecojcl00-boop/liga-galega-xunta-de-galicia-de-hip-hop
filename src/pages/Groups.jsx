@@ -222,9 +222,9 @@ export default function Groups() {
           {MODALITY_TABS.map(m => {
             const count = groups.filter(g => MODALITY_MAP[m]?.includes(g.category)).length;
             return (
-              <TabsTrigger key={m} value={m} className="flex gap-1.5 items-center text-xs md:text-sm">
+              <TabsTrigger key={m} value={m} className="flex gap-1.5 items-center text-xs md:text-sm data-[state=active]:text-white text-white/70">
                 <span className="truncate">{m}</span>
-                <span className="text-xs bg-muted rounded-full px-1.5 py-0.5 text-muted-foreground shrink-0">{count}</span>
+                <span className="text-xs bg-white/20 rounded-full px-1.5 py-0.5 text-white/80 shrink-0">{count}</span>
               </TabsTrigger>
             );
           })}
