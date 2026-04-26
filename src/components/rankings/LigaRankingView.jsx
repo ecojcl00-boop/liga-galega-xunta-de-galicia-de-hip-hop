@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
 import { buildAliasMap } from "@/lib/normalizacion";
 import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
+import EvolucionGraficos from "@/components/rankings/EvolucionGraficos";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -69,6 +70,7 @@ function PodiumCard({ group, rank, jornadas }) {
 
 function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasExcluidas }) {
   const [expanded, setExpanded] = useState(false);
+  const [evolucionExpanded, setEvolucionExpanded] = useState(false);
   const ranking = calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas);
   if (ranking.length === 0) return null;
   const top3 = ranking.slice(0, 3);
@@ -143,6 +145,17 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Sección colapsable de evolución */}
+        <Button variant="outline" size="sm" onClick={() => setEvolucionExpanded(!evolucionExpanded)} className="w-full gap-2">
+          {evolucionExpanded
+            ? <><ChevronUp className="w-4 h-4" />Ocultar evolución</>
+            : <><ChevronDown className="w-4 h-4" />Ver evolución</>}
+        </Button>
+
+        {evolucionExpanded && (
+          <EvolucionGraficos ranking={ranking} jornadas={jornadas} />
         )}
       </CardContent>
     </Card>
