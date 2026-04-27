@@ -252,7 +252,7 @@ function drawCategory(doc, nombreCategoria, participantes, cursorY, useGrime, lo
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExcluidas, jornadas }) {
+export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExcluidas, jornadas, competiciones }) {
   const [loading, setLoading] = useState(false);
 
   const handleExport = async () => {
@@ -299,14 +299,19 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       doc.setTextColor(255, 107, 53);
       doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 142, { align: "center" });
 
-      const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
-      const fechaHoy = new Date().toLocaleDateString("es-ES");
+      // Fecha de la última competición registrada
+      const fechaUltimaJornada = competiciones && competiciones.length > 0
+        ? competiciones.map(c => new Date(c.date || c.fecha)).sort((a, b) => b - a)[0]
+        : null;
+      const fechaDoc = fechaUltimaJornada && !isNaN(fechaUltimaJornada)
+        ? fechaUltimaJornada.toLocaleDateString("es-ES")
+        : new Date().toLocaleDateString("es-ES");
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(255, 255, 255);
       doc.text(
-        `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${fechaHoy}`,
+        `RANKING GLOBAL ACUMULADO · ${fechaDoc}`,
         PAGE_W / 2, 153, { align: "center" }
       );
 
@@ -323,15 +328,15 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
       let catCount = 0;
 
-      // Orden de categorías: primera aparición en los datos (igual que la UI)
-      const categoriasOrdenadas = [];
-      const vistas = new Set();
-      resultados.forEach(r => {
-        if (r.categoria && !vistas.has(r.categoria)) {
-          vistas.add(r.categoria);
-          categoriasOrdenadas.push(r.categoria);
-        }
-      });
+      const ORDEN_CATEGORIAS = [
+        'Mini Individual A', 'Mini Individual B', 'Individual',
+        'Mini Parejas A', 'Mini Parejas B', 'Parejas',
+        'Baby', 'Infantil', 'Junior', 'Youth', 'Absoluta', 'Premium', 'Megacrew'
+      ];
+
+      // Agrupar por categoría para saber cuáles tienen datos
+      const conDatos = new Set(resultados.map(r => r.categoria));
+      const categoriasOrdenadas = ORDEN_CATEGORIAS.filter(cat => conDatos.has(cat));
 
       for (const cat of categoriasOrdenadas) {
         const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
@@ -355,7 +360,7 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
 
       // ── 6. Descarga ──
       const todayFile = new Date().toISOString().slice(0, 10);
-      const filename = `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`;
+      const filename = `ranking-global-${todayFile}.pdf`;
       downloadBlob(doc.output("blob"), filename);
       console.log("[PDF] ✓ OK:", filename);
 

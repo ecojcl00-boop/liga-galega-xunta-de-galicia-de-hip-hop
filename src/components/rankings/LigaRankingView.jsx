@@ -79,10 +79,19 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Medal className="w-5 h-5 text-primary" />
-          {categoria}
-          <Badge variant="secondary" className="ml-auto">
+        <CardTitle className="flex flex-col items-center gap-1 text-center">
+          <span style={{
+            fontFamily: 'GrimeSlime, sans-serif',
+            textAlign: 'center',
+            width: '100%',
+            fontSize: '1.2rem',
+            color: '#FF6B35',
+            textTransform: 'uppercase',
+            letterSpacing: '3px'
+          }}>
+            {categoria}
+          </span>
+          <Badge variant="secondary">
             {ranking.length} {ranking.length === 1 ? "grupo" : "grupos"}
           </Badge>
         </CardTitle>
@@ -182,6 +191,11 @@ export default function LigaRankingView({ resultados }) {
     queryFn: () => base44.entities.School.filter({ excluida_de_liga: true }),
   });
 
+  const { data: competiciones = [] } = useQuery({
+    queryKey: ["ligacompeticions"],
+    queryFn: () => base44.entities.LigaCompeticion.list(),
+  });
+
   const aliasMap = buildAliasMap(grupoAliases);
   const escuelasExcluidas = escuelas.map(s => s.name);
 
@@ -223,6 +237,7 @@ export default function LigaRankingView({ resultados }) {
             grupoAliases={grupoAliases}
             escuelasExcluidas={escuelas}
             jornadas={jornadas}
+            competiciones={competiciones}
           />
         </div>
       </div>
