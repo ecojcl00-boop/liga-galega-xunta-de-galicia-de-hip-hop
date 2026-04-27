@@ -559,10 +559,31 @@ export default function Layout({ children, currentPageName }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 overflow-y-auto bg-background pb-16 lg:pb-0"
+            className="flex-1 overflow-y-auto bg-background pb-16 lg:pb-0 relative"
             style={{ overscrollBehaviorY: 'none' }}
           >
-            {children}
+            {/* Logo de fondo difuminado */}
+            <div
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '80vh',
+                height: '80vh',
+                backgroundImage: 'url(/logo_LG_hip_hop_gradiente.png)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                opacity: 0.12,
+                filter: 'blur(4px)',
+                zIndex: 0,
+                pointerEvents: 'none',
+              }}
+            />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {children}
+            </div>
           </motion.main>
         </AnimatePresence>
       </div>
