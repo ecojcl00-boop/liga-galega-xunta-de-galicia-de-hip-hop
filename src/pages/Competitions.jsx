@@ -233,7 +233,8 @@ export default function Competitions() {
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+    <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto" style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '85vh', height: '85vh', backgroundImage: 'url(/logo_LG_hip_hop_gradiente.png)', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.45, filter: 'blur(6px)', zIndex: 0, pointerEvents: 'none' }} />
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Competiciones</h1>

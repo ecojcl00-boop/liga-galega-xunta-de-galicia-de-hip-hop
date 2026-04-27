@@ -161,7 +161,8 @@ export default function GestionEscuelas() {
   }
 
   return (
-    <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6" style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '85vh', height: '85vh', backgroundImage: 'url(/logo_LG_hip_hop_gradiente.png)', backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.45, filter: 'blur(6px)', zIndex: 0, pointerEvents: 'none' }} />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>

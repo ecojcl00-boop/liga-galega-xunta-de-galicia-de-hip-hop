@@ -325,23 +325,19 @@ export default function Layout({ children, currentPageName }) {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-5 border-b border-sidebar-border">
-          <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between border-b border-sidebar-border">
+          <Link to="/" style={{ flex: 1 }}>
             <img
-              src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/05dffe28b_logoLGhiphopgradiente.png"
-              alt="Liga HipHop Logo"
-              className="w-8 h-8 rounded-md object-contain"
+              src="/logo_LG_hip_hop_gradiente.png"
+              alt="Liga Galega Hip Hop"
+              style={{ width: '190px', display: 'block', margin: '0 auto', padding: '12px 0', cursor: 'pointer' }}
             />
-            <div>
-              <span className="text-sm font-bold tracking-wider text-sidebar-foreground">HIPHOP</span>
-              <span className="text-sm font-bold tracking-wider text-primary">GDT</span>
-            </div>
           </Link>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
+            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent mr-2"
           >
             <X className="w-5 h-5" />
           </Button>
