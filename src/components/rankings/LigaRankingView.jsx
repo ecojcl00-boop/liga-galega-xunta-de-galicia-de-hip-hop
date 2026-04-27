@@ -85,7 +85,7 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
             textAlign: 'center',
             width: '100%',
             fontSize: '1.2rem',
-            color: '#FF6B35',
+            color: '#ffffff',
             textTransform: 'uppercase',
             letterSpacing: '3px'
           }}>
