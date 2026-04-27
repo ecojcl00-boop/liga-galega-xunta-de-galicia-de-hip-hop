@@ -10,186 +10,179 @@ const CATEGORY_ORDER = [
   "Infantil", "Individual", "Junior", "Youth", "Premium", "Absoluta", "Megacrew"
 ];
 
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
-const MARGIN = 14;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+const PAGE_W = 595;
+const PAGE_H = 842;
+const MARGIN = 28;
+const CONTENT_W = PAGE_W - MARGIN * 2; // 539
 
-function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b];
+const POS_COLORS = {
+  1: [255, 215, 0],   // oro
+  2: [160, 160, 160], // plata
+  3: [160, 82, 45],   // bronce
+};
+
+function drawBlackBg(doc) {
+  doc.setFillColor(5, 5, 5);
+  doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 }
 
-function addPageFooter(doc) {
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(180, 180, 180);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "Liga Galega Xunta de Galicia de Hip Hop · galiciandancetour.com",
-      PAGE_WIDTH / 2,
-      PAGE_HEIGHT - 6,
-      { align: "center" }
-    );
+function drawFooter(doc) {
+  doc.setFont("GrimeSlime", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(30, 30, 30);
+  doc.text(
+    "LIGA GALEGA XUNTA DE GALICIA DE HIP HOP · galiciandancetour.com",
+    PAGE_W / 2, 828, { align: "center" }
+  );
+}
+
+function drawBrickWall(doc, x, y, w, h) {
+  doc.setFillColor(12, 6, 2);
+  doc.rect(x, y, w, h, "F");
+  const bH = 5.5, mH = 1.5, rowH = 7, bW = 20, mW = 1.5;
+  let row = 0;
+  for (let ry = y + mH; ry < y + h - bH; ry += rowH) {
+    const offset = (row % 2 === 0) ? 0 : bW / 2;
+    for (let bx = x - offset; bx < x + w; bx += bW + mW) {
+      const rx = Math.max(x, bx);
+      const rw = Math.min(bx + bW, x + w) - rx;
+      if (rw > 0) {
+        const v = 55 + (row * 7 + Math.floor(bx) * 3) % 22;
+        doc.setFillColor(v + 8, v - 18, v - 28);
+        doc.rect(rx, ry, rw, bH, "F");
+      }
+    }
+    row++;
   }
 }
 
-function drawGradientHeader(doc) {
-  // Simulate gradient with multiple rect strips
-  const steps = 40;
-  const startR = 255, startG = 107, startB = 53; // #FF6B35
-  const endR = 255, endG = 45, endB = 120;       // #FF2D78
-  const headerH = 32;
-  for (let i = 0; i < steps; i++) {
-    const t = i / steps;
-    const r = Math.round(startR + (endR - startR) * t);
-    const g = Math.round(startG + (endG - startG) * t);
-    const b = Math.round(startB + (endB - startB) * t);
-    doc.setFillColor(r, g, b);
-    doc.rect(MARGIN + (CONTENT_WIDTH * i) / steps, 10, CONTENT_WIDTH / steps + 0.5, headerH, "F");
+function drawCategory(doc, nombre, participantes, cursorY) {
+  const listaCount = Math.max(0, participantes.length - 3);
+  const totalH = 14 + 68 + listaCount * 11 + 12;
+
+  if (cursorY + totalH > 810) {
+    doc.addPage();
+    drawBlackBg(doc);
+    drawFooter(doc);
+    cursorY = 20;
   }
 
-  // HIP HOP title
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(28);
-  doc.text("HIP HOP", PAGE_WIDTH / 2, 24, { align: "center" });
-
-  // Subtitle
+  // A) Título
+  doc.setFillColor(255, 107, 53);
+  doc.rect(MARGIN, cursorY, 2.5, 9, "F");
+  doc.setFont("GrimeSlime", "normal");
   doc.setFontSize(11);
+  doc.setTextColor(255, 107, 53);
+  doc.text(nombre.toUpperCase(), 35, cursorY + 8);
+
+  // Group count
   doc.setFont("helvetica", "normal");
-  doc.text("LIGA GALEGA DE HIP HOP", PAGE_WIDTH / 2, 34, { align: "center" });
-}
+  doc.setFontSize(7);
+  doc.setTextColor(40, 40, 40);
+  doc.text(`${participantes.length} grupos`, PAGE_W - MARGIN, cursorY + 8, { align: "right" });
 
-function drawCategoryHeader(doc, y, categoria) {
-  doc.setFillColor(...hexToRgb("#FFF0E8"));
-  doc.rect(MARGIN, y, CONTENT_WIDTH, 8, "F");
-  doc.setTextColor(...hexToRgb("#C94A00"));
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text(categoria.toUpperCase(), MARGIN + 3, y + 5.5);
-  return y + 8;
-}
+  cursorY += 14;
 
-function drawPodium(doc, y, ranking) {
-  // Order: 2nd | 1st | 3rd
-  const order = [
-    ranking[1] ? { g: ranking[1], rank: 2 } : null,
-    { g: ranking[0], rank: 1 },
-    ranking[2] ? { g: ranking[2], rank: 3 } : null,
+  // B) PODIO
+  const baseY = cursorY + 68; // línea base donde terminan todos los bloques
+  const podiumDefs = [
+    { rank: 2, colX: MARGIN,           colW: 160, wallH: 42, startOffset: 26 },
+    { rank: 1, colX: MARGIN + 160,     colW: 219, wallH: 68, startOffset: 0  },
+    { rank: 3, colX: MARGIN + 160+219, colW: 160, wallH: 32, startOffset: 36 },
   ];
 
-  const colW = CONTENT_WIDTH / 3;
-  const colors = {
-    1: { text: hexToRgb("#D4A017"), bg: hexToRgb("#FFFBEA"), border: hexToRgb("#D4A017") },
-    2: { text: hexToRgb("#9E9E9E"), bg: hexToRgb("#F8F8F8"), border: hexToRgb("#CCCCCC") },
-    3: { text: hexToRgb("#A0522D"), bg: hexToRgb("#FDF5F0"), border: hexToRgb("#A0522D") },
-  };
-  const medals = { 1: "1", 2: "2", 3: "3" };
-  const blockH = 28;
+  for (const { rank, colX, colW, wallH, startOffset } of podiumDefs) {
+    const p = participantes[rank - 1];
+    if (!p) continue;
+    const col = POS_COLORS[rank];
+    const wallTop = cursorY + startOffset;
 
-  order.forEach((item, idx) => {
-    if (!item) return;
-    const { g, rank } = item;
-    const x = MARGIN + colW * idx;
-    const offsetY = rank === 1 ? 0 : rank === 2 ? 5 : 10;
-    const col = colors[rank];
-    const bh = rank === 1 ? blockH : blockH - 5;
+    // Brick wall
+    drawBrickWall(doc, colX, wallTop, colW, wallH);
 
-    // Background
-    doc.setFillColor(...col.bg);
-    doc.roundedRect(x + 2, y + offsetY, colW - 4, bh, 2, 2, "F");
+    // Top border
+    doc.setDrawColor(...col);
+    doc.setLineWidth(2.5);
+    doc.line(colX, wallTop, colX + colW, wallTop);
 
-    // Border
-    doc.setDrawColor(...col.border);
-    doc.setLineWidth(rank === 1 ? 0.6 : 0.3);
-    doc.roundedRect(x + 2, y + offsetY, colW - 4, bh, 2, 2, "S");
+    // Position circle above wall
+    const cx = colX + colW / 2;
+    const circleY = wallTop - 8;
+    doc.setFillColor(5, 5, 5);
+    doc.circle(cx, circleY, 8, "F");
+    doc.setDrawColor(...col);
+    doc.setLineWidth(1);
+    doc.circle(cx, circleY, 8, "S");
+    doc.setFont("GrimeSlime", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...col);
+    doc.text(String(rank), cx, circleY + 3.5, { align: "center" });
 
-    const cx = x + colW / 2;
-    let ty = y + offsetY + 6;
-
-    // Position number
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(rank === 1 ? 16 : 13);
-    doc.setTextColor(...col.text);
-    doc.text(`${medals[rank]}º`, cx, ty, { align: "center" });
-    ty += rank === 1 ? 6 : 5;
+    // Text inside wall
+    const textAreaTop = wallTop + 4;
+    const textAreaH = wallH - 8;
+    const midY = textAreaTop + textAreaH / 2;
 
     // Group name
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(rank === 1 ? 8 : 7);
-    doc.setTextColor(30, 30, 30);
-    const nameLines = doc.splitTextToSize(g.nombre, colW - 8);
-    doc.text(nameLines.slice(0, 2), cx, ty, { align: "center" });
-    ty += nameLines.slice(0, 2).length * (rank === 1 ? 4 : 3.5) + 1;
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    const nameLines = doc.splitTextToSize(p.grupo, colW - 8);
+    const nameLinesShown = nameLines.slice(0, 2);
+    const nameStartY = midY - (nameLinesShown.length * 4.5) - 5;
+    doc.text(nameLinesShown, cx, nameStartY, { align: "center" });
 
     // School
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(120, 120, 120);
-    const schoolLines = doc.splitTextToSize(g.school, colW - 8);
-    doc.text(schoolLines.slice(0, 1), cx, ty, { align: "center" });
-    ty += 4;
+    const schoolLines = doc.splitTextToSize(p.escuela, colW - 8);
+    doc.text(schoolLines.slice(0, 1), cx, nameStartY + nameLinesShown.length * 4.5 + 3, { align: "center" });
 
     // Points
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(rank === 1 ? 9 : 8);
-    doc.setTextColor(...col.text);
-    doc.text(`${g.total} pts`, cx, ty, { align: "center" });
-  });
+    doc.setFontSize(8);
+    doc.setTextColor(...col);
+    doc.text(`${p.puntos} pts`, cx, baseY - 5, { align: "center" });
+  }
 
-  return y + blockH + 6;
-}
+  cursorY += 68 + 4;
 
-function drawRestTable(doc, y, ranking) {
-  const rest = ranking.slice(3);
-  if (rest.length === 0) return y;
-
-  const cols = {
-    pos: { x: MARGIN, w: 12 },
-    grupo: { x: MARGIN + 12, w: 80 },
-    escuela: { x: MARGIN + 92, w: 80 },
-    pts: { x: MARGIN + 172, w: CONTENT_WIDTH - 172 },
-  };
-  const rowH = 5;
-
-  rest.forEach((g, i) => {
-    // Alternate row bg
-    if (i % 2 === 1) {
-      doc.setFillColor(...hexToRgb("#F9F9F9"));
-      doc.rect(MARGIN, y, CONTENT_WIDTH, rowH, "F");
-    }
-    // Row separator
-    doc.setDrawColor(...hexToRgb("#EEEEEE"));
-    doc.setLineWidth(0.2);
-    doc.line(MARGIN, y, MARGIN + CONTENT_WIDTH, y);
+  // C) Lista (4º en adelante)
+  for (let i = 3; i < participantes.length; i++) {
+    const p = participantes[i];
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`${g.posicion}º`, cols.pos.x + cols.pos.w - 2, y + 3.5, { align: "right" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    const nombre = doc.splitTextToSize(g.nombre, cols.grupo.w - 2)[0];
-    doc.text(nombre, cols.grupo.x, y + 3.5);
-
-    doc.setTextColor(100, 100, 100);
-    const school = doc.splitTextToSize(g.school, cols.escuela.w - 2)[0];
-    doc.text(school, cols.escuela.x, y + 3.5);
+    doc.setTextColor(255, 107, 53);
+    doc.text(`${p.posicion}º`, MARGIN, cursorY + 7.5);
 
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(...hexToRgb("#FF6B35"));
-    doc.text(`${g.total}`, cols.pts.x + cols.pts.w, y + 3.5, { align: "right" });
+    doc.setFontSize(8);
+    doc.setTextColor(200, 200, 200);
+    const gName = doc.splitTextToSize(p.grupo, 190)[0];
+    doc.text(gName, 44, cursorY + 7.5);
 
-    y += rowH;
-  });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(70, 70, 70);
+    const sName = doc.splitTextToSize(p.escuela, 190)[0];
+    doc.text(sName, 240, cursorY + 7.5);
 
-  return y + 3;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 45, 120);
+    doc.text(`${p.puntos}`, PAGE_W - MARGIN, cursorY + 7.5, { align: "right" });
+
+    doc.setDrawColor(20, 20, 20);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN, cursorY + 1, PAGE_W - MARGIN, cursorY + 1);
+
+    cursorY += 11;
+  }
+
+  cursorY += 12;
+  return cursorY;
 }
 
 export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExcluidas, jornadas }) {
@@ -198,89 +191,88 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
   const handleExport = async () => {
     setLoading(true);
     try {
-      // Load jsPDF from CDN if not available
-      let jsPDF;
-      if (window.jspdf?.jsPDF) {
-        jsPDF = window.jspdf.jsPDF;
-      } else {
+      // Load jsPDF
+      if (!window.jspdf?.jsPDF) {
         await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
         });
-        jsPDF = window.jspdf.jsPDF;
       }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
-      const aliasMap = buildAliasMap(grupoAliases);
-      const escuelasExcluidasNames = escuelasExcluidas.map(s => s.name || s);
+      // Load custom font
+      const fontResp = await fetch("/GrimeSlime-Regular.ttf");
+      const fontBuf = await fontResp.arrayBuffer();
+      const fontB64 = btoa(String.fromCharCode(...new Uint8Array(fontBuf)));
+      doc.addFileToVFS("grimeslime-regular.ttf", fontB64);
+      doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
 
-      // Determine categories with data
-      const categoriesWithData = CATEGORY_ORDER.filter(cat => {
-        const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
-        return ranking.length > 0;
-      });
+      // Load logo
+      const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
+      const logoBuf = await logoResp.arrayBuffer();
+      const logoB64 = btoa(String.fromCharCode(...new Uint8Array(logoBuf)));
+
+      // First page background
+      drawBlackBg(doc);
+
+      // Logo
+      const logoSize = 45;
+      doc.addImage(logoB64, "PNG", (PAGE_W - logoSize) / 2, 28, logoSize, logoSize);
+
+      // Header text
+      doc.setFont("GrimeSlime", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text("LIGA GALEGA DE", PAGE_W / 2, 80, { align: "center" });
+
+      doc.setFont("GrimeSlime", "normal");
+      doc.setFontSize(26);
+      doc.setTextColor(255, 107, 53);
+      doc.text("HIP HOP", PAGE_W / 2, 92, { align: "center" });
+
+      doc.setDrawColor(40, 40, 40);
+      doc.setLineWidth(0.8);
+      doc.line(MARGIN, 102, PAGE_W - MARGIN, 102);
 
       const maxJornada = jornadas.length > 0 ? Math.max(...jornadas) : 0;
       const today = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
-      const todayFile = new Date().toISOString().slice(0, 10);
 
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-      // --- FIRST PAGE HEADER ---
-      drawGradientHeader(doc);
-
-      // Subtitle line below header
-      let y = 48;
-      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
       doc.text(
-        `Ranking Global Acumulado · Jornada ${maxJornada} · ${today}`,
-        PAGE_WIDTH / 2,
-        y,
-        { align: "center" }
+        `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${today}`,
+        PAGE_W / 2, 110, { align: "center" }
       );
-      y += 8;
 
-      // --- CATEGORIES ---
-      for (const cat of categoriesWithData) {
+      drawFooter(doc);
+
+      // Build rankings
+      const aliasMap = buildAliasMap(grupoAliases);
+      const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
+
+      let cursorY = 122;
+
+      for (const cat of CATEGORY_ORDER) {
         const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
+        if (ranking.length === 0) continue;
 
-        // Estimate space needed: category header + podium + rest table
-        const restRows = Math.max(0, ranking.length - 3);
-        const neededH = 8 + 35 + restRows * 5 + 10;
+        const participantes = ranking.map(g => ({
+          posicion: g.posicion,
+          grupo: g.nombre,
+          escuela: g.school,
+          puntos: g.total,
+        }));
 
-        // Check if we need a new page
-        if (y + neededH > PAGE_HEIGHT - 15) {
-          doc.addPage();
-          y = 12;
-        }
-
-        // Category header
-        y = drawCategoryHeader(doc, y, cat);
-        y += 3;
-
-        // Podium
-        y = drawPodium(doc, y, ranking);
-
-        // Rest table (4th onwards)
-        if (ranking.length > 3) {
-          y = drawRestTable(doc, y, ranking);
-        }
-
-        // Category separator
-        doc.setDrawColor(...hexToRgb("#EEEEEE"));
-        doc.setLineWidth(0.3);
-        doc.line(MARGIN, y, MARGIN + CONTENT_WIDTH, y);
-        y += 6;
+        cursorY = drawCategory(doc, cat, participantes, cursorY);
       }
 
-      // Footers on all pages
-      addPageFooter(doc);
-
       // Save
+      const todayFile = new Date().toISOString().slice(0, 10);
       doc.save(`ranking-global-jornada-${maxJornada}-${todayFile}.pdf`);
     } finally {
       setLoading(false);
@@ -291,13 +283,12 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
     <Button
       onClick={handleExport}
       disabled={loading}
-      className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md"
+      className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md shrink-0"
       style={{ background: "linear-gradient(90deg, #FF6B35, #FF2D78)", border: "none" }}
     >
       {loading
-        ? <><Loader2 className="w-4 h-4 animate-spin" />Generando PDF...</>
-        : <><FileDown className="w-4 h-4" />📄 Descargar PDF del Ranking</>
-      }
+        ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
+        : <><FileDown className="w-4 h-4" />📄 Descargar PDF Ranking</>}
     </Button>
   );
 }
