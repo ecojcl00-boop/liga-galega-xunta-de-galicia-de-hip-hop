@@ -1,4 +1,4 @@
-import { buildAliasMap, normalizeName, canonicalClub } from "@/lib/normalizacion";
+import { buildAliasMap, normalizeName, normalizeParejaNombre, canonicalClub } from "@/lib/normalizacion";
 
 export const TOTAL_JORNADAS_CIRCUITO = 5;
 export const BEST_N = 3;
@@ -18,7 +18,7 @@ export function puntosParaPuesto(puesto) {
 }
 
 function resultKey(r) {
-  return `${normalizeName(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
+  return `${normalizeParejaNombre(r.grupo_nombre)}|${normalizeName(r.school_name || "")}`;
 }
 
 function applyAlias(r, aliasMap) {
@@ -41,7 +41,7 @@ function applyAlias(r, aliasMap) {
 }
 
 function groupKey(nombre, school) {
-  return `${normalizeName(nombre)}|${normalizeName(school)}`;
+  return `${normalizeParejaNombre(nombre)}|${canonicalClub(school).toLowerCase().trim()}`;
 }
 
 export function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas = []) {
@@ -75,6 +75,16 @@ export function calcularRankingLiga(resultados, categoria, aliasMap, escuelasExc
         if (!g.aliases.includes(entry)) g.aliases.push(entry);
       }
     });
+
+  // Log de grupos con aliases unificados (para debug)
+  const gruposUnificados = [...grupos.values()].filter(g => g.aliases.length > 0);
+  if (gruposUnificados.length > 0) {
+    console.log(`[DUPLICADOS UNIFICADOS] ${categoria}:`, gruposUnificados.map(g => ({
+      nombre: g.nombre,
+      school: g.school,
+      aliases: g.aliases,
+    })));
+  }
 
   const items = [...grupos.values()].map(g => {
     const jornadasParticipadas = Object.keys(g.jornadas).length;

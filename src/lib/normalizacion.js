@@ -85,6 +85,31 @@ export function normalizeName(str = "") {
     .replace(/\s+/g, " ");
 }
 
+/**
+ * Normalización especial para grupos de parejas.
+ * Unifica "A/B", "A y B", "B y A" → "a y b" (orden alfabético).
+ */
+export function normalizeParejaNombre(str = "") {
+  const base = String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['''´`\-_]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+
+  // Unificar separador "/" → " y "
+  const unified = base.replace(/\s*\/\s*/g, " y ");
+
+  // Si contiene " y ", ordenar los componentes alfabéticamente
+  if (unified.includes(" y ")) {
+    const parts = unified.split(" y ").map(p => p.trim()).sort();
+    return parts.join(" y ");
+  }
+
+  return unified;
+}
+
 /** Versión con palabras ordenadas alfabéticamente (para "Sara Ferreiro" == "Ferreiro Sara") */
 function normalizeNameSorted(str = "") {
   const n = normalizeName(str);
@@ -233,7 +258,7 @@ export function detectarDuplicados(resultados, aliasesIgnorados = []) {
 }
 
 function resultKey(r) {
-  return `${normalizeName(r.grupo_nombre)}|${normalizeClub(r.school_name)}`;
+  return `${normalizeParejaNombre(r.grupo_nombre)}|${normalizeClub(r.school_name)}`;
 }
 
 function pairKey(a, b) {
