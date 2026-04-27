@@ -289,14 +289,14 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       drawBlackBg(doc);
 
       if (logoDataUrl) {
-        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 50) / 2, 22, 50, 50);
+        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 90) / 2, 18, 90, 90);
       }
 
       // Título en una línea con GrimeSlime
       if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(255, 107, 53);
-      doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 86, { align: "center" });
+      doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 118, { align: "center" });
 
       const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
       const fechaHoy = new Date().toLocaleDateString("es-ES");
@@ -306,16 +306,16 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       doc.setTextColor(255, 255, 255);
       doc.text(
         `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${fechaHoy}`,
-        PAGE_W / 2, 97, { align: "center" }
+        PAGE_W / 2, 129, { align: "center" }
       );
 
       doc.setDrawColor(50, 50, 50);
       doc.setLineWidth(0.5);
-      doc.line(MARGIN, 103, PAGE_W - MARGIN, 103);
+      doc.line(MARGIN, 135, PAGE_W - MARGIN, 135);
 
       drawFooter(doc, useGrime);
 
-      let cursorY = 116;
+      let cursorY = 148;
 
       // ── 5. Categorías ──
       const aliasMap = buildAliasMap(grupoAliases || []);
