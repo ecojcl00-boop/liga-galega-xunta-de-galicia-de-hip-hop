@@ -13,21 +13,57 @@ const CATEGORY_ORDER = [
 const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 28;
-const CONTENT_W = PAGE_W - MARGIN * 2; // 539
 
 const POS_COLORS = {
-  1: [255, 215, 0],   // oro
-  2: [160, 160, 160], // plata
-  3: [160, 82, 45],   // bronce
+  1: [255, 215, 0],
+  2: [160, 160, 160],
+  3: [160, 82, 45],
 };
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+async function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    script.onload = () => resolve(window.jspdf.jsPDF);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function bufToB64(buf) {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+// ── PDF drawing helpers ───────────────────────────────────────────────────────
 
 function drawBlackBg(doc) {
   doc.setFillColor(5, 5, 5);
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
 }
 
-function drawFooter(doc) {
-  doc.setFont("GrimeSlime", "normal");
+function drawFooter(doc, useGrime) {
+  if (useGrime) doc.setFont("GrimeSlime", "normal");
+  else doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(30, 30, 30);
   doc.text(
@@ -56,35 +92,34 @@ function drawBrickWall(doc, x, y, w, h) {
   }
 }
 
-function drawCategory(doc, nombre, participantes, cursorY) {
+function drawCategory(doc, nombre, participantes, cursorY, useGrime) {
   const listaCount = Math.max(0, participantes.length - 3);
   const totalH = 14 + 68 + listaCount * 11 + 12;
 
   if (cursorY + totalH > 810) {
     doc.addPage();
     drawBlackBg(doc);
-    drawFooter(doc);
+    drawFooter(doc, useGrime);
     cursorY = 20;
   }
 
   // A) Título
   doc.setFillColor(255, 107, 53);
   doc.rect(MARGIN, cursorY, 2.5, 9, "F");
-  doc.setFont("GrimeSlime", "normal");
+  if (useGrime) doc.setFont("GrimeSlime", "normal");
+  else doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(255, 107, 53);
   doc.text(nombre.toUpperCase(), 35, cursorY + 8);
 
-  // Group count
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(40, 40, 40);
   doc.text(`${participantes.length} grupos`, PAGE_W - MARGIN, cursorY + 8, { align: "right" });
-
   cursorY += 14;
 
   // B) PODIO
-  const baseY = cursorY + 68; // línea base donde terminan todos los bloques
+  const baseY = cursorY + 68;
   const podiumDefs = [
     { rank: 2, colX: MARGIN,           colW: 160, wallH: 42, startOffset: 26 },
     { rank: 1, colX: MARGIN + 160,     colW: 219, wallH: 68, startOffset: 0  },
@@ -97,15 +132,12 @@ function drawCategory(doc, nombre, participantes, cursorY) {
     const col = POS_COLORS[rank];
     const wallTop = cursorY + startOffset;
 
-    // Brick wall
     drawBrickWall(doc, colX, wallTop, colW, wallH);
 
-    // Top border
     doc.setDrawColor(...col);
     doc.setLineWidth(2.5);
     doc.line(colX, wallTop, colX + colW, wallTop);
 
-    // Position circle above wall
     const cx = colX + colW / 2;
     const circleY = wallTop - 8;
     doc.setFillColor(5, 5, 5);
@@ -113,17 +145,16 @@ function drawCategory(doc, nombre, participantes, cursorY) {
     doc.setDrawColor(...col);
     doc.setLineWidth(1);
     doc.circle(cx, circleY, 8, "S");
-    doc.setFont("GrimeSlime", "normal");
+    if (useGrime) doc.setFont("GrimeSlime", "normal");
+    else doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...col);
     doc.text(String(rank), cx, circleY + 3.5, { align: "center" });
 
-    // Text inside wall
     const textAreaTop = wallTop + 4;
     const textAreaH = wallH - 8;
     const midY = textAreaTop + textAreaH / 2;
 
-    // Group name
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
@@ -132,14 +163,12 @@ function drawCategory(doc, nombre, participantes, cursorY) {
     const nameStartY = midY - (nameLinesShown.length * 4.5) - 5;
     doc.text(nameLinesShown, cx, nameStartY, { align: "center" });
 
-    // School
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
     doc.setTextColor(120, 120, 120);
     const schoolLines = doc.splitTextToSize(p.escuela, colW - 8);
     doc.text(schoolLines.slice(0, 1), cx, nameStartY + nameLinesShown.length * 4.5 + 3, { align: "center" });
 
-    // Points
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(...col);
@@ -148,10 +177,9 @@ function drawCategory(doc, nombre, participantes, cursorY) {
 
   cursorY += 68 + 4;
 
-  // C) Lista (4º en adelante)
+  // C) Lista 4+
   for (let i = 3; i < participantes.length; i++) {
     const p = participantes[i];
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 107, 53);
@@ -160,14 +188,12 @@ function drawCategory(doc, nombre, participantes, cursorY) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(200, 200, 200);
-    const gName = doc.splitTextToSize(p.grupo, 190)[0];
-    doc.text(gName, 44, cursorY + 7.5);
+    doc.text(doc.splitTextToSize(p.grupo, 190)[0], 44, cursorY + 7.5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(70, 70, 70);
-    const sName = doc.splitTextToSize(p.escuela, 190)[0];
-    doc.text(sName, 240, cursorY + 7.5);
+    doc.text(doc.splitTextToSize(p.escuela, 190)[0], 240, cursorY + 7.5);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
@@ -177,7 +203,6 @@ function drawCategory(doc, nombre, participantes, cursorY) {
     doc.setDrawColor(20, 20, 20);
     doc.setLineWidth(0.3);
     doc.line(MARGIN, cursorY + 1, PAGE_W - MARGIN, cursorY + 1);
-
     cursorY += 11;
   }
 
@@ -185,38 +210,36 @@ function drawCategory(doc, nombre, participantes, cursorY) {
   return cursorY;
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExcluidas, jornadas }) {
   const [loading, setLoading] = useState(false);
+
+  // Test mínimo para confirmar que jsPDF y blob funcionan
+  const handleTest = async () => {
+    try {
+      const jsPDF = await loadJsPDF();
+      const doc = new jsPDF();
+      doc.text("Test OK", 10, 10);
+      downloadBlob(doc.output("blob"), "test.pdf");
+    } catch (err) {
+      console.error("Error test PDF:", err);
+      alert("Error test: " + err.message);
+    }
+  };
 
   const handleExport = async () => {
     setLoading(true);
     try {
-      // Helper: ArrayBuffer → base64 sin explotar el stack
-      function bufToB64(buf) {
-        const bytes = new Uint8Array(buf);
-        let binary = "";
-        const chunk = 8192;
-        for (let i = 0; i < bytes.length; i += chunk) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-        }
-        return btoa(binary);
-      }
+      // ── 1. Cargar jsPDF ──
+      console.log("[PDF] Cargando jsPDF...");
+      const jsPDF = await loadJsPDF();
+      console.log("[PDF] jsPDF cargado OK");
 
-      // Load jsPDF
-      if (!window.jspdf?.jsPDF) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
-        });
-      }
-      const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
-      // Load custom font
-      let grimeSlimeLoaded = false;
+      // ── 2. Fuente personalizada (opcional) ──
+      let useGrime = false;
       try {
         const fontResp = await fetch("/GrimeSlime-Regular.ttf");
         if (fontResp.ok) {
@@ -224,40 +247,41 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
           const fontB64 = bufToB64(fontBuf);
           doc.addFileToVFS("grimeslime-regular.ttf", fontB64);
           doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
-          grimeSlimeLoaded = true;
+          useGrime = true;
+          console.log("[PDF] Fuente GrimeSlime cargada OK");
+        } else {
+          console.warn("[PDF] Fuente no encontrada, usando helvetica");
         }
-      } catch (_) {}
-      // Fallback si no carga la fuente
-      if (!grimeSlimeLoaded) {
-        doc.addFont("helvetica", "GrimeSlime", "normal");
-      }
+      } catch (e) { console.warn("[PDF] Fuente no cargada:", e); }
 
-      // Load logo
+      // ── 3. Logo (opcional) ──
       let logoB64 = null;
       try {
         const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
         if (logoResp.ok) {
           const logoBuf = await logoResp.arrayBuffer();
           logoB64 = bufToB64(logoBuf);
+          console.log("[PDF] Logo cargado OK");
+        } else {
+          console.warn("[PDF] Logo no encontrado");
         }
-      } catch (_) {}
+      } catch (e) { console.warn("[PDF] Logo no cargado:", e); }
 
-      // First page background
+      // ── 4. Primera página ──
       drawBlackBg(doc);
 
-      // Logo
-      const logoSize = 45;
       if (logoB64) {
-        doc.addImage(logoB64, "PNG", (PAGE_W - logoSize) / 2, 28, logoSize, logoSize);
+        doc.addImage(logoB64, "PNG", (PAGE_W - 45) / 2, 28, 45, 45);
       }
 
-      // Header text
-      doc.setFont("GrimeSlime", "normal");
+      if (useGrime) doc.setFont("GrimeSlime", "normal");
+      else doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(180, 180, 180);
       doc.text("LIGA GALEGA DE", PAGE_W / 2, 80, { align: "center" });
 
-      doc.setFont("GrimeSlime", "normal");
+      if (useGrime) doc.setFont("GrimeSlime", "normal");
+      else doc.setFont("helvetica", "bold");
       doc.setFontSize(26);
       doc.setTextColor(255, 107, 53);
       doc.text("HIP HOP", PAGE_W / 2, 92, { align: "center" });
@@ -277,17 +301,17 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
         PAGE_W / 2, 110, { align: "center" }
       );
 
-      drawFooter(doc);
+      drawFooter(doc, useGrime);
 
-      // Build rankings
+      // ── 5. Categorías ──
       const aliasMap = buildAliasMap(grupoAliases);
       const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
-
       let cursorY = 122;
 
       for (const cat of CATEGORY_ORDER) {
         const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
         if (ranking.length === 0) continue;
+        console.log(`[PDF] Categoría ${cat}: ${ranking.length} grupos`);
 
         const participantes = ranking.map(g => ({
           posicion: g.posicion,
@@ -296,27 +320,44 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
           puntos: g.total,
         }));
 
-        cursorY = drawCategory(doc, cat, participantes, cursorY);
+        cursorY = drawCategory(doc, cat, participantes, cursorY, useGrime);
       }
 
-      // Save
+      // ── 6. Descarga ──
       const todayFile = new Date().toISOString().slice(0, 10);
-      doc.save(`ranking-global-jornada-${maxJornada}-${todayFile}.pdf`);
+      const filename = `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`;
+      console.log("[PDF] Generando blob y descargando:", filename);
+      downloadBlob(doc.output("blob"), filename);
+      console.log("[PDF] Descarga iniciada OK");
+
+    } catch (err) {
+      console.error("Error generando PDF:", err);
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Button
-      onClick={handleExport}
-      disabled={loading}
-      className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md shrink-0"
-      style={{ background: "linear-gradient(90deg, #FF6B35, #FF2D78)", border: "none" }}
-    >
-      {loading
-        ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
-        : <><FileDown className="w-4 h-4" />📄 Descargar PDF Ranking</>}
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        onClick={handleTest}
+        variant="outline"
+        size="sm"
+        className="text-xs px-3"
+      >
+        Test PDF
+      </Button>
+      <Button
+        onClick={handleExport}
+        disabled={loading}
+        className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md shrink-0"
+        style={{ background: "linear-gradient(90deg, #FF6B35, #FF2D78)", border: "none" }}
+      >
+        {loading
+          ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
+          : <><FileDown className="w-4 h-4" />📄 Descargar PDF Ranking</>}
+      </Button>
+    </div>
   );
 }
