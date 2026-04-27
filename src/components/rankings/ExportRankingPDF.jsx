@@ -231,87 +231,100 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
   const handleExport = async () => {
     setLoading(true);
     try {
-      // ── 1. Cargar jsPDF ──
+      // ── PASO 0: validar props ──
+      console.log("[PDF] Props recibidas:", {
+        resultados: Array.isArray(resultados) ? resultados.length : typeof resultados,
+        grupoAliases: Array.isArray(grupoAliases) ? grupoAliases.length : typeof grupoAliases,
+        escuelasExcluidas: Array.isArray(escuelasExcluidas) ? escuelasExcluidas.length : typeof escuelasExcluidas,
+        jornadas: jornadas,
+      });
+
+      if (!Array.isArray(resultados) || resultados.length === 0) {
+        alert("Sin datos de resultados. Asegúrate de que hay datos cargados.");
+        return;
+      }
+
+      // Muestra estructura del primer resultado para verificar campos
+      console.log("[PDF] Primer resultado:", JSON.stringify(resultados[0]));
+
+      // ── PASO 1: jsPDF ──
       console.log("[PDF] Cargando jsPDF...");
       const jsPDF = await loadJsPDF();
-      console.log("[PDF] jsPDF cargado OK");
-
+      console.log("[PDF] jsPDF OK");
       const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
-      // ── 2. Fuente personalizada (opcional) ──
+      // ── PASO 2: fondo + texto simple — confirma que llega aquí ──
+      doc.setFillColor(5, 5, 5);
+      doc.rect(0, 0, PAGE_W, PAGE_H, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.text("Generando ranking...", 50, 50);
+
+      // ── PASO 3: fuente GrimeSlime (opcional) ──
       let useGrime = false;
       try {
         const fontResp = await fetch("/GrimeSlime-Regular.ttf");
         if (fontResp.ok) {
           const fontBuf = await fontResp.arrayBuffer();
-          const fontB64 = bufToB64(fontBuf);
+          // Conversión segura byte a byte para evitar stack overflow
+          const bytes = new Uint8Array(fontBuf);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          const fontB64 = btoa(binary);
           doc.addFileToVFS("grimeslime-regular.ttf", fontB64);
           doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
           useGrime = true;
-          console.log("[PDF] Fuente GrimeSlime cargada OK");
-        } else {
-          console.warn("[PDF] Fuente no encontrada, usando helvetica");
+          console.log("[PDF] GrimeSlime OK");
         }
-      } catch (e) { console.warn("[PDF] Fuente no cargada:", e); }
+      } catch (e) { console.warn("[PDF] Fuente no cargada:", e.message); }
 
-      // ── 3. Logo (opcional) ──
+      // ── PASO 4: logo (opcional) ──
       let logoB64 = null;
       try {
         const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
         if (logoResp.ok) {
           const logoBuf = await logoResp.arrayBuffer();
-          logoB64 = bufToB64(logoBuf);
-          console.log("[PDF] Logo cargado OK");
-        } else {
-          console.warn("[PDF] Logo no encontrado");
+          const bytes = new Uint8Array(logoBuf);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          logoB64 = btoa(binary);
+          console.log("[PDF] Logo OK");
         }
-      } catch (e) { console.warn("[PDF] Logo no cargado:", e); }
+      } catch (e) { console.warn("[PDF] Logo no cargado:", e.message); }
 
-      // ── 4. Primera página ──
-      drawBlackBg(doc);
+      // ── PASO 5: cabecera ──
+      drawBlackBg(doc); // redibuja fondo limpio
 
-      if (logoB64) {
-        doc.addImage(logoB64, "PNG", (PAGE_W - 45) / 2, 28, 45, 45);
-      }
+      if (logoB64) doc.addImage(logoB64, "PNG", (PAGE_W - 45) / 2, 28, 45, 45);
 
-      if (useGrime) doc.setFont("GrimeSlime", "normal");
-      else doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
+      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "normal");
+      doc.setFontSize(9); doc.setTextColor(180, 180, 180);
       doc.text("LIGA GALEGA DE", PAGE_W / 2, 80, { align: "center" });
 
-      if (useGrime) doc.setFont("GrimeSlime", "normal");
-      else doc.setFont("helvetica", "bold");
-      doc.setFontSize(26);
-      doc.setTextColor(255, 107, 53);
+      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
+      doc.setFontSize(26); doc.setTextColor(255, 107, 53);
       doc.text("HIP HOP", PAGE_W / 2, 92, { align: "center" });
 
-      doc.setDrawColor(40, 40, 40);
-      doc.setLineWidth(0.8);
+      doc.setDrawColor(40, 40, 40); doc.setLineWidth(0.8);
       doc.line(MARGIN, 102, PAGE_W - MARGIN, 102);
 
       const maxJornada = jornadas.length > 0 ? Math.max(...jornadas) : 0;
       const today = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(60, 60, 60);
-      doc.text(
-        `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${today}`,
-        PAGE_W / 2, 110, { align: "center" }
-      );
-
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+      doc.text(`RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${today}`, PAGE_W / 2, 110, { align: "center" });
       drawFooter(doc, useGrime);
 
-      // ── 5. Categorías ──
-      const aliasMap = buildAliasMap(grupoAliases);
+      // ── PASO 6: categorías ──
+      const aliasMap = buildAliasMap(grupoAliases || []);
       const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
       let cursorY = 122;
+      let catCount = 0;
 
       for (const cat of CATEGORY_ORDER) {
         const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
         if (ranking.length === 0) continue;
-        console.log(`[PDF] Categoría ${cat}: ${ranking.length} grupos`);
+        catCount++;
+        console.log(`[PDF] ${cat}: ${ranking.length} grupos, primer item:`, JSON.stringify(ranking[0]));
 
         const participantes = ranking.map(g => ({
           posicion: g.posicion,
@@ -323,16 +336,18 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
         cursorY = drawCategory(doc, cat, participantes, cursorY, useGrime);
       }
 
-      // ── 6. Descarga ──
+      console.log(`[PDF] Total categorías dibujadas: ${catCount}`);
+
+      // ── PASO 7: descarga ──
       const todayFile = new Date().toISOString().slice(0, 10);
       const filename = `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`;
-      console.log("[PDF] Generando blob y descargando:", filename);
+      console.log("[PDF] Descargando:", filename);
       downloadBlob(doc.output("blob"), filename);
-      console.log("[PDF] Descarga iniciada OK");
+      console.log("[PDF] ✓ Descarga completada");
 
     } catch (err) {
       console.error("Error generando PDF:", err);
-      alert("Error: " + err.message);
+      alert("Error generando PDF: " + err.message + "\n\nStack: " + err.stack?.slice(0, 300));
     } finally {
       setLoading(false);
     }
