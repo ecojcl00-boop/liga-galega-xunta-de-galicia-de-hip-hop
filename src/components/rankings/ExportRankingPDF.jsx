@@ -191,6 +191,17 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
   const handleExport = async () => {
     setLoading(true);
     try {
+      // Helper: ArrayBuffer → base64 sin explotar el stack
+      function bufToB64(buf) {
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      }
+
       // Load jsPDF
       if (!window.jspdf?.jsPDF) {
         await new Promise((resolve, reject) => {
@@ -205,23 +216,40 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
       // Load custom font
-      const fontResp = await fetch("/GrimeSlime-Regular.ttf");
-      const fontBuf = await fontResp.arrayBuffer();
-      const fontB64 = btoa(String.fromCharCode(...new Uint8Array(fontBuf)));
-      doc.addFileToVFS("grimeslime-regular.ttf", fontB64);
-      doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
+      let grimeSlimeLoaded = false;
+      try {
+        const fontResp = await fetch("/GrimeSlime-Regular.ttf");
+        if (fontResp.ok) {
+          const fontBuf = await fontResp.arrayBuffer();
+          const fontB64 = bufToB64(fontBuf);
+          doc.addFileToVFS("grimeslime-regular.ttf", fontB64);
+          doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
+          grimeSlimeLoaded = true;
+        }
+      } catch (_) {}
+      // Fallback si no carga la fuente
+      if (!grimeSlimeLoaded) {
+        doc.addFont("helvetica", "GrimeSlime", "normal");
+      }
 
       // Load logo
-      const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
-      const logoBuf = await logoResp.arrayBuffer();
-      const logoB64 = btoa(String.fromCharCode(...new Uint8Array(logoBuf)));
+      let logoB64 = null;
+      try {
+        const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
+        if (logoResp.ok) {
+          const logoBuf = await logoResp.arrayBuffer();
+          logoB64 = bufToB64(logoBuf);
+        }
+      } catch (_) {}
 
       // First page background
       drawBlackBg(doc);
 
       // Logo
       const logoSize = 45;
-      doc.addImage(logoB64, "PNG", (PAGE_W - logoSize) / 2, 28, logoSize, logoSize);
+      if (logoB64) {
+        doc.addImage(logoB64, "PNG", (PAGE_W - logoSize) / 2, 28, logoSize, logoSize);
+      }
 
       // Header text
       doc.setFont("GrimeSlime", "normal");
