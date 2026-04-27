@@ -140,26 +140,26 @@ function drawCategory(doc, nombreCategoria, participantes, cursorY, useGrime, lo
   }
 
   // ── Título categoría centrado con líneas laterales ──
-  if (useGrime) doc.setFont("GrimeSlime", "normal");
-  else doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(255, 107, 53);
   const titleText = nombreCategoria.toUpperCase();
-  const titleW = doc.getTextWidth(titleText);
-  const titleX = PAGE_W / 2;
   const titleY = cursorY + 10;
-  doc.text(titleText, titleX, titleY, { align: "center" });
 
-  doc.setDrawColor(255, 107, 53);
-  doc.setLineWidth(0.4);
-  doc.line(MARGIN, titleY - 3, (PAGE_W - titleW) / 2 - 6, titleY - 3);
-  doc.line((PAGE_W + titleW) / 2 + 6, titleY - 3, PAGE_W - MARGIN, titleY - 3);
-
-  // Número grupos
+  // Número de grupos — encima a la derecha, sin línea que lo cruce
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(255, 255, 255);
-  doc.text(`${participantes.length} GRUPOS`, PAGE_W - MARGIN, titleY, { align: "right" });
+  doc.text(`${participantes.length} GRUPOS`, 567, titleY - 4, { align: "right" });
+
+  // Título centrado
+  if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(255, 107, 53);
+  doc.text(titleText, PAGE_W / 2, titleY, { align: "center" });
+
+  const titleW = doc.getTextWidth(titleText);
+  doc.setDrawColor(255, 107, 53);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, titleY - 3, (PAGE_W - titleW) / 2 - 6, titleY - 3);
+  doc.line((PAGE_W + titleW) / 2 + 6, titleY - 3, 530, titleY - 3);
 
   cursorY = titleY + 24;
 
@@ -289,14 +289,14 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       drawBlackBg(doc);
 
       if (logoDataUrl) {
-        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 90) / 2, 18, 90, 90);
+        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 112) / 2, 18, 112, 112);
       }
 
       // Título en una línea con GrimeSlime
       if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(255, 107, 53);
-      doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 118, { align: "center" });
+      doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 142, { align: "center" });
 
       const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
       const fechaHoy = new Date().toLocaleDateString("es-ES");
@@ -306,16 +306,16 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       doc.setTextColor(255, 255, 255);
       doc.text(
         `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${fechaHoy}`,
-        PAGE_W / 2, 129, { align: "center" }
+        PAGE_W / 2, 153, { align: "center" }
       );
 
       doc.setDrawColor(50, 50, 50);
       doc.setLineWidth(0.5);
-      doc.line(MARGIN, 135, PAGE_W - MARGIN, 135);
+      doc.line(MARGIN, 159, PAGE_W - MARGIN, 159);
 
       drawFooter(doc, useGrime);
 
-      let cursorY = 148;
+      let cursorY = 172;
 
       // ── 5. Categorías ──
       const aliasMap = buildAliasMap(grupoAliases || []);
