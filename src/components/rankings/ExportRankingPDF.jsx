@@ -4,11 +4,7 @@ import { FileDown, Loader2 } from "lucide-react";
 import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
 import { buildAliasMap } from "@/lib/normalizacion";
 
-const CATEGORY_ORDER = [
-  "Baby", "Mini Individual A", "Mini Individual B",
-  "Mini Parejas A", "Mini Parejas B", "Parejas",
-  "Infantil", "Individual", "Junior", "Youth", "Premium", "Absoluta", "Megacrew"
-];
+
 
 const GOLD = [255, 215, 0];
 const MARGIN = 28;
@@ -126,17 +122,22 @@ function drawBrickWall(doc, x, y, w, h) {
   }
 }
 
-function drawCategory(doc, nombreCategoria, participantes, cursorY, useGrime, logoDataUrl) {
-  // Calcular altura necesaria
-  const listaCount = Math.max(0, participantes.length - 3);
-  const totalH = 34 + 80 + listaCount * 11 + 12;
+function alturaCategoria(numParticipantes) {
+  const altoTitulo = 34;
+  const altoPodio = 80;
+  const altoLista = Math.max(0, numParticipantes - 3) * 11;
+  const altoMargen = 16;
+  return altoTitulo + altoPodio + altoLista + altoMargen;
+}
 
-  if (cursorY + totalH > 810) {
+function drawCategory(doc, nombreCategoria, participantes, cursorY, useGrime, logoDataUrl) {
+  const altoCat = alturaCategoria(participantes.length);
+  if (cursorY + altoCat > 810) {
     drawWatermark(doc, cursorY, logoDataUrl);
     doc.addPage();
     drawBlackBg(doc);
     drawFooter(doc, useGrime);
-    cursorY = 20;
+    cursorY = 28;
   }
 
   // ── Título categoría centrado con líneas laterales ──
@@ -322,7 +323,17 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
       let catCount = 0;
 
-      for (const cat of CATEGORY_ORDER) {
+      // Orden de categorías: primera aparición en los datos (igual que la UI)
+      const categoriasOrdenadas = [];
+      const vistas = new Set();
+      resultados.forEach(r => {
+        if (r.categoria && !vistas.has(r.categoria)) {
+          vistas.add(r.categoria);
+          categoriasOrdenadas.push(r.categoria);
+        }
+      });
+
+      for (const cat of categoriasOrdenadas) {
         const ranking = calcularRankingLiga(resultados, cat, aliasMap, escuelasExcluidasNames);
         if (ranking.length === 0) continue;
         catCount++;
