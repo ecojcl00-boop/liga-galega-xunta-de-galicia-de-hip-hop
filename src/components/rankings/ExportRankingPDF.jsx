@@ -13,12 +13,7 @@ const CATEGORY_ORDER = [
 const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 28;
-
-const POS_COLORS = {
-  1: [255, 215, 0],
-  2: [180, 180, 180],
-  3: [180, 100, 40],
-};
+const GOLD = [255, 215, 0];
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,28 +42,23 @@ function downloadBlob(blob, filename) {
 async function loadLogoDataUrl() {
   let logoDataUrl = null;
   try {
-    const resp = await fetch("/logo_LG_hip_hop_gradiente.png");
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
     await new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth || 512;
-        canvas.height = img.naturalHeight || 512;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        logoDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-        URL.revokeObjectURL(objectUrl);
+        const c = document.createElement("canvas");
+        c.width = 512; c.height = 512;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.drawImage(img, 0, 0, 512, 512);
+        logoDataUrl = c.toDataURL("image/jpeg", 0.92);
         resolve();
       };
-      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(); };
-      img.src = objectUrl;
+      img.onerror = resolve;
+      img.src = "/logo_LG_hip_hop_gradiente.png?" + Date.now();
     });
-  } catch (e) { console.warn("[PDF] Logo error:", e); }
-  console.log("[PDF] logoDataUrl:", logoDataUrl ? logoDataUrl.substring(0, 40) : "NULL");
+  } catch (e) { /* silencioso */ }
+  console.log("[PDF] logo:", logoDataUrl ? "OK " + logoDataUrl.length : "FALLIDO");
   return logoDataUrl;
 }
 
@@ -83,7 +73,7 @@ function drawFooter(doc, useGrime) {
   if (useGrime) doc.setFont("GrimeSlime", "normal");
   else doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.setTextColor(30, 30, 30);
+  doc.setTextColor(255, 255, 255);
   doc.text(
     "LIGA GALEGA XUNTA DE GALICIA DE HIP HOP · galiciandancetour.com",
     PAGE_W / 2, 828, { align: "center" }
@@ -91,14 +81,14 @@ function drawFooter(doc, useGrime) {
 }
 
 function drawWatermark(doc, logoDataUrl, cursorY) {
-  if (!logoDataUrl || cursorY >= 680) return;
-  const wSize = 120;
-  const wX = (PAGE_W - wSize) / 2;
-  const wY = cursorY + ((PAGE_H - 40 - cursorY - wSize) / 2);
-  doc.addImage(logoDataUrl, "JPEG", wX, wY, wSize, wSize);
+  if (!logoDataUrl || cursorY >= 660) return;
+  const s = 110;
+  const wx = (PAGE_W - s) / 2;
+  const wy = cursorY + ((800 - cursorY - s) / 2);
+  doc.addImage(logoDataUrl, "JPEG", wx, wy, s, s);
   doc.setFillColor(5, 5, 5);
-  if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.75 }));
-  doc.rect(wX, wY, wSize, wSize, "F");
+  if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.72 }));
+  doc.rect(wx, wy, s, s, "F");
   if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
 }
 
@@ -122,12 +112,33 @@ function drawBrickWall(doc, x, y, w, h) {
   }
 }
 
+function drawCategoryTitle(doc, nombre, participantes, cursorY, useGrime) {
+  // Título centrado con líneas decorativas a los lados
+  if (useGrime) doc.setFont("GrimeSlime", "normal");
+  else doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(255, 107, 53);
+  doc.text(nombre.toUpperCase(), PAGE_W / 2, cursorY + 9, { align: "center" });
+
+  const titleWidth = doc.getTextWidth(nombre.toUpperCase());
+  const lineY = cursorY + 5;
+  doc.setDrawColor(255, 107, 53);
+  doc.setLineWidth(0.5);
+  doc.line(MARGIN, lineY, (PAGE_W - titleWidth) / 2 - 6, lineY);
+  doc.line((PAGE_W + titleWidth) / 2 + 6, lineY, PAGE_W - MARGIN, lineY);
+
+  // Contador grupos
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${participantes.length} GRUPOS`, PAGE_W - MARGIN, cursorY + 9, { align: "right" });
+}
+
 function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl) {
   const listaCount = Math.max(0, participantes.length - 3);
   const totalH = 14 + 68 + listaCount * 11 + 12;
 
   if (cursorY + totalH > 810) {
-    // marca de agua en la página actual antes de saltar
     drawWatermark(doc, logoDataUrl, cursorY);
     doc.addPage();
     drawBlackBg(doc);
@@ -135,19 +146,8 @@ function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl
     cursorY = 20;
   }
 
-  // A) Título categoría
-  doc.setFillColor(255, 107, 53);
-  doc.rect(MARGIN, cursorY, 2.5, 9, "F");
-  if (useGrime) doc.setFont("GrimeSlime", "normal");
-  else doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(255, 107, 53);
-  doc.text(nombre.toUpperCase(), 35, cursorY + 8);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(40, 40, 40);
-  doc.text(`${participantes.length} grupos`, PAGE_W - MARGIN, cursorY + 8, { align: "right" });
+  // A) Título
+  drawCategoryTitle(doc, nombre, participantes, cursorY, useGrime);
   cursorY += 14;
 
   // B) PODIO
@@ -160,51 +160,50 @@ function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl
   for (const { rank, colX, colW, wallH, startOffset } of podiumDefs) {
     const p = participantes[rank - 1];
     if (!p) continue;
-    const col = POS_COLORS[rank];
     const wallTop = cursorY + startOffset;
 
     drawBrickWall(doc, colX, wallTop, colW, wallH);
 
-    // Línea superior del podio con color de posición
-    doc.setDrawColor(...col);
+    // Línea superior dorada para todos
+    doc.setDrawColor(...GOLD);
     doc.setLineWidth(2.5);
     doc.line(colX, wallTop, colX + colW, wallTop);
 
-    // Círculo con número de posición
+    // Círculo número posición — 1º más grande
     const cx = colX + colW / 2;
     const circleY = wallTop - 8;
+    const circleR = rank === 1 ? 9 : 7;
     doc.setFillColor(5, 5, 5);
-    doc.circle(cx, circleY, 8, "F");
-    doc.setDrawColor(...col);
+    doc.circle(cx, circleY, circleR, "F");
+    doc.setDrawColor(...GOLD);
     doc.setLineWidth(1);
-    doc.circle(cx, circleY, 8, "S");
+    doc.circle(cx, circleY, circleR, "S");
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(...col);
+    doc.setTextColor(...GOLD);
     doc.text(String(rank), cx, circleY + 3.5, { align: "center" });
 
     // Texto centrado dentro de la pared
     const textAreaY = wallTop + (wallH / 2);
     const lineSpacing = 9;
-    const textCenterX = cx;
 
     // Nombre grupo
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
     doc.setFontSize(colW > 180 ? 9 : 7.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(p.grupo, textCenterX, textAreaY - lineSpacing, { align: "center", maxWidth: colW - 8 });
+    doc.text(p.grupo, cx, textAreaY - lineSpacing, { align: "center", maxWidth: colW - 8 });
 
     // Escuela
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
     doc.setTextColor(160, 160, 160);
-    doc.text(p.escuela, textCenterX, textAreaY, { align: "center", maxWidth: colW - 8 });
+    doc.text(p.escuela, cx, textAreaY, { align: "center", maxWidth: colW - 8 });
 
-    // Puntos
+    // Puntos dorados para todos
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
     doc.setFontSize(colW > 180 ? 9 : 7.5);
-    doc.setTextColor(...col);
-    doc.text(`${p.puntos} pts`, textCenterX, textAreaY + lineSpacing, { align: "center" });
+    doc.setTextColor(...GOLD);
+    doc.text(`${p.puntos} pts`, cx, textAreaY + lineSpacing, { align: "center" });
   }
 
   cursorY += 68 + 4;
@@ -223,7 +222,6 @@ function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl
     doc.setTextColor(200, 200, 200);
     doc.text(doc.splitTextToSize(p.grupo, 190)[0], 44, cursorY + 7.5);
 
-    // FIX: escuela visible (200,200,200) en lugar de oscura
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(200, 200, 200);
@@ -256,7 +254,6 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       doc.text("Test OK", 10, 10);
       downloadBlob(doc.output("blob"), "test.pdf");
     } catch (err) {
-      console.error("Error test PDF:", err);
       alert("Error test: " + err.message);
     }
   };
@@ -264,14 +261,8 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
   const handleExport = async () => {
     setLoading(true);
     try {
-      console.log("[PDF] Props:", {
-        resultados: Array.isArray(resultados) ? resultados.length : typeof resultados,
-        grupoAliases: Array.isArray(grupoAliases) ? grupoAliases.length : typeof grupoAliases,
-        jornadas,
-      });
-
       if (!Array.isArray(resultados) || resultados.length === 0) {
-        alert("Sin datos de resultados. Asegúrate de que hay datos cargados.");
+        alert("Sin datos de resultados.");
         return;
       }
 
@@ -293,42 +284,61 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
           useGrime = true;
           console.log("[PDF] GrimeSlime OK");
         }
-      } catch (e) { console.warn("[PDF] Fuente no cargada:", e.message); }
+      } catch (e) { console.warn("[PDF] Fuente:", e.message); }
 
-      // ── 3. Logo via fetch blob → canvas → JPEG ──
+      // ── 3. Logo ──
       const logoDataUrl = await loadLogoDataUrl();
 
       // ── 4. Primera página ──
       drawBlackBg(doc);
 
-      // Logo cabecera
+      // Logo o fallback naranja
       if (logoDataUrl) {
-        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 50) / 2, 24, 50, 50);
-        console.log("[PDF] Logo añadido a cabecera");
+        doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 50) / 2, 22, 50, 50);
+      } else {
+        doc.setFillColor(255, 107, 53);
+        doc.rect((PAGE_W - 50) / 2, 22, 50, 50, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.text("GBD", PAGE_W / 2, 50, { align: "center" });
       }
 
-      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "normal");
-      doc.setFontSize(9); doc.setTextColor(180, 180, 180);
-      doc.text("LIGA GALEGA DE", PAGE_W / 2, 82, { align: "center" });
-
-      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
-      doc.setFontSize(26); doc.setTextColor(255, 107, 53);
-      doc.text("HIP HOP", PAGE_W / 2, 95, { align: "center" });
-
-      doc.setDrawColor(40, 40, 40); doc.setLineWidth(0.8);
-      doc.line(MARGIN, 105, PAGE_W - MARGIN, 105);
-
+      // Cabecera — FIX 5: coordenadas exactas sin solapamiento
       const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
-      const today = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
-      doc.text(`RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${today}`, PAGE_W / 2, 113, { align: "center" });
+      const fechaHoy = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+      let y = 82;
+      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text("LIGA GALEGA DE", PAGE_W / 2, y, { align: "center" });
+
+      y += 18;
+      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(255, 107, 53);
+      doc.text("HIP HOP", PAGE_W / 2, y, { align: "center" });
+
+      y += 14;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text(
+        `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${fechaHoy}`,
+        PAGE_W / 2, y, { align: "center" }
+      );
+
+      doc.setDrawColor(40, 40, 40);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, y + 6, PAGE_W - MARGIN, y + 6);
 
       drawFooter(doc, useGrime);
+
+      let cursorY = y + 18;
 
       // ── 5. Categorías ──
       const aliasMap = buildAliasMap(grupoAliases || []);
       const escuelasExcluidasNames = (escuelasExcluidas || []).map(s => s.name || s);
-      let cursorY = 125;
       let catCount = 0;
 
       for (const cat of CATEGORY_ORDER) {
@@ -346,20 +356,19 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
         cursorY = drawCategory(doc, cat, participantes, cursorY, useGrime, logoDataUrl);
       }
 
-      console.log(`[PDF] Categorías dibujadas: ${catCount}`);
+      console.log(`[PDF] Categorías: ${catCount}`);
 
-      // Marca de agua en la última página
+      // Marca de agua última página
       drawWatermark(doc, logoDataUrl, cursorY);
 
       // ── 6. Descarga ──
       const todayFile = new Date().toISOString().slice(0, 10);
-      const filename = `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`;
-      downloadBlob(doc.output("blob"), filename);
-      console.log("[PDF] ✓ Descarga OK:", filename);
+      downloadBlob(doc.output("blob"), `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`);
+      console.log("[PDF] ✓ OK");
 
     } catch (err) {
       console.error("Error generando PDF:", err);
-      alert("Error generando PDF: " + err.message + "\n\n" + err.stack?.slice(0, 400));
+      alert("Error: " + err.message + "\n\n" + err.stack?.slice(0, 400));
     } finally {
       setLoading(false);
     }
