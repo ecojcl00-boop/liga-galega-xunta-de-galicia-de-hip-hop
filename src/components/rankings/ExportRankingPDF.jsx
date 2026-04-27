@@ -278,24 +278,33 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
         }
       } catch (e) { console.warn("[PDF] Fuente no cargada:", e.message); }
 
-      // ── PASO 4: logo (opcional) ──
-      let logoB64 = null;
+      // ── PASO 4: logo via canvas→JPEG (compatible con jsPDF) ──
+      let logoDataUrl = null;
       try {
-        const logoResp = await fetch("/logo_LG_hip_hop_gradiente.png");
-        if (logoResp.ok) {
-          const logoBuf = await logoResp.arrayBuffer();
-          const bytes = new Uint8Array(logoBuf);
-          let binary = "";
-          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-          logoB64 = btoa(binary);
-          console.log("[PDF] Logo OK");
-        }
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            logoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+            console.log("[PDF] Logo OK via canvas");
+            resolve();
+          };
+          img.onerror = () => { console.warn("[PDF] Logo no cargado"); resolve(); };
+          img.src = "/logo_LG_hip_hop_gradiente.png";
+        });
       } catch (e) { console.warn("[PDF] Logo no cargado:", e.message); }
 
       // ── PASO 5: cabecera ──
       drawBlackBg(doc); // redibuja fondo limpio
 
-      if (logoB64) doc.addImage(logoB64, "PNG", (PAGE_W - 45) / 2, 28, 45, 45);
+      if (logoDataUrl) doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 45) / 2, 28, 45, 45);
 
       if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "normal");
       doc.setFontSize(9); doc.setTextColor(180, 180, 180);
