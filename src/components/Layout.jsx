@@ -328,9 +328,9 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex items-center justify-between border-b border-sidebar-border">
           <Link to="/" style={{ flex: 1 }}>
             <img
-              src="/logo_LG_hip_hop_gradiente.png"
+              src="https://media.base44.com/images/public/69b52c3a19e49b64cc4d52f6/bcf886dde_logoLGhiphopgradiente.png"
               alt="Liga Galega Hip Hop"
-              style={{ width: '190px', display: 'block', margin: '0 auto', padding: '12px 0', cursor: 'pointer' }}
+              style={{ width: '150px', display: 'block', margin: '0 auto', padding: '12px 0', cursor: 'pointer' }}
             />
           </Link>
           <Button
