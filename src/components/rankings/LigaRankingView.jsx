@@ -10,6 +10,7 @@ import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
 import { buildAliasMap } from "@/lib/normalizacion";
 import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
 import EvolucionGraficos, { Sparkline, COLORS } from "@/components/rankings/EvolucionGraficos";
+import ExportRankingPDF from "@/components/rankings/ExportRankingPDF";
 
 const CATEGORY_ORDER = [
   "Mini Individual A", "Mini Individual B", "Individual",
@@ -212,9 +213,17 @@ export default function LigaRankingView({ resultados }) {
             <span key={j} className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">J{j}</span>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
-          <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
-          Bonus +10% por asistir a las 5 jornadas
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
+            Bonus +10% por asistir a las 5 jornadas
+          </div>
+          <ExportRankingPDF
+            resultados={resultados}
+            grupoAliases={grupoAliases}
+            escuelasExcluidas={escuelas}
+            jornadas={jornadas}
+          />
         </div>
       </div>
 
