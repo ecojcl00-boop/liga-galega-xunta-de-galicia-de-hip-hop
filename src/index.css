@@ -5,14 +5,17 @@
 /* GrimeSlime - fuente graffiti para Liga Hip Hop */
 @font-face {
   font-family: 'GrimeSlime';
-  src: url('/GrimeSlime-Regular.ttf') format('truetype');
+  src: url('https://raw.githubusercontent.com/ecojcl00-boop/liga-galega-xunta-de-galicia-de-hip-hop/main/public/GrimeSlime-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
 h1, h2, h3 {
   font-family: 'GrimeSlime', sans-serif;
 }
 
-aside nav a span {
+nav a, nav button, .sidebar a, .sidebar button {
   font-family: 'GrimeSlime', sans-serif;
 }
 
