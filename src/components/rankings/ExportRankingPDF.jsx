@@ -10,12 +10,12 @@ const CATEGORY_ORDER = [
   "Infantil", "Individual", "Junior", "Youth", "Premium", "Absoluta", "Megacrew"
 ];
 
+const GOLD = [255, 215, 0];
+const MARGIN = 28;
 const PAGE_W = 595;
 const PAGE_H = 842;
-const MARGIN = 28;
-const GOLD = [255, 215, 0];
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── jsPDF loader ──────────────────────────────────────────────────────────────
 
 async function loadJsPDF() {
   return new Promise((resolve, reject) => {
@@ -28,6 +28,40 @@ async function loadJsPDF() {
   });
 }
 
+// ── logo loader ───────────────────────────────────────────────────────────────
+
+async function loadLogoDataUrl() {
+  let logoDataUrl = null;
+  try {
+    const resp = await fetch("/logo LG hip hop gradiente.png");
+    console.log("[PDF] logo status:", resp.status, resp.ok);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width = 512; c.height = 512;
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, 512, 512);
+          ctx.drawImage(img, 0, 0, 512, 512);
+          logoDataUrl = c.toDataURL("image/jpeg", 0.92);
+          URL.revokeObjectURL(objectUrl);
+          resolve();
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(); };
+        img.src = objectUrl;
+      });
+    }
+  } catch (e) { console.warn("[PDF] logo error:", e); }
+  console.log("[PDF] logo:", logoDataUrl ? "OK" : "FALLIDO");
+  return logoDataUrl;
+}
+
+// ── download ──────────────────────────────────────────────────────────────────
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -39,30 +73,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function loadLogoDataUrl() {
-  let logoDataUrl = null;
-  try {
-    await new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement("canvas");
-        c.width = 512; c.height = 512;
-        const ctx = c.getContext("2d");
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, 512, 512);
-        ctx.drawImage(img, 0, 0, 512, 512);
-        logoDataUrl = c.toDataURL("image/jpeg", 0.92);
-        resolve();
-      };
-      img.onerror = resolve;
-      img.src = "/logo_LG_hip_hop_gradiente.png?" + Date.now();
-    });
-  } catch (e) { /* silencioso */ }
-  console.log("[PDF] logo:", logoDataUrl ? "OK " + logoDataUrl.length : "FALLIDO");
-  return logoDataUrl;
-}
-
-// ── PDF drawing helpers ───────────────────────────────────────────────────────
+// ── PDF helpers ───────────────────────────────────────────────────────────────
 
 function drawBlackBg(doc) {
   doc.setFillColor(5, 5, 5);
@@ -80,16 +91,19 @@ function drawFooter(doc, useGrime) {
   );
 }
 
-function drawWatermark(doc, logoDataUrl, cursorY) {
-  if (!logoDataUrl || cursorY >= 660) return;
-  const s = 110;
+function drawWatermark(doc, cursorY, logoDataUrl) {
+  if (!logoDataUrl) return;
+  const spaceLeft = 800 - cursorY;
+  if (spaceLeft < 140) return;
+  const s = Math.min(spaceLeft - 30, 120);
   const wx = (PAGE_W - s) / 2;
-  const wy = cursorY + ((800 - cursorY - s) / 2);
+  const wy = cursorY + (spaceLeft - s) / 2;
   doc.addImage(logoDataUrl, "JPEG", wx, wy, s, s);
+  if (doc.saveGraphicsState) doc.saveGraphicsState();
+  if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.76 }));
   doc.setFillColor(5, 5, 5);
-  if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.72 }));
   doc.rect(wx, wy, s, s, "F");
-  if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
+  if (doc.restoreGraphicsState) doc.restoreGraphicsState();
 }
 
 function drawBrickWall(doc, x, y, w, h) {
@@ -112,129 +126,122 @@ function drawBrickWall(doc, x, y, w, h) {
   }
 }
 
-function drawCategoryTitle(doc, nombre, participantes, cursorY, useGrime) {
-  // Título centrado con líneas decorativas a los lados
-  if (useGrime) doc.setFont("GrimeSlime", "normal");
-  else doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(255, 107, 53);
-  doc.text(nombre.toUpperCase(), PAGE_W / 2, cursorY + 9, { align: "center" });
-
-  const titleWidth = doc.getTextWidth(nombre.toUpperCase());
-  const lineY = cursorY + 5;
-  doc.setDrawColor(255, 107, 53);
-  doc.setLineWidth(0.5);
-  doc.line(MARGIN, lineY, (PAGE_W - titleWidth) / 2 - 6, lineY);
-  doc.line((PAGE_W + titleWidth) / 2 + 6, lineY, PAGE_W - MARGIN, lineY);
-
-  // Contador grupos
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(255, 255, 255);
-  doc.text(`${participantes.length} GRUPOS`, PAGE_W - MARGIN, cursorY + 9, { align: "right" });
-}
-
-function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl) {
+function drawCategory(doc, nombreCategoria, participantes, cursorY, useGrime, logoDataUrl) {
+  // Calcular altura necesaria
   const listaCount = Math.max(0, participantes.length - 3);
-  const totalH = 14 + 68 + listaCount * 11 + 12;
+  const totalH = 34 + 80 + listaCount * 11 + 12;
 
   if (cursorY + totalH > 810) {
-    drawWatermark(doc, logoDataUrl, cursorY);
+    drawWatermark(doc, cursorY, logoDataUrl);
     doc.addPage();
     drawBlackBg(doc);
     drawFooter(doc, useGrime);
     cursorY = 20;
   }
 
-  // A) Título
-  drawCategoryTitle(doc, nombre, participantes, cursorY, useGrime);
-  cursorY += 14;
+  // ── Título categoría centrado con líneas laterales ──
+  if (useGrime) doc.setFont("GrimeSlime", "normal");
+  else doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(255, 107, 53);
+  const titleText = nombreCategoria.toUpperCase();
+  const titleW = doc.getTextWidth(titleText);
+  const titleX = PAGE_W / 2;
+  const titleY = cursorY + 10;
+  doc.text(titleText, titleX, titleY, { align: "center" });
 
-  // B) PODIO
-  const podiumDefs = [
-    { rank: 2, colX: MARGIN,             colW: 160, wallH: 42, startOffset: 26 },
-    { rank: 1, colX: MARGIN + 160,       colW: 219, wallH: 68, startOffset: 0  },
-    { rank: 3, colX: MARGIN + 160 + 219, colW: 160, wallH: 32, startOffset: 36 },
-  ];
+  doc.setDrawColor(255, 107, 53);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN, titleY - 3, (PAGE_W - titleW) / 2 - 6, titleY - 3);
+  doc.line((PAGE_W + titleW) / 2 + 6, titleY - 3, PAGE_W - MARGIN, titleY - 3);
 
-  for (const { rank, colX, colW, wallH, startOffset } of podiumDefs) {
-    const p = participantes[rank - 1];
-    if (!p) continue;
-    const wallTop = cursorY + startOffset;
+  // Número grupos
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${participantes.length} GRUPOS`, PAGE_W - MARGIN, titleY, { align: "right" });
 
-    drawBrickWall(doc, colX, wallTop, colW, wallH);
+  cursorY = titleY + 24;
 
-    // Línea superior dorada para todos
+  // ── Podio ──
+  const podiumBottom = cursorY + 72;
+  const p1 = participantes[0];
+  const p2 = participantes[1];
+  const p3 = participantes[2];
+
+  const cols = [
+    p2 ? { pos: 2, nombre: p2.grupo, escuela: p2.escuela, puntos: p2.puntos, x: 28,  w: 160, wallH: 46 } : null,
+    p1 ? { pos: 1, nombre: p1.grupo, escuela: p1.escuela, puntos: p1.puntos, x: 188, w: 219, wallH: 72 } : null,
+    p3 ? { pos: 3, nombre: p3.grupo, escuela: p3.escuela, puntos: p3.puntos, x: 407, w: 160, wallH: 34 } : null,
+  ].filter(Boolean);
+
+  cols.forEach(({ pos, nombre, escuela, puntos, x, w, wallH }) => {
+    const wallTop = podiumBottom - wallH;
+    const circleR = pos === 1 ? 9 : 7;
+    const circleX = x + w / 2;
+    const circleY = wallTop - 4;
+
+    drawBrickWall(doc, x, wallTop, w, wallH);
+
     doc.setDrawColor(...GOLD);
-    doc.setLineWidth(2.5);
-    doc.line(colX, wallTop, colX + colW, wallTop);
+    doc.setLineWidth(2);
+    doc.line(x, wallTop, x + w, wallTop);
 
-    // Círculo número posición — 1º más grande
-    const cx = colX + colW / 2;
-    const circleY = wallTop - 8;
-    const circleR = rank === 1 ? 9 : 7;
-    doc.setFillColor(5, 5, 5);
-    doc.circle(cx, circleY, circleR, "F");
     doc.setDrawColor(...GOLD);
     doc.setLineWidth(1);
-    doc.circle(cx, circleY, circleR, "S");
+    doc.setFillColor(5, 5, 5);
+    doc.circle(circleX, circleY, circleR, "FD");
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(pos === 1 ? 10 : 8);
     doc.setTextColor(...GOLD);
-    doc.text(String(rank), cx, circleY + 3.5, { align: "center" });
+    doc.text(String(pos), circleX, circleY + (pos === 1 ? 3.5 : 2.8), { align: "center" });
 
-    // Texto centrado dentro de la pared
-    const textAreaY = wallTop + (wallH / 2);
-    const lineSpacing = 9;
+    const midY = wallTop + wallH / 2;
+    const lineH = 8;
 
-    // Nombre grupo
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
-    doc.setFontSize(colW > 180 ? 9 : 7.5);
+    doc.setFontSize(pos === 1 ? 8.5 : 7);
     doc.setTextColor(255, 255, 255);
-    doc.text(p.grupo, cx, textAreaY - lineSpacing, { align: "center", maxWidth: colW - 8 });
+    doc.text(nombre, x + w / 2, midY - lineH, { align: "center", maxWidth: w - 8 });
 
-    // Escuela
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(160, 160, 160);
-    doc.text(p.escuela, cx, textAreaY, { align: "center", maxWidth: colW - 8 });
+    doc.setFontSize(6);
+    doc.setTextColor(180, 180, 180);
+    doc.text(escuela, x + w / 2, midY, { align: "center", maxWidth: w - 8 });
 
-    // Puntos dorados para todos
     if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
-    doc.setFontSize(colW > 180 ? 9 : 7.5);
+    doc.setFontSize(pos === 1 ? 8.5 : 7);
     doc.setTextColor(...GOLD);
-    doc.text(`${p.puntos} pts`, cx, textAreaY + lineSpacing, { align: "center" });
-  }
+    doc.text(`${puntos} pts`, x + w / 2, midY + lineH, { align: "center" });
+  });
 
-  cursorY += 68 + 4;
+  cursorY = podiumBottom + 8;
 
-  // C) Lista posiciones 4+
+  // ── Lista posiciones 4+ ──
   for (let i = 3; i < participantes.length; i++) {
     const p = participantes[i];
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 107, 53);
-    doc.text(`${p.posicion}º`, MARGIN, cursorY + 7.5);
+    doc.text(`${p.posicion}º`, MARGIN, cursorY);
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(200, 200, 200);
-    doc.text(doc.splitTextToSize(p.grupo, 190)[0], 44, cursorY + 7.5);
+    doc.setTextColor(220, 220, 220);
+    doc.text(doc.splitTextToSize(p.grupo, 190)[0], 46, cursorY);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(200, 200, 200);
-    doc.text(doc.splitTextToSize(p.escuela, 190)[0], 240, cursorY + 7.5);
+    doc.text(doc.splitTextToSize(p.escuela, 190)[0], 240, cursorY);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 45, 120);
-    doc.text(`${p.puntos}`, PAGE_W - MARGIN, cursorY + 7.5, { align: "right" });
+    doc.text(String(p.puntos), PAGE_W - MARGIN, cursorY, { align: "right" });
 
-    doc.setDrawColor(20, 20, 20);
+    doc.setDrawColor(25, 25, 25);
     doc.setLineWidth(0.3);
-    doc.line(MARGIN, cursorY + 1, PAGE_W - MARGIN, cursorY + 1);
+    doc.line(MARGIN, cursorY + 2, PAGE_W - MARGIN, cursorY + 2);
     cursorY += 11;
   }
 
@@ -246,17 +253,6 @@ function drawCategory(doc, nombre, participantes, cursorY, useGrime, logoDataUrl
 
 export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExcluidas, jornadas }) {
   const [loading, setLoading] = useState(false);
-
-  const handleTest = async () => {
-    try {
-      const jsPDF = await loadJsPDF();
-      const doc = new jsPDF();
-      doc.text("Test OK", 10, 10);
-      downloadBlob(doc.output("blob"), "test.pdf");
-    } catch (err) {
-      alert("Error test: " + err.message);
-    }
-  };
 
   const handleExport = async () => {
     setLoading(true);
@@ -289,52 +285,37 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       // ── 3. Logo ──
       const logoDataUrl = await loadLogoDataUrl();
 
-      // ── 4. Primera página ──
+      // ── 4. Primera página: fondo + logo + cabecera ──
       drawBlackBg(doc);
 
-      // Logo o fallback naranja
       if (logoDataUrl) {
         doc.addImage(logoDataUrl, "JPEG", (PAGE_W - 50) / 2, 22, 50, 50);
-      } else {
-        doc.setFillColor(255, 107, 53);
-        doc.rect((PAGE_W - 50) / 2, 22, 50, 50, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        doc.text("GBD", PAGE_W / 2, 50, { align: "center" });
       }
 
-      // Cabecera — FIX 5: coordenadas exactas sin solapamiento
-      const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
-      const fechaHoy = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-      let y = 82;
-      if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(180, 180, 180);
-      doc.text("LIGA GALEGA DE", PAGE_W / 2, y, { align: "center" });
-
-      y += 18;
+      // Título en una línea con GrimeSlime
       if (useGrime) doc.setFont("GrimeSlime", "normal"); else doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
+      doc.setFontSize(11);
       doc.setTextColor(255, 107, 53);
-      doc.text("HIP HOP", PAGE_W / 2, y, { align: "center" });
+      doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 86, { align: "center" });
 
-      y += 14;
+      const maxJornada = jornadas && jornadas.length > 0 ? Math.max(...jornadas) : 0;
+      const fechaHoy = new Date().toLocaleDateString("es-ES");
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(255, 255, 255);
       doc.text(
         `RANKING GLOBAL ACUMULADO · JORNADA ${maxJornada} · ${fechaHoy}`,
-        PAGE_W / 2, y, { align: "center" }
+        PAGE_W / 2, 97, { align: "center" }
       );
 
-      doc.setDrawColor(40, 40, 40);
+      doc.setDrawColor(50, 50, 50);
       doc.setLineWidth(0.5);
-      doc.line(MARGIN, y + 6, PAGE_W - MARGIN, y + 6);
+      doc.line(MARGIN, 103, PAGE_W - MARGIN, 103);
 
       drawFooter(doc, useGrime);
 
-      let cursorY = y + 18;
+      let cursorY = 116;
 
       // ── 5. Categorías ──
       const aliasMap = buildAliasMap(grupoAliases || []);
@@ -359,12 +340,13 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       console.log(`[PDF] Categorías: ${catCount}`);
 
       // Marca de agua última página
-      drawWatermark(doc, logoDataUrl, cursorY);
+      drawWatermark(doc, cursorY, logoDataUrl);
 
       // ── 6. Descarga ──
       const todayFile = new Date().toISOString().slice(0, 10);
-      downloadBlob(doc.output("blob"), `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`);
-      console.log("[PDF] ✓ OK");
+      const filename = `ranking-global-jornada-${maxJornada}-${todayFile}.pdf`;
+      downloadBlob(doc.output("blob"), filename);
+      console.log("[PDF] ✓ OK:", filename);
 
     } catch (err) {
       console.error("Error generando PDF:", err);
@@ -375,20 +357,15 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Button onClick={handleTest} variant="outline" size="sm" className="text-xs px-3">
-        Test PDF
-      </Button>
-      <Button
-        onClick={handleExport}
-        disabled={loading}
-        className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md shrink-0"
-        style={{ background: "linear-gradient(90deg, #FF6B35, #FF2D78)", border: "none" }}
-      >
-        {loading
-          ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
-          : <><FileDown className="w-4 h-4" />📄 Descargar PDF Ranking</>}
-      </Button>
-    </div>
+    <Button
+      onClick={handleExport}
+      disabled={loading}
+      className="gap-2 text-white font-semibold rounded-xl px-4 py-2 shadow-md shrink-0"
+      style={{ background: "linear-gradient(90deg, #FF6B35, #FF2D78)", border: "none" }}
+    >
+      {loading
+        ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
+        : <><FileDown className="w-4 h-4" />📄 Descargar PDF Ranking</>}
+    </Button>
   );
 }
