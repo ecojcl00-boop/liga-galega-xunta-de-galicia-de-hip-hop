@@ -299,9 +299,11 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       doc.setTextColor(255, 107, 53);
       doc.text("LIGA GALEGA XUNTA DE GALICIA DE HIP HOP", PAGE_W / 2, 142, { align: "center" });
 
-      // Fecha de la última competición registrada
-      const fechaUltimaJornada = competiciones && competiciones.length > 0
-        ? competiciones.map(c => new Date(c.date || c.fecha)).sort((a, b) => b - a)[0]
+      // Fecha de la última competición con resultados cargados
+      const competicionIdsConResultados = new Set(resultados.map(r => r.competicion_id).filter(Boolean));
+      const competicionesConResultados = (competiciones || []).filter(c => competicionIdsConResultados.has(c.id));
+      const fechaUltimaJornada = competicionesConResultados.length > 0
+        ? competicionesConResultados.map(c => new Date(c.date || c.fecha)).sort((a, b) => b - a)[0]
         : null;
       const fechaDoc = fechaUltimaJornada && !isNaN(fechaUltimaJornada)
         ? fechaUltimaJornada.toLocaleDateString("es-ES")
