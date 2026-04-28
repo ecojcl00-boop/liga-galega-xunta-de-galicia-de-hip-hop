@@ -267,21 +267,7 @@ export default function ExportRankingPDF({ resultados, grupoAliases, escuelasExc
       const jsPDF = await loadJsPDF();
       const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
 
-      // ── 2. GrimeSlime (opcional) ──
-      let useGrime = false;
-      try {
-        const fontResp = await fetch("/GrimeSlime-Regular.ttf");
-        if (fontResp.ok) {
-          const fontBuf = await fontResp.arrayBuffer();
-          const bytes = new Uint8Array(fontBuf);
-          let binary = "";
-          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-          doc.addFileToVFS("grimeslime-regular.ttf", btoa(binary));
-          doc.addFont("grimeslime-regular.ttf", "GrimeSlime", "normal");
-          useGrime = true;
-          console.log("[PDF] GrimeSlime OK");
-        }
-      } catch (e) { console.warn("[PDF] Fuente:", e.message); }
+      const useGrime = false;
 
       // ── 3. Logo ──
       const logoDataUrl = await loadLogoDataUrl();

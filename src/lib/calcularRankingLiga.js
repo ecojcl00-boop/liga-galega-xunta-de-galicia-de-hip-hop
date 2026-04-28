@@ -1,4 +1,4 @@
-import { buildAliasMap, normalizeName, normalizeParejaNombre, canonicalClub } from "@/lib/normalizacion";
+import { buildAliasMap, normalizeName, normalizeParejaNombre, canonicalClub, canonicalGroupName } from "@/lib/normalizacion";
 
 export const TOTAL_JORNADAS_CIRCUITO = 5;
 export const BEST_N = 3;
@@ -33,10 +33,13 @@ function applyAlias(r, aliasMap) {
       originalSchool: alias.school_original,
     };
   }
+  const canonicalNombre = canonicalGroupName(r.grupo_nombre);
+  const wasRenamed = canonicalNombre !== r.grupo_nombre;
   return {
-    nombre: r.grupo_nombre,
+    nombre: canonicalNombre,
     school: canonicalClub(r.school_name || ""),
-    aliased: false,
+    aliased: wasRenamed,
+    originalNombre: wasRenamed ? r.grupo_nombre : undefined,
   };
 }
 

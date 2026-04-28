@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronDown, ChevronUp, Medal, Trophy, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Trophy, Star } from "lucide-react";
 import { buildAliasMap } from "@/lib/normalizacion";
 import { calcularRankingLiga } from "@/lib/calcularRankingLiga";
-import EvolucionGraficos, { Sparkline, COLORS } from "@/components/rankings/EvolucionGraficos";
+
 import ExportRankingPDF from "@/components/rankings/ExportRankingPDF";
 
 const CATEGORY_ORDER = [
@@ -71,7 +71,6 @@ function PodiumCard({ group, rank, jornadas }) {
 
 function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasExcluidas }) {
   const [expanded, setExpanded] = useState(false);
-  const [evolucionExpanded, setEvolucionExpanded] = useState(false);
   const ranking = calcularRankingLiga(resultados, categoria, aliasMap, escuelasExcluidas);
   if (ranking.length === 0) return null;
   const top3 = ranking.slice(0, 3);
@@ -79,16 +78,8 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex flex-col items-center gap-1 text-center">
-          <span style={{
-            fontFamily: 'GrimeSlime, sans-serif',
-            textAlign: 'center',
-            width: '100%',
-            fontSize: '1.2rem',
-            color: '#ffffff',
-            textTransform: 'uppercase',
-            letterSpacing: '3px'
-          }}>
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-lg font-bold uppercase tracking-wide">
             {categoria}
           </span>
           <Badge variant="secondary">
@@ -123,7 +114,6 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
                     <th key={j} className="text-center py-1 px-1 text-muted-foreground font-medium text-xs hidden min-[600px]:table-cell">J{j}</th>
                   ))}
                   <th className="text-center py-1 px-2 text-muted-foreground font-medium text-xs">Total</th>
-                  <th className="text-center py-1 px-2 text-muted-foreground font-medium text-xs">Tendencia</th>
                 </tr>
               </thead>
               <tbody>
@@ -151,11 +141,6 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
                       {g.total}
                       {g.hasBonus && <span className="text-yellow-500 text-xs ml-0.5">★</span>}
                     </td>
-                    <td className="py-1 px-1">
-                      <div className="flex justify-center">
-                        <Sparkline puestos={g.puestos} jornadas={jornadas} color={COLORS[i % COLORS.length]} />
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -163,16 +148,7 @@ function CategoryRanking({ categoria, resultados, jornadas, aliasMap, escuelasEx
           </div>
         )}
 
-        {/* Bump chart colapsable */}
-        <Button variant="outline" size="sm" onClick={() => setEvolucionExpanded(!evolucionExpanded)} className="w-full gap-2">
-          {evolucionExpanded
-            ? <><ChevronUp className="w-4 h-4" />Ocultar evolución</>
-            : <><ChevronDown className="w-4 h-4" />Ver evolución</>}
-        </Button>
 
-        {evolucionExpanded && (
-          <EvolucionGraficos ranking={ranking} jornadas={jornadas} />
-        )}
       </CardContent>
     </Card>
   );

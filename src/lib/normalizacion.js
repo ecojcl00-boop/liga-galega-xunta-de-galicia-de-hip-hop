@@ -6,6 +6,14 @@
 // ─────────────────────────────────────────────
 // ALIASES DE CLUBS CONOCIDOS
 // ─────────────────────────────────────────────
+// Alias de nombres de grupos conocidos: [nombre_canónico, ...variantes]
+const GROUP_NAME_ALIASES = [
+  ["Jastas Pista?", "Jasta pista", "Jastas Pista", "Jasta Pista?", "jastas pista?", "jasta pista"],
+];
+
+const GROUP_NAME_CANONICAL_MAP = new Map();
+// Se inicializa después de definir normalizeName
+
 const CLUB_ALIAS_GROUPS = [
   ["ALL DANCE STUDIO", "CLUB ALL DANCE STUDIO", "ALL DANCE"],
   ["CLUB GRAVITTY", "GRAVITTY"],
@@ -108,6 +116,26 @@ export function normalizeParejaNombre(str = "") {
   }
 
   return unified;
+}
+
+// Inicializar mapa de aliases de nombres de grupos (requiere normalizeName ya definida)
+GROUP_NAME_ALIASES.forEach(group => {
+  const canonical = group[0];
+  group.forEach(alias => {
+    GROUP_NAME_CANONICAL_MAP.set(normalizeName(alias), canonical);
+    // También con signos de puntuación quitados
+    const noSymbols = normalizeName(alias).replace(/[^a-z0-9\s]/g, "");
+    GROUP_NAME_CANONICAL_MAP.set(noSymbols, canonical);
+  });
+});
+
+/** Devuelve el nombre canónico del grupo si está en la lista de aliases, o el original */
+export function canonicalGroupName(str = "") {
+  const norm = normalizeName(str);
+  if (GROUP_NAME_CANONICAL_MAP.has(norm)) return GROUP_NAME_CANONICAL_MAP.get(norm);
+  const noSymbols = norm.replace(/[^a-z0-9\s]/g, "");
+  if (GROUP_NAME_CANONICAL_MAP.has(noSymbols)) return GROUP_NAME_CANONICAL_MAP.get(noSymbols);
+  return str;
 }
 
 /** Versión con palabras ordenadas alfabéticamente (para "Sara Ferreiro" == "Ferreiro Sara") */
