@@ -11,11 +11,8 @@
   font-display: swap;
 }
 
-h1, h2, h3 {
-  font-family: 'GrimeSlime', sans-serif;
-}
-
-nav a, nav button, .sidebar a, .sidebar button {
+/* GrimeSlime disponible solo con clase explícita: font-grimeslime */
+.font-grimeslime {
   font-family: 'GrimeSlime', sans-serif;
 }
 
