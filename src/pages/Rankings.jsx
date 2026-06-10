@@ -15,7 +15,7 @@ const JORNADAS_INFO = [
   { numero: 1, nombre: "Marín", fecha: "1-mar" },
   { numero: 2, nombre: "Fene", fecha: "2-mar" },
   { numero: 3, nombre: "Narón", fecha: "25-abr" },
-  { numero: 4, nombre: "Lugo", fecha: "7-jun" },
+  { numero: 4, nombre: "Lugo", fecha: "7-jul" },
   { numero: 5, nombre: "Vigo", fecha: "21-jun" },
 ];
 
