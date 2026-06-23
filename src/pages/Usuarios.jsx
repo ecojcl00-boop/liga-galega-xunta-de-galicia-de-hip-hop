@@ -436,7 +436,7 @@ export default function Usuarios() {
 
       {/* Edit dialog */}
       <Dialog open={!!editingUser} onOpenChange={(o) => !o && setEditingUser(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar usuario</DialogTitle>
           </DialogHeader>
@@ -464,7 +464,7 @@ export default function Usuarios() {
                       value={schoolSearch}
                       onChange={(e) => setSchoolSearch(e.target.value)}
                     />
-                    <div className="max-h-48 overflow-y-auto border rounded-md">
+                    <div className="max-h-32 overflow-y-auto border rounded-md">
                       <button
                         onClick={() => { setEditSchool("__none__"); setSchoolSearch(""); }}
                         className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
